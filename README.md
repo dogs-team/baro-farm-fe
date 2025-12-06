@@ -33,46 +33,46 @@
 
 ### Core
 
-| 기술 | 버전 | 설명 |
-|------|------|------|
-| **Next.js** | 16.0.3 | React 프레임워크 (App Router) |
-| **React** | 19.2.0 | UI 라이브러리 |
-| **TypeScript** | ^5.x | 정적 타입 언어 |
+| 기술           | 버전   | 설명                          |
+| -------------- | ------ | ----------------------------- |
+| **Next.js**    | 16.0.3 | React 프레임워크 (App Router) |
+| **React**      | 19.2.0 | UI 라이브러리                 |
+| **TypeScript** | ^5.x   | 정적 타입 언어                |
 
 ### Styling
 
-| 기술 | 버전 | 설명 |
-|------|------|------|
-| **Tailwind CSS** | ^4.1.9 | 유틸리티 기반 CSS 프레임워크 |
-| **Radix UI** | various | 접근성 높은 UI 컴포넌트 |
-| **Lucide React** | ^0.454.0 | 아이콘 라이브러리 |
-| **class-variance-authority** | ^0.7.1 | 컴포넌트 변형 관리 |
+| 기술                         | 버전     | 설명                         |
+| ---------------------------- | -------- | ---------------------------- |
+| **Tailwind CSS**             | ^4.1.9   | 유틸리티 기반 CSS 프레임워크 |
+| **Radix UI**                 | various  | 접근성 높은 UI 컴포넌트      |
+| **Lucide React**             | ^0.454.0 | 아이콘 라이브러리            |
+| **class-variance-authority** | ^0.7.1   | 컴포넌트 변형 관리           |
 
 ### State Management & Forms
 
-| 기술 | 버전 | 설명 |
-|------|------|------|
-| **Zustand** | latest | 상태 관리 |
-| **React Hook Form** | ^7.60.0 | 폼 관리 |
-| **Zod** | 3.25.76 | 스키마 유효성 검사 |
+| 기술                | 버전    | 설명               |
+| ------------------- | ------- | ------------------ |
+| **Zustand**         | latest  | 상태 관리          |
+| **React Hook Form** | ^7.60.0 | 폼 관리            |
+| **Zod**             | 3.25.76 | 스키마 유효성 검사 |
 
 ### Development Tools
 
-| 기술 | 버전 | 설명 |
-|------|------|------|
-| **ESLint** | ^9.39.1 | 코드 린팅 |
-| **Prettier** | ^3.7.3 | 코드 포맷팅 |
-| **Husky** | ^9.1.7 | Git Hooks |
+| 기술            | 버전    | 설명             |
+| --------------- | ------- | ---------------- |
+| **ESLint**      | ^9.39.1 | 코드 린팅        |
+| **Prettier**    | ^3.7.3  | 코드 포맷팅      |
+| **Husky**       | ^9.1.7  | Git Hooks        |
 | **lint-staged** | ^16.2.7 | Staged 파일 린팅 |
 
 ### 기타
 
-| 기술 | 버전 | 설명 |
-|------|------|------|
-| **date-fns** | latest | 날짜 유틸리티 |
-| **Recharts** | 2.15.4 | 차트 라이브러리 |
-| **Sonner** | ^1.7.4 | 토스트 알림 |
-| **next-themes** | ^0.4.6 | 다크모드 지원 |
+| 기술            | 버전   | 설명            |
+| --------------- | ------ | --------------- |
+| **date-fns**    | latest | 날짜 유틸리티   |
+| **Recharts**    | 2.15.4 | 차트 라이브러리 |
+| **Sonner**      | ^1.7.4 | 토스트 알림     |
+| **next-themes** | ^0.4.6 | 다크모드 지원   |
 
 ---
 
@@ -172,12 +172,12 @@ npx husky init
 
 #### 설정 파일
 
-| 파일 | 설명 |
-|------|------|
-| `.husky/pre-commit` | Git pre-commit hook |
-| `.lintstagedrc.json` | lint-staged 설정 |
-| `eslint.config.mjs` | ESLint 설정 (Flat Config) |
-| `.prettierrc` | Prettier 설정 |
+| 파일                 | 설명                      |
+| -------------------- | ------------------------- |
+| `.husky/pre-commit`  | Git pre-commit hook       |
+| `.lintstagedrc.json` | lint-staged 설정          |
+| `eslint.config.mjs`  | ESLint 설정 (Flat Config) |
+| `.prettierrc`        | Prettier 설정             |
 
 ### IDE 설정 (VS Code 권장)
 
@@ -193,6 +193,7 @@ npx husky init
 ```
 
 권장 확장 프로그램:
+
 - ESLint
 - Prettier
 - Tailwind CSS IntelliSense
@@ -230,16 +231,16 @@ pnpm format:check
 
 ### 백엔드 서비스 포트
 
-| 모듈  | 포트 | 포함 도메인 |
-|-------|------|-------------|
-| eureka      | 8761 | Service Registry |
-| config      | 8888 | Config Server |
-| gateway     | 8080 | API Gateway |
-| baro-auth   | 8081 | auth |
-| baro-buyer  | 8082 | buyer, cart, product |
-| baro-seller | 8085 | seller, farm |
-| baro-order  | 8087 | order, payment |
-| baro-support| 8089 | settlement, delivery, notification, experience, search, review |
+| 모듈         | 포트 | 포함 도메인                                                    |
+| ------------ | ---- | -------------------------------------------------------------- |
+| eureka       | 8761 | Service Registry                                               |
+| config       | 8888 | Config Server                                                  |
+| gateway      | 8080 | API Gateway                                                    |
+| baro-auth    | 8081 | auth                                                           |
+| baro-buyer   | 8082 | buyer, cart, product                                           |
+| baro-seller  | 8085 | seller, farm                                                   |
+| baro-order   | 8087 | order, payment                                                 |
+| baro-support | 8089 | settlement, delivery, notification, experience, search, review |
 
 ### API 사용 예시
 
@@ -249,20 +250,20 @@ import { authService, productService, cartService } from '@/lib/api'
 // 로그인
 const { accessToken, user } = await authService.login({
   email: 'user@example.com',
-  password: 'password123'
+  password: 'password123',
 })
 
 // 상품 목록 조회
 const products = await productService.getProducts({
   page: 0,
   size: 20,
-  category: '채소'
+  category: '채소',
 })
 
 // 장바구니에 추가
 await cartService.addToCart({
   productId: 1,
-  quantity: 2
+  quantity: 2,
 })
 ```
 
@@ -280,7 +281,38 @@ NEXT_PUBLIC_CART_SERVICE_URL=http://localhost:8083
 
 ## 🐳 배포
 
-### Docker 배포 (권장)
+### CI/CD 파이프라인 (자동 배포)
+
+이 프로젝트는 **GitHub Actions**를 사용하여 자동으로 빌드, 테스트, Docker 이미지 생성 및 EC2 배포를 수행합니다.
+
+#### 브랜치 전략
+
+- `main-*` 브랜치에 push 시 자동 배포 실행
+- Pull Request 시 빌드 및 테스트만 실행
+- 예: `main-frontend` 브랜치에 push하면 자동 배포
+
+#### CI/CD 단계
+
+1. **Build & Test** - 의존성 설치, 린트 검사, 빌드
+2. **Docker Build** - GitHub Container Registry에 이미지 푸시
+3. **Deploy** - EC2에 자동 배포
+4. **Cleanup** - 오래된 이미지 정리
+
+#### 필요한 GitHub Secrets
+
+GitHub 저장소의 **Settings → Secrets and variables → Actions**에서 다음 Secrets를 설정하세요:
+
+| Secret         | 설명                                   | 예시                                 |
+| -------------- | -------------------------------------- | ------------------------------------ |
+| `EC2_SSH_KEY`  | EC2 접속용 SSH private key (전체 내용) | `-----BEGIN RSA PRIVATE KEY-----...` |
+| `EC2_HOST`     | EC2 인스턴스 IP 주소 또는 도메인       | `123.45.67.89`                       |
+| `EC2_USERNAME` | EC2 SSH 사용자명                       | `ec2-user` 또는 `ubuntu`             |
+
+#### 배포 경로
+
+EC2의 `/home/{EC2_USERNAME}/apps/FE` 디렉토리에 배포됩니다.
+
+### 수동 배포
 
 #### 로컬에서 Docker 빌드 및 실행
 
@@ -295,7 +327,7 @@ docker-compose logs -f
 docker-compose down
 ```
 
-#### EC2 배포
+#### EC2 수동 배포
 
 1. **EC2 인스턴스에 Docker 설치**
 
@@ -315,18 +347,97 @@ sudo chmod +x /usr/local/bin/docker-compose
 2. **프로젝트 배포**
 
 ```bash
-# 프로젝트 클론
-git clone https://github.com/your-org/beadv2_2_dogs_FE.git
-cd beadv2_2_dogs_FE
+# 프로젝트 디렉토리로 이동
+cd ~/apps/FE
 
 # 환경 변수 설정 (docker-compose.yml 내 environment 수정)
 # 또는 .env 파일 생성
 
-# 빌드 및 실행
-docker-compose up -d --build
+# 배포 스크립트 실행
+bash deploy-frontend.sh
 ```
 
-#### 네트워크 구성
+### 배포 스크립트
+
+프로젝트에는 배포 및 관리를 위한 유틸리티 스크립트가 포함되어 있습니다.
+
+#### `scripts/deploy-frontend.sh`
+
+EC2에 프론트엔드를 배포하는 메인 스크립트입니다.
+
+```bash
+# CI/CD에서 자동 실행되며, 수동 실행도 가능
+bash scripts/deploy-frontend.sh
+```
+
+**기능:**
+
+- GitHub Container Registry에서 최신 이미지 Pull
+- 기존 컨테이너 중지 및 새 컨테이너 시작
+- 헬스 체크 및 배포 이력 기록
+
+#### `scripts/list-versions.sh`
+
+배포된 버전 목록을 확인합니다.
+
+```bash
+# 로컬 이미지 및 배포 이력 확인
+bash scripts/list-versions.sh
+```
+
+**기능:**
+
+- 로컬 Docker 이미지 목록
+- 배포 이력 확인
+- 현재 실행 중인 버전 확인
+
+#### `scripts/rollback.sh`
+
+이전 버전으로 안전하게 롤백합니다.
+
+```bash
+# 특정 태그로 롤백
+bash scripts/rollback.sh main-frontend-abc123
+
+# latest 태그로 롤백
+bash scripts/rollback.sh latest
+```
+
+**기능:**
+
+- 타겟 이미지 Pull
+- 기존 컨테이너 백업
+- 새 버전으로 시작 및 헬스 체크
+- 실패 시 자동 복원
+
+#### `scripts/cleanup-images.sh`
+
+오래된 Docker 이미지를 정리합니다.
+
+```bash
+# 최근 5개 버전만 유지 (기본값)
+bash scripts/cleanup-images.sh 5
+
+# 최근 10개 버전 유지
+bash scripts/cleanup-images.sh 10
+```
+
+**기능:**
+
+- 최근 N개 버전만 유지
+- 사용 중인 이미지는 건너뛰기
+- 미사용 및 dangling 이미지 정리
+
+#### `scripts/install-hooks.sh`
+
+Git hooks를 설치합니다.
+
+```bash
+# pre-commit hook 설치
+bash scripts/install-hooks.sh
+```
+
+### 네트워크 구성
 
 각 백엔드 서비스가 별도의 docker-compose로 실행되는 경우:
 
@@ -334,13 +445,23 @@ docker-compose up -d --build
 # docker-compose.yml
 services:
   frontend:
-    network_mode: host  # localhost로 다른 서비스 접근 가능
+    network_mode: host # localhost로 다른 서비스 접근 가능
     environment:
       - NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:8081
+      - NEXT_PUBLIC_BUYER_SERVICE_URL=http://localhost:8082
       # ...
 ```
 
-### Vercel 배포
+### 배포 이력
+
+배포 및 롤백 이력은 `~/apps/FE/deployment-history.log`에 자동으로 기록됩니다.
+
+```bash
+# 배포 이력 확인
+cat ~/apps/FE/deployment-history.log
+```
+
+### Vercel 배포 (선택사항)
 
 ```bash
 # Vercel CLI 설치
@@ -372,15 +493,15 @@ fix(cart): 수량 업데이트 버그 수정
 docs(readme): 배포 가이드 추가
 ``` -->
 
-| Type | 설명 |
-|------|------|
-| feat | 새로운 기능 |
-| fix | 버그 수정 |
-| docs | 문서 변경 |
-| style | 코드 포맷팅 |
-| refactor | 리팩토링 |
-| test | 테스트 추가 |
-| chore | 기타 변경 |
+| Type     | 설명        |
+| -------- | ----------- |
+| feat     | 새로운 기능 |
+| fix      | 버그 수정   |
+| docs     | 문서 변경   |
+| style    | 코드 포맷팅 |
+| refactor | 리팩토링    |
+| test     | 테스트 추가 |
+| chore    | 기타 변경   |
 
 ### Pull Request
 
@@ -396,5 +517,3 @@ docs(readme): 배포 가이드 추가
 이 프로젝트는 MIT 라이센스를 따릅니다.
 
 ---
-
-

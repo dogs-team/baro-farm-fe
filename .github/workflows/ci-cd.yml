@@ -1,0 +1,224 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      # - main
+      - main-*
+      # - dev-*
+  pull_request:
+    branches:
+      # - main
+      - main-*
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: do-develop-space  # 개인 GitHub 계정
+  SERVICE_NAME: barofarm-frontend
+
+jobs:
+  # ==================================================
+  # CI: Build, Test, Code Quality
+  # ==================================================
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9'
+      
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Code formatting check (Prettier)
+        run: pnpm format:check
+      
+      - name: Lint check (ESLint)
+        run: pnpm lint
+      
+      - name: Build with Next.js
+        run: pnpm build
+        env:
+          NODE_ENV: production
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            .next
+            public
+            package.json
+            pnpm-lock.yaml
+            Dockerfile
+            docker-compose.yml
+
+  # ==================================================
+  # Docker: Build and Push Images
+  # ==================================================
+  docker-build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    # data, infra 브랜치는 Docker 빌드 건너뛰기 (인프라만 배포)
+    if: |
+      github.event_name == 'push' && 
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/main-')) &&
+      !contains(github.ref, 'main-data') && 
+      !contains(github.ref, 'main-infra')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: do-develop-space  # 개인 계정
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ env.SERVICE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-,format=short
+            type=raw,value={{branch}}-{{date 'YYYYMMDD-HHmmss'}}
+          flavor: |
+            latest=true
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ env.SERVICE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ env.SERVICE_NAME }}:buildcache,mode=max
+
+  # ==================================================
+  # CD: Deploy to AWS EC2
+  # ==================================================
+  deploy:
+    name: Deploy Frontend to AWS EC2
+    runs-on: ubuntu-latest
+    needs: build-and-test  # docker-build가 건너뛰어질 수 있으므로 build-and-test에만 의존
+    if: startsWith(github.ref, 'refs/heads/main-')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Extract branch name
+        id: branch
+        run: |
+          BRANCH=$(echo ${GITHUB_REF#refs/heads/} | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+          echo "name=$BRANCH" >> $GITHUB_OUTPUT
+          echo "Deploying from branch: $BRANCH"
+      
+      - name: Deploy to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          HOST: ${{ secrets.EC2_HOST }}
+          USER: ${{ secrets.EC2_USERNAME }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          # EC2에 배포 스크립트 및 docker-compose 파일들 복사
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            ./scripts/deploy-frontend.sh ${USER}@${HOST}:/home/${USER}/
+          
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            ./docker-compose.yml ${USER}@${HOST}:/home/${USER}/apps/FE/
+          
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            ./Dockerfile ${USER}@${HOST}:/home/${USER}/apps/FE/
+          
+          # 프론트엔드 배포 스크립트 실행 (GITHUB_TOKEN 및 브랜치명 전달)
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${USER}@${HOST} "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} GITHUB_REF=${{ github.ref }} REGISTRY=${{ env.REGISTRY }} IMAGE_NAME=${{ env.IMAGE_NAME }} SERVICE_NAME=${{ env.SERVICE_NAME }} bash /home/${USER}/deploy-frontend.sh"
+          
+          rm -f private_key.pem
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment successful for frontend"
+          else
+            echo "❌ Deployment failed for frontend"
+          fi
+
+  # ==================================================
+  # Cleanup: 오래된 이미지 정리
+  # ==================================================
+  cleanup:
+    name: Cleanup Old Images
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: success()
+    
+    steps:
+      - name: Delete old container images
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: ${{ env.SERVICE_NAME }}
+          package-type: 'container'
+          min-versions-to-keep: 5
+          delete-only-untagged-versions: 'false'
+
+  # ==================================================
+  # Notification (선택사항)
+  # ==================================================
+  # notify:
+  #   name: Send Notifications
+  #   runs-on: ubuntu-latest
+  #   needs: [build-and-test, docker-build, deploy]
+  #   if: always()
+  #   
+  #   steps:
+  #     - name: Send Slack notification
+  #       uses: 8398a7/action-slack@v3
+  #       with:
+  #         status: ${{ job.status }}
+  #         text: 'CI/CD Pipeline completed'
+  #         webhook_url: ${{ secrets.SLACK_WEBHOOK }}
