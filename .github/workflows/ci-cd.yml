@@ -3,13 +3,13 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      # - main
-      - main-*
+      - main
+      # - main-*
       # - dev-*
   pull_request:
     branches:
-      # - main
-      - main-*
+      - main
+      # - main-*
 
 # GITHUB_TOKEN에 패키지 쓰기 권한 부여
 permissions:
