@@ -87,16 +87,36 @@ if [ -f docker-compose.yml ]; then
   if [ -n "$IMAGE_TO_USE" ]; then
     # 이미지가 있는 경우 docker-compose.yml 수정
     echo "📝 Updating docker-compose.yml with image: ${IMAGE_TO_USE}"
-    # build 섹션을 주석 처리하고 image 추가
-    sed -i.bak "s|build:|# build:|g" docker-compose.yml || true
-    if ! grep -q "image:" docker-compose.yml; then
-      # image 라인이 없으면 추가
-      sed -i.bak "/container_name:/a\\
-    image: ${IMAGE_TO_USE}
-" docker-compose.yml || true
+    
+    # 백업 생성
+    cp docker-compose.yml docker-compose.yml.bak
+    
+    # docker-compose는 image가 있으면 image를 우선 사용하므로 build 섹션은 그대로 둠
+    # image 라인이 있는지 확인
+    if grep -q "^[[:space:]]*image:" docker-compose.yml; then
+      # image 라인이 있으면 업데이트 (들여쓰기 4칸 유지)
+      sed -i.bak "s|^[[:space:]]*image:.*|    image: ${IMAGE_TO_USE}|g" docker-compose.yml
     else
-      # image 라인이 있으면 업데이트
-      sed -i.bak "s|image:.*|image: ${IMAGE_TO_USE}|g" docker-compose.yml || true
+      # image 라인이 없으면 container_name 다음에 추가 (들여쓰기 4칸)
+      # awk를 사용하여 더 안전하게 추가
+      awk -v img="${IMAGE_TO_USE}" '
+        /container_name:/ {
+          print $0
+          print "    image: " img
+          next
+        }
+        { print }
+      ' docker-compose.yml.bak > docker-compose.yml
+    fi
+    
+    # YAML 구문 검증 (docker-compose config로)
+    if $DOCKER_COMPOSE config > /dev/null 2>&1; then
+      echo "✅ docker-compose.yml updated and validated successfully"
+      rm -f docker-compose.yml.bak
+    else
+      echo "❌ docker-compose.yml validation failed, restoring backup"
+      mv docker-compose.yml.bak docker-compose.yml
+      exit 1
     fi
   fi
 fi
