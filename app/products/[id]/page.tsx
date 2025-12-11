@@ -37,7 +37,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     // 마운트 상태 설정을 위한 effect
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+
     setMounted(true)
   }, [])
 
@@ -151,7 +151,13 @@ export default function ProductDetailPage() {
     setQuantity(1)
   }
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
+    console.log('[ProductDetail] handleBuyNow called:', {
+      productId: product.id,
+      quantity,
+    })
+
+    // 바로 구매: 선택한 수량만 장바구니에 추가 (기존 아이템은 유지)
     addItem({
       id: product.id,
       name: product.name,
@@ -159,12 +165,69 @@ export default function ProductDetailPage() {
       image: product.images[0],
       farm: product.farm,
       quantity,
+      isBuyNow: true, // 바로 구매 플래그
     })
+
+    console.log('[ProductDetail] addItem called, waiting for localStorage save...')
+
     toast({
-      title: '장바구니에 추가되었습니다',
-      description: '주문 페이지로 이동합니다.',
+      title: '주문 페이지로 이동합니다',
+      description: `${product.name} ${quantity}개를 주문합니다.`,
     })
-    router.push('/checkout')
+
+    // persist 미들웨어가 localStorage에 저장할 시간을 확보
+    // 여러 프레임을 기다려서 상태 업데이트와 localStorage 저장이 완료되도록 함
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            // localStorage에 저장되었는지 확인하고 재시도
+            let retries = 0
+            const maxRetries = 10
+            const checkStorage = () => {
+              if (typeof window !== 'undefined') {
+                const stored = localStorage.getItem('barofarm-cart')
+                if (stored) {
+                  const parsed = JSON.parse(stored) as {
+                    state?: { items?: Array<{ id: number; isBuyNow?: boolean }> }
+                  }
+                  const item = parsed.state?.items?.find((i) => i.id === product.id)
+                  console.log('[ProductDetail] localStorage check before navigation:', {
+                    itemId: product.id,
+                    isBuyNow: item?.isBuyNow,
+                    retries,
+                  })
+
+                  // isBuyNow가 true로 저장되었는지 확인
+                  if (item?.isBuyNow === true || retries >= maxRetries) {
+                    console.log('[ProductDetail] Navigating to checkout...')
+                    router.push('/checkout')
+                    resolve(undefined)
+                  } else {
+                    // 아직 저장되지 않았으면 재시도
+                    retries++
+                    setTimeout(checkStorage, 50)
+                  }
+                } else {
+                  // localStorage에 없으면 재시도
+                  retries++
+                  if (retries < maxRetries) {
+                    setTimeout(checkStorage, 50)
+                  } else {
+                    console.log('[ProductDetail] localStorage not found, navigating anyway...')
+                    router.push('/checkout')
+                    resolve(undefined)
+                  }
+                }
+              } else {
+                resolve(undefined)
+              }
+            }
+            checkStorage()
+          }, 100)
+        })
+      })
+    )
   }
 
   return (

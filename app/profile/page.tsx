@@ -48,13 +48,19 @@ import { Store } from 'lucide-react'
 import { getAccessToken, setAccessToken } from '@/lib/api/client'
 import { authService } from '@/lib/api/services/auth'
 import { useCartStore } from '@/lib/cart-store'
+import { useAddressStore } from '@/lib/address-store'
+import { AddressDialog } from '@/components/address/address-dialog'
 
 export default function ProfilePage() {
   const router = useRouter()
   const { toast } = useToast()
   const clearCart = useCartStore((state) => state.clearCart)
+  const { addresses, addAddress, updateAddress, deleteAddress, setDefaultAddress } =
+    useAddressStore()
   const [activeTab, setActiveTab] = useState('overview')
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false)
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
+  const [editingAddressId, setEditingAddressId] = useState<number | null>(null)
   const [sellerApplication, setSellerApplication] = useState({
     farmName: '',
     farmAddress: '',
@@ -196,28 +202,40 @@ export default function ProfilePage() {
     },
   ]
 
-  const addresses = [
-    {
-      id: 1,
-      name: '집',
-      recipient: '김**',
-      phone: '010-1234-5678',
-      address: '서울시 강남구 테헤란로 123',
-      addressDetail: '101동 101호',
-      zipCode: '06142',
-      isDefault: true,
-    },
-    {
-      id: 2,
-      name: '회사',
-      recipient: '김**',
-      phone: '010-1234-5678',
-      address: '서울시 서초구 서초대로 456',
-      addressDetail: '2층',
-      zipCode: '06511',
-      isDefault: false,
-    },
-  ]
+  const handleSaveAddress = (addressData: Omit<import('@/lib/api/types').Address, 'id'>) => {
+    if (editingAddressId) {
+      updateAddress(editingAddressId, addressData)
+      toast({
+        title: '배송지가 수정되었습니다',
+      })
+    } else {
+      addAddress(addressData)
+      toast({
+        title: '배송지가 추가되었습니다',
+      })
+    }
+    setEditingAddressId(null)
+    setIsAddressDialogOpen(false)
+  }
+
+  const handleEditAddress = (id: number) => {
+    setEditingAddressId(id)
+    setIsAddressDialogOpen(true)
+  }
+
+  const handleDeleteAddress = (id: number) => {
+    deleteAddress(id)
+    toast({
+      title: '배송지가 삭제되었습니다',
+    })
+  }
+
+  const handleSetDefaultAddress = (id: number) => {
+    setDefaultAddress(id)
+    toast({
+      title: '기본 배송지로 설정되었습니다',
+    })
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -613,45 +631,73 @@ export default function ProfilePage() {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">배송지 관리</h2>
-                <Button variant="outline" size="sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingAddressId(null)
+                    setIsAddressDialogOpen(true)
+                  }}
+                >
                   <MapPin className="h-4 w-4 mr-2" />
                   배송지 추가
                 </Button>
               </div>
               <div className="space-y-4">
-                {addresses.map((address) => (
-                  <div
-                    key={address.id}
-                    className="p-4 border rounded-lg flex items-start justify-between"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold">{address.name}</span>
-                        {address.isDefault && (
-                          <Badge variant="secondary" className="text-xs">
-                            기본 배송지
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <div>
-                          {address.recipient} ({address.phone})
-                        </div>
-                        <div>
-                          [{address.zipCode}] {address.address} {address.addressDetail}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        수정
-                      </Button>
-                      <Button variant="destructive" size="sm">
-                        삭제
-                      </Button>
-                    </div>
+                {addresses.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    등록된 배송지가 없습니다
                   </div>
-                ))}
+                ) : (
+                  addresses.map((address) => (
+                    <div
+                      key={address.id}
+                      className="p-4 border rounded-lg flex items-start justify-between hover:bg-muted/50"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-semibold">{address.name}</span>
+                          {address.isDefault && (
+                            <Badge variant="secondary" className="text-xs">
+                              기본 배송지
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <div>{address.phone}</div>
+                          <div>
+                            [{address.zipCode}] {address.address} {address.detailAddress}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {!address.isDefault && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSetDefaultAddress(address.id)}
+                          >
+                            기본 설정
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditAddress(address.id)}
+                        >
+                          수정
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteAddress(address.id)}
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </Card>
 
@@ -689,6 +735,16 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* 배송지 추가/수정 다이얼로그 */}
+        <AddressDialog
+          open={isAddressDialogOpen}
+          onOpenChange={setIsAddressDialogOpen}
+          address={
+            editingAddressId ? addresses.find((addr) => addr.id === editingAddressId) || null : null
+          }
+          onSave={handleSaveAddress}
+        />
       </div>
     </div>
   )

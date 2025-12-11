@@ -35,7 +35,7 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <Header />
+      <Header showCart />
 
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">장바구니</h1>
@@ -56,21 +56,27 @@ export default function CartPage() {
               {items.map((item) => (
                 <Card key={item.id} className="p-4">
                   <div className="flex gap-4">
-                    <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    <Link
+                      href={`/products/${item.id}`}
+                      className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0 block"
+                    >
                       <Image
                         src={item.image || '/placeholder.svg'}
                         alt={item.name}
                         fill
                         className="object-cover"
                       />
-                    </div>
+                    </Link>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-2">
-                        <div>
+                        <Link
+                          href={`/products/${item.id}`}
+                          className="flex-1 hover:opacity-80 transition-opacity"
+                        >
                           <h3 className="font-semibold mb-1">{item.name}</h3>
                           <p className="text-sm text-muted-foreground">{item.farm}</p>
-                        </div>
+                        </Link>
                         <Button
                           variant="ghost"
                           size="icon"
