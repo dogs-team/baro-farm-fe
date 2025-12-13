@@ -27,9 +27,9 @@ export const authService = {
     return authApi.post<User>('/api/auth/signup', data)
   },
 
-  // 농가 회원가입 (추가 엔드포인트가 있다면 사용)
+  // 농가 회원가입 (Gateway를 통해 접근: POST /api/auth/signup)
   async farmerSignup(data: FarmerSignupRequest): Promise<User> {
-    return authApi.post<User>('/auth/signup', data)
+    return authApi.post<User>('/api/auth/signup', data)
   },
 
   // 로그아웃 (Gateway를 통해 접근: POST /api/auth/logout)
