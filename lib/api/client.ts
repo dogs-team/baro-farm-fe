@@ -66,9 +66,19 @@ class ApiClient {
     }
 
     // Default headers
-    const headers: HeadersInit = {
+    // const headers: HeadersInit = {
+    //   'Content-Type': 'application/json',
+    //   ...fetchOptions.headers,
+    // }
+    // Default headers
+
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...fetchOptions.headers,
+      ...(fetchOptions.headers instanceof Headers
+        ? Object.fromEntries(fetchOptions.headers.entries())
+        : Array.isArray(fetchOptions.headers)
+          ? Object.fromEntries(fetchOptions.headers)
+          : (fetchOptions.headers ?? {})),
     }
 
     // Add auth token if available

@@ -61,8 +61,13 @@ export const authService = {
   },
 
   // 이메일 인증 코드 요청
+  // async requestEmailVerification(email: string): Promise<void> {
+  //   return authApi.post('/api/auth/email/verification-request', { email })
+  // },
+
+  // 이메일 인증 코드 요청 (send-code)
   async requestEmailVerification(email: string): Promise<void> {
-    return authApi.post('/api/auth/email/verification-request', { email })
+    return authApi.post('/api/auth/verification/email/send-code', { email })
   },
 
   // 이메일 인증 코드 확인
