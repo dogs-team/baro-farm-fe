@@ -26,24 +26,30 @@ export const useAddressStore = create<AddressStore>()(
 
       addAddress: (address) => {
         const addresses = get().addresses
-        const newAddress: Address = {
-          ...address,
-          id: nextAddressId++,
-        }
 
-        // 기본 배송지로 설정하는 경우, 다른 기본 배송지 해제
-        if (newAddress.isDefault) {
-          const updatedAddresses = addresses.map((addr) => ({
-            ...addr,
-            isDefault: false,
-          }))
+        // 배송지는 1개만 등록 가능 - 기존 주소가 있으면 업데이트, 없으면 추가
+        if (addresses.length > 0) {
+          // 기존 주소를 업데이트 (항상 기본 배송지로 설정)
+          const existingAddress = addresses[0]
+          const updatedAddress: Address = {
+            ...address,
+            id: existingAddress.id,
+            isDefault: true, // 항상 기본 배송지로 설정
+          }
           set({
-            addresses: [...updatedAddresses, newAddress],
-            selectedAddressId: newAddress.id,
+            addresses: [updatedAddress],
+            selectedAddressId: updatedAddress.id,
           })
         } else {
+          // 첫 번째 주소 추가 (항상 기본 배송지로 설정)
+          const newAddress: Address = {
+            ...address,
+            id: nextAddressId++,
+            isDefault: true, // 항상 기본 배송지로 설정
+          }
           set({
-            addresses: [...addresses, newAddress],
+            addresses: [newAddress],
+            selectedAddressId: newAddress.id,
           })
         }
       },
@@ -52,16 +58,8 @@ export const useAddressStore = create<AddressStore>()(
         const addresses = get().addresses
         const updatedAddresses = addresses.map((addr) => {
           if (addr.id === id) {
-            const updated = { ...addr, ...updates }
-            // 기본 배송지로 설정하는 경우, 다른 기본 배송지 해제
-            if (updates.isDefault) {
-              return updated
-            }
-            return updated
-          }
-          // 다른 주소의 기본 배송지 해제
-          if (updates.isDefault) {
-            return { ...addr, isDefault: false }
+            // 업데이트 시 항상 기본 배송지로 유지
+            return { ...addr, ...updates, isDefault: true }
           }
           return addr
         })
@@ -72,18 +70,11 @@ export const useAddressStore = create<AddressStore>()(
       deleteAddress: (id) => {
         const addresses = get().addresses
         const filtered = addresses.filter((addr) => addr.id !== id)
-        const deletedAddress = addresses.find((addr) => addr.id === id)
 
-        // 삭제된 주소가 선택된 주소였거나 기본 주소였던 경우
-        if (deletedAddress?.isDefault || get().selectedAddressId === id) {
-          const newDefault = filtered.find((addr) => addr.isDefault) || filtered[0] || null
-          set({
-            addresses: filtered,
-            selectedAddressId: newDefault?.id || null,
-          })
-        } else {
-          set({ addresses: filtered })
-        }
+        set({
+          addresses: filtered,
+          selectedAddressId: filtered.length > 0 ? filtered[0].id : null,
+        })
       },
 
       setDefaultAddress: (id) => {

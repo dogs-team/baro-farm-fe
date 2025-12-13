@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { authService } from '@/lib/api/services/auth'
+import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -68,10 +69,12 @@ export default function SignupPage() {
         title: '인증 코드 발송',
         description: '이메일로 인증 코드를 발송했습니다.',
       })
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Email verification request error:', error)
+
       toast({
-        title: '인증 코드 발송 실패',
-        description: '인증 코드 발송 중 오류가 발생했습니다.',
+        title: getErrorTitle(error),
+        description: getErrorMessage(error),
         variant: 'destructive',
       })
     } finally {
@@ -105,10 +108,12 @@ export default function SignupPage() {
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Email verification error:', error)
+
       toast({
-        title: '인증 실패',
-        description: '인증 코드 확인 중 오류가 발생했습니다.',
+        title: getErrorTitle(error),
+        description: getErrorMessage(error),
         variant: 'destructive',
       })
     } finally {
@@ -153,12 +158,23 @@ export default function SignupPage() {
       })
 
       router.push('/login')
-    } catch (error) {
-      toast({
-        title: '회원가입 실패',
-        description: '회원가입 중 오류가 발생했습니다. 다시 시도해주세요.',
-        variant: 'destructive',
-      })
+    } catch (error: any) {
+      console.error('Signup error:', error)
+
+      // 409 에러는 특별 처리
+      if (error?.status === 409) {
+        toast({
+          title: '회원가입 실패',
+          description: '이미 사용 중인 이메일입니다.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: getErrorTitle(error),
+          description: getErrorMessage(error),
+          variant: 'destructive',
+        })
+      }
     } finally {
       setIsLoading(false)
     }

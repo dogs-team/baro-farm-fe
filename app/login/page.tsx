@@ -11,7 +11,8 @@ import { Sprout } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
-import { setAccessToken } from '@/lib/api/client'
+import { authService } from '@/lib/api/services/auth'
+import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -25,15 +26,18 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Implement login logic with backend API
-      console.log('[v0] Login attempt:', { email, password })
+      // 실제 API 호출
+      const response = await authService.login({
+        email,
+        password,
+      })
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      toast({
+        title: '로그인 성공',
+        description: '환영합니다!',
+      })
 
-      // 개발 환경: 더미 토큰 저장
-      const dummyToken = 'dummy-access-token-' + Date.now()
-      setAccessToken(dummyToken)
+      router.push('/')
 
       // 더미 사용자 정보를 localStorage에 저장 (농가 등록 페이지에서 사용)
       if (typeof window !== 'undefined') {
@@ -54,12 +58,23 @@ export default function LoginPage() {
       })
 
       router.push('/')
-    } catch (error) {
-      toast({
-        title: '로그인 실패',
-        description: '이메일 또는 비밀번호를 확인해주세요.',
-        variant: 'destructive',
-      })
+    } catch (error: any) {
+      console.error('Login error:', error)
+
+      // 401 에러는 특별 처리
+      if (error?.status === 401) {
+        toast({
+          title: '로그인 실패',
+          description: '이메일 또는 비밀번호가 올바르지 않습니다.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: getErrorTitle(error),
+          description: getErrorMessage(error),
+          variant: 'destructive',
+        })
+      }
     } finally {
       setIsLoading(false)
     }

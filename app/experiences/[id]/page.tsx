@@ -6,7 +6,6 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   MapPin,
-  Star,
   Calendar,
   Users,
   Clock,
@@ -16,6 +15,7 @@ import {
   Heart,
   Share2,
   CheckCircle,
+  CreditCard,
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -26,6 +26,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Label } from '@/components/ui/label'
 
 export default function ExperienceDetailPage() {
   const router = useRouter()
@@ -33,6 +35,7 @@ export default function ExperienceDetailPage() {
   const [date, setDate] = useState<Date>()
   const [participants, setParticipants] = useState(2)
   const [selectedImage, setSelectedImage] = useState(0)
+  const [paymentMethod, setPaymentMethod] = useState<'onsite'>('onsite') // 현장 결제만 가능
 
   const experience = {
     id: 1,
@@ -117,6 +120,7 @@ export default function ExperienceDetailPage() {
         date,
         participants,
         totalPrice,
+        paymentMethod: 'onsite', // 현장 결제
       })
 
       // Simulate API call
@@ -128,10 +132,11 @@ export default function ExperienceDetailPage() {
       })
 
       router.push('/booking/success')
-    } catch (error) {
+    } catch (error: any) {
+      console.error('예약 실패:', error)
       toast({
         title: '예약 실패',
-        description: '예약 중 오류가 발생했습니다. 다시 시도해주세요.',
+        description: error?.message || '예약 중 오류가 발생했습니다. 다시 시도해주세요.',
         variant: 'destructive',
       })
     }
@@ -189,13 +194,14 @@ export default function ExperienceDetailPage() {
                 <span>{experience.location}</span>
               </Link>
               <h1 className="text-3xl font-bold mb-4">{experience.title}</h1>
-              <div className="flex items-center gap-2 mb-6">
+              {/* 리뷰와 평점 숨김 처리 (나중에 추가될 예정) */}
+              {/* <div className="flex items-center gap-2 mb-6">
                 <div className="flex items-center gap-1">
                   <Star className="h-5 w-5 fill-primary text-primary" />
                   <span className="font-semibold">{experience.rating}</span>
                 </div>
                 <span className="text-muted-foreground">({experience.reviews}개 리뷰)</span>
-              </div>
+              </div> */}
 
               <div className="grid md:grid-cols-3 gap-4 mb-6">
                 <Card className="p-4 text-center">
@@ -263,8 +269,8 @@ export default function ExperienceDetailPage() {
               </div>
             </Card>
 
-            {/* Reviews */}
-            <Card className="p-6">
+            {/* Reviews Section - 숨김 처리 (나중에 추가될 예정) */}
+            {/* <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold">리뷰</h2>
                 <Button variant="outline">리뷰 작성</Button>
@@ -293,7 +299,7 @@ export default function ExperienceDetailPage() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </Card> */}
           </div>
 
           {/* Right Column - Booking Card */}
@@ -357,6 +363,25 @@ export default function ExperienceDetailPage() {
                   </p>
                 </div>
 
+                <div className="space-y-2 border-t pt-4">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    결제 수단
+                  </label>
+                  <RadioGroup
+                    value={paymentMethod}
+                    onValueChange={(value) => setPaymentMethod(value as 'onsite')}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="onsite" id="onsite" />
+                      <Label htmlFor="onsite" className="font-normal cursor-pointer">
+                        현장 결제
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  <p className="text-xs text-muted-foreground">체험 당일 현장에서 결제해주세요</p>
+                </div>
+
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
@@ -370,14 +395,15 @@ export default function ExperienceDetailPage() {
                   </div>
                 </div>
 
-                <Button className="w-full" onClick={handleBooking}>
+                <Button className="w-full" onClick={handleBooking} type="button" variant="default">
                   예약하기
                 </Button>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="icon" className="flex-1 bg-transparent">
+                  {/* TODO: 찜하기 기능 추가 예정 */}
+                  {/* <Button variant="outline" size="icon" className="flex-1 bg-transparent">
                     <Heart className="h-4 w-4" />
-                  </Button>
+                  </Button> */}
                   <Button variant="outline" size="icon" className="flex-1 bg-transparent">
                     <Share2 className="h-4 w-4" />
                   </Button>

@@ -66,9 +66,34 @@ export function AddressDialog({ open, onOpenChange, address, onSave }: AddressDi
   }
 
   const handleAddressSearch = () => {
-    // TODO: 주소 검색 API 연동 (다음 주소 API 등)
-    // 임시로 alert 표시
-    alert('주소 검색 기능은 다음 주소 API를 연동하여 구현할 예정입니다.')
+    // 다음 주소 API 호출
+    if (typeof window !== 'undefined' && (window as any).daum?.Postcode) {
+      new (window as any).daum.Postcode({
+        oncomplete: (data: any) => {
+          setFormData((prev) => ({
+            ...prev,
+            zipCode: data.zonecode,
+            address: data.address,
+          }))
+        },
+      }).open()
+    } else {
+      // 다음 주소 API 스크립트 동적 로드
+      const script = document.createElement('script')
+      script.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+      script.onload = () => {
+        new (window as any).daum.Postcode({
+          oncomplete: (data: any) => {
+            setFormData((prev) => ({
+              ...prev,
+              zipCode: data.zonecode,
+              address: data.address,
+            }))
+          },
+        }).open()
+      }
+      document.body.appendChild(script)
+    }
   }
 
   return (
@@ -142,17 +167,8 @@ export function AddressDialog({ open, onOpenChange, address, onSave }: AddressDi
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isDefault"
-                checked={formData.isDefault}
-                onCheckedChange={(checked) =>
-                  setFormData((prev) => ({ ...prev, isDefault: checked === true }))
-                }
-              />
-              <Label htmlFor="isDefault" className="cursor-pointer">
-                기본 배송지로 설정
-              </Label>
+            <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+              배송지는 1개만 등록 가능하며 기본 배송지로 자동 설정됩니다.
             </div>
           </div>
 

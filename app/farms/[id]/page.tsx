@@ -234,9 +234,10 @@ export default function FarmDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="icon">
+                  {/* TODO: 찜하기 기능 추가 예정 */}
+                  {/* <Button variant="outline" size="icon">
                     <Heart className="h-4 w-4" />
-                  </Button>
+                  </Button> */}
                   <Button variant="outline" size="icon">
                     <Share2 className="h-4 w-4" />
                   </Button>
@@ -244,12 +245,13 @@ export default function FarmDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-1">
+                {/* TODO: 평점 및 리뷰 기능 추가 예정 */}
+                {/* <div className="flex items-center gap-1">
                   <Star className="h-5 w-5 fill-primary text-primary" />
                   <span className="text-xl font-semibold">{farm.rating}</span>
                   <span className="text-muted-foreground">({farm.reviews})</span>
                 </div>
-                <div className="h-4 w-px bg-border" />
+                <div className="h-4 w-px bg-border" /> */}
                 <div className="text-sm text-muted-foreground">
                   판매 상품 <span className="font-semibold text-foreground">{farm.products}개</span>
                 </div>
@@ -362,11 +364,12 @@ export default function FarmDetailPage({ params }: { params: { id: string } }) {
                     </div>
                     <div className="p-4">
                       <h3 className="font-semibold mb-2">{product.name}</h3>
-                      <div className="flex items-center gap-1 mb-2">
+                      {/* TODO: 평점 및 리뷰 기능 추가 예정 */}
+                      {/* <div className="flex items-center gap-1 mb-2">
                         <Star className="h-4 w-4 fill-primary text-primary" />
                         <span className="text-sm font-medium">{product.rating}</span>
                         <span className="text-sm text-muted-foreground">({product.reviews})</span>
-                      </div>
+                      </div> */}
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-bold">
                           {product.price.toLocaleString()}원
@@ -421,13 +424,14 @@ export default function FarmDetailPage({ params }: { params: { id: string } }) {
                         <div className="text-xl font-bold text-primary">
                           {experience.price.toLocaleString()}원
                         </div>
-                        <div className="flex items-center gap-1">
+                        {/* TODO: 평점 및 리뷰 기능 추가 예정 */}
+                        {/* <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-primary text-primary" />
                           <span className="text-sm font-medium">{experience.rating}</span>
                           <span className="text-sm text-muted-foreground">
                             ({experience.reviews})
                           </span>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                   </Link>
@@ -436,8 +440,9 @@ export default function FarmDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
+          {/* TODO: 리뷰 섹션 - 나중에 추가될 예정 */}
           {/* Reviews Section */}
-          <Card className="p-6 mb-8">
+          {/* <Card className="p-6 mb-8">
             <h2 className="text-2xl font-bold mb-6">리뷰 ({farm.reviews})</h2>
             <div className="space-y-6">
               {farmReviews.map((review) => (
@@ -472,7 +477,7 @@ export default function FarmDetailPage({ params }: { params: { id: string } }) {
             <Button variant="outline" className="w-full mt-6">
               리뷰 더보기
             </Button>
-          </Card>
+          </Card> */}
 
           {/* Related Farms */}
           <div>
@@ -498,13 +503,14 @@ export default function FarmDetailPage({ params }: { params: { id: string } }) {
                         <MapPin className="h-3 w-3" />
                         <span>{relatedFarm.location}</span>
                       </div>
-                      <div className="flex items-center gap-1">
+                      {/* TODO: 평점 및 리뷰 기능 추가 예정 */}
+                      {/* <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-primary text-primary" />
                         <span className="text-sm font-medium">{relatedFarm.rating}</span>
                         <span className="text-sm text-muted-foreground">
                           ({relatedFarm.reviews})
                         </span>
-                      </div>
+                      </div> */}
                     </div>
                   </Link>
                 </Card>

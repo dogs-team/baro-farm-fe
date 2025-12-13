@@ -20,6 +20,8 @@ import {
   Calendar,
   ShoppingBag,
   Star,
+  DollarSign,
+  Wallet,
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -50,6 +52,8 @@ import { authService } from '@/lib/api/services/auth'
 import { useCartStore } from '@/lib/cart-store'
 import { useAddressStore } from '@/lib/address-store'
 import { AddressDialog } from '@/components/address/address-dialog'
+import { sellerService } from '@/lib/api/services/seller'
+import { useEffect } from 'react'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -61,6 +65,10 @@ export default function ProfilePage() {
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false)
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null)
+  const [monthlySettlement, setMonthlySettlement] = useState<number | null>(null)
+  const [isLoadingSettlement, setIsLoadingSettlement] = useState(false)
+  const [depositBalance, setDepositBalance] = useState<number | null>(null)
+  const [isLoadingDeposit, setIsLoadingDeposit] = useState(false)
   const [sellerApplication, setSellerApplication] = useState({
     farmName: '',
     farmAddress: '',
@@ -155,11 +163,106 @@ export default function ProfilePage() {
     }
   }
 
+  // 이번달 정산금액 조회 (판매자만)
+  useEffect(() => {
+    const fetchMonthlySettlement = async () => {
+      if (user.role !== 'SELLER') return
+
+      setIsLoadingSettlement(true)
+      try {
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = now.getMonth() + 1
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+        const endDate = new Date(year, month, 0).toISOString().split('T')[0]
+
+        const response = await sellerService.getSettlements({
+          page: 1,
+          size: 100,
+        })
+
+        // 이번달 정산금액 계산 (COMPLETED 상태만)
+        const currentMonthSettlements = response.content.filter((settlement) => {
+          const settlementDate = new Date(settlement.period.start)
+          return (
+            settlementDate.getFullYear() === year &&
+            settlementDate.getMonth() + 1 === month &&
+            settlement.status === 'COMPLETED'
+          )
+        })
+
+        const totalAmount = currentMonthSettlements.reduce(
+          (sum, settlement) => sum + settlement.netAmount,
+          0
+        )
+
+        setMonthlySettlement(totalAmount)
+      } catch (error) {
+        console.error('정산금액 조회 실패:', error)
+        // API 실패 시에도 UI는 표시 (에러는 무시)
+      } finally {
+        setIsLoadingSettlement(false)
+      }
+    }
+
+    fetchMonthlySettlement()
+  }, [user.role])
+
+  // 예치금 조회 (구매자, 판매자 모두)
+  useEffect(() => {
+    const fetchDepositBalance = async () => {
+      setIsLoadingDeposit(true)
+      try {
+        // TODO: API 연동 - 예치금 조회 API 호출
+        // const response = await userService.getDepositBalance()
+        // setDepositBalance(response.balance)
+
+        // 임시 데이터 (API 연동 전까지)
+        setDepositBalance(50000)
+      } catch (error) {
+        console.error('예치금 조회 실패:', error)
+        setDepositBalance(0)
+      } finally {
+        setIsLoadingDeposit(false)
+      }
+    }
+
+    fetchDepositBalance()
+  }, [])
+
   const stats = [
     { label: '주문 내역', value: '12', icon: Package },
-    { label: '찜한 상품', value: '8', icon: Heart },
+    // TODO: 찜하기 기능 추가 예정
+    // { label: '찜한 상품', value: '8', icon: Heart },
     { label: '작성한 리뷰', value: '5', icon: Star },
   ]
+
+  // 예치금 카드 추가 (구매자, 판매자 모두)
+  const depositStat = {
+    label: '예치금',
+    value: isLoadingDeposit
+      ? '조회 중...'
+      : depositBalance !== null
+        ? `${depositBalance.toLocaleString()}원`
+        : '0원',
+    icon: Wallet,
+  }
+
+  // 판매자일 경우 정산금액 카드 추가
+  const sellerStats =
+    user.role === 'SELLER'
+      ? [
+          {
+            label: '이번 달 정산금액',
+            value: isLoadingSettlement
+              ? '조회 중...'
+              : monthlySettlement !== null
+                ? `${monthlySettlement.toLocaleString()}원`
+                : '0원',
+            icon: DollarSign,
+          },
+        ]
+      : []
 
   const recentOrders = [
     {
@@ -261,10 +364,11 @@ export default function ProfilePage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">개요</TabsTrigger>
             <TabsTrigger value="orders">주문 내역</TabsTrigger>
-            <TabsTrigger value="favorites">찜한 상품</TabsTrigger>
+            {/* TODO: 찜하기 기능 추가 예정 */}
+            {/* <TabsTrigger value="favorites">찜한 상품</TabsTrigger> */}
             <TabsTrigger value="role">역할 관리</TabsTrigger>
             <TabsTrigger value="settings">설정</TabsTrigger>
           </TabsList>
@@ -311,7 +415,9 @@ export default function ProfilePage() {
             </Card>
 
             {/* Stats */}
-            <div className="grid md:grid-cols-3 gap-6">
+            <div
+              className={`grid gap-6 ${user.role === 'SELLER' ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}
+            >
               {stats.map((stat) => {
                 const Icon = stat.icon
                 return (
@@ -322,6 +428,31 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div className="text-3xl font-bold mb-1">{stat.value}</div>
+                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  </Card>
+                )
+              })}
+              {/* 예치금 카드 (구매자, 판매자 모두) */}
+              <Card key={depositStat.label} className="p-6 border-primary/20">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <depositStat.icon className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold mb-1 text-primary">{depositStat.value}</div>
+                <div className="text-sm text-muted-foreground">{depositStat.label}</div>
+              </Card>
+              {/* 판매자 정산금액 카드 */}
+              {sellerStats.map((stat) => {
+                const Icon = stat.icon
+                return (
+                  <Card key={stat.label} className="p-6 border-primary/20">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Icon className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold mb-1 text-primary">{stat.value}</div>
                     <div className="text-sm text-muted-foreground">{stat.label}</div>
                   </Card>
                 )
@@ -419,7 +550,9 @@ export default function ProfilePage() {
                       <li>• 상품 구매 및 주문 관리</li>
                       <li>• 체험 예약</li>
                       <li>• 리뷰 작성</li>
-                      <li>• 찜하기 및 장바구니</li>
+                      <li>• 장바구니</li>
+                      {/* TODO: 찜하기 기능 추가 예정 */}
+                      {/* <li>• 찜하기</li> */}
                     </ul>
                   </div>
                 </div>
@@ -559,8 +692,9 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
 
+          {/* TODO: 찜하기 기능 추가 예정 */}
           {/* Favorites Tab */}
-          <TabsContent value="favorites" className="space-y-6">
+          {/* <TabsContent value="favorites" className="space-y-6">
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-4">찜한 상품</h2>
               {favoriteProducts.length === 0 ? (
@@ -603,7 +737,7 @@ export default function ProfilePage() {
                 </div>
               )}
             </Card>
-          </TabsContent>
+          </TabsContent> */}
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
@@ -635,18 +769,22 @@ export default function ProfilePage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setEditingAddressId(null)
+                    setEditingAddressId(addresses.length > 0 ? addresses[0].id : null)
                     setIsAddressDialogOpen(true)
                   }}
                 >
                   <MapPin className="h-4 w-4 mr-2" />
-                  배송지 추가
+                  {addresses.length > 0 ? '배송지 수정' : '배송지 등록'}
                 </Button>
               </div>
               <div className="space-y-4">
                 {addresses.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     등록된 배송지가 없습니다
+                    <br />
+                    <span className="text-xs">
+                      배송지는 1개만 등록 가능하며 기본 배송지로 설정됩니다.
+                    </span>
                   </div>
                 ) : (
                   addresses.map((address) => (
@@ -657,11 +795,9 @@ export default function ProfilePage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="font-semibold">{address.name}</span>
-                          {address.isDefault && (
-                            <Badge variant="secondary" className="text-xs">
-                              기본 배송지
-                            </Badge>
-                          )}
+                          <Badge variant="secondary" className="text-xs">
+                            기본 배송지
+                          </Badge>
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
                           <div>{address.phone}</div>
@@ -671,15 +807,6 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {!address.isDefault && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSetDefaultAddress(address.id)}
-                          >
-                            기본 설정
-                          </Button>
-                        )}
                         <Button
                           variant="outline"
                           size="sm"

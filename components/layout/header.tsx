@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Sprout, ShoppingCart, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { NotificationIcon } from '@/components/notification'
+// TODO: 알림 기능 추가 예정
+// import { NotificationIcon } from '@/components/notification'
 import { getAccessToken, setAccessToken } from '@/lib/api/client'
 import { authService } from '@/lib/api/services/auth'
 import { useCartStore } from '@/lib/cart-store'
@@ -122,7 +123,8 @@ export function Header({ showCart = false }: HeaderProps) {
         </nav>
 
         <div className="flex items-center gap-3">
-          <NotificationIcon />
+          {/* TODO: 알림 기능 추가 예정 */}
+          {/* <NotificationIcon /> */}
           {showCart && (
             <Button variant="ghost" size="icon" className="relative" asChild>
               <Link href="/cart">

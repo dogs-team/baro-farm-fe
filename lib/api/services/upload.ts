@@ -33,8 +33,8 @@ export const uploadService = {
       formData.append('type', type)
     }
 
-    // 백엔드 API로 전송
-    const response = await sellerApi.post<UploadResponse>('/api/files/upload', formData, {
+    // 백엔드 API로 전송 (Seller Service - /api/v1/ 패턴 적용)
+    const response = await sellerApi.post<UploadResponse>('/api/v1/files/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -59,7 +59,7 @@ export const uploadService = {
     }
 
     const response = await sellerApi.post<MultipleUploadResponse>(
-      '/api/files/upload/multiple',
+      '/api/v1/files/upload/multiple',
       formData,
       {
         headers: {
@@ -112,7 +112,7 @@ export const uploadService = {
    * @param fileUrl - 삭제할 파일 URL
    */
   async deleteFile(fileUrl: string): Promise<void> {
-    await sellerApi.delete('/api/files', {
+    await sellerApi.delete('/api/v1/files', {
       params: { url: fileUrl },
     })
   },

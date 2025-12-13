@@ -2,7 +2,7 @@ import { cartApi } from '../client'
 import type { Cart, CartItem, AddToCartRequest } from '../types'
 
 export const cartService = {
-  // 장바구니 조회
+  // 장바구니 조회 (Buyer Service - Product와 동일한 패턴 적용)
   async getCart(): Promise<Cart> {
     return cartApi.get<Cart>('/api/cart')
   },

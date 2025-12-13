@@ -56,8 +56,8 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
       },
     ],
     subtotal: 22000,
-    deliveryFee: 3000,
-    totalPrice: 25000,
+    deliveryFee: 0, // 무료 배송
+    totalPrice: 22000,
     paymentMethod: '신용카드',
     paymentStatus: '결제 완료',
     deliveryInfo: {

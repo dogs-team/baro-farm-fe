@@ -366,9 +366,10 @@ export default function ProductDetailPage() {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" size="icon">
+                {/* TODO: 찜하기 기능 추가 예정 */}
+                {/* <Button variant="outline" size="icon">
                   <Heart className="h-4 w-4" />
-                </Button>
+                </Button> */}
                 <Button variant="outline" size="icon">
                   <Share2 className="h-4 w-4" />
                 </Button>

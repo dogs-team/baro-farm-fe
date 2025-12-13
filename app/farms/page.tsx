@@ -170,9 +170,10 @@ export default function FarmsPage() {
       case 'popular':
         filtered.sort((a, b) => b.reviews - a.reviews)
         break
-      case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating)
-        break
+      // TODO: 평점 기능 추가 예정
+      // case 'rating':
+      //   filtered.sort((a, b) => b.rating - a.rating)
+      //   break
       case 'products':
         filtered.sort((a, b) => b.products - a.products)
         break
@@ -242,7 +243,8 @@ export default function FarmsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="popular">인기순</SelectItem>
-                <SelectItem value="rating">평점순</SelectItem>
+                {/* TODO: 평점 기능 추가 예정 */}
+                {/* <SelectItem value="rating">평점순</SelectItem> */}
                 <SelectItem value="products">상품 많은 순</SelectItem>
                 <SelectItem value="name">이름순</SelectItem>
               </SelectContent>
@@ -317,11 +319,12 @@ export default function FarmsPage() {
                             <span>{farm.location}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        {/* TODO: 평점 및 리뷰 기능 추가 예정 */}
+                        {/* <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-primary text-primary" />
                           <span className="text-sm font-medium">{farm.rating}</span>
                           <span className="text-sm text-muted-foreground">({farm.reviews})</span>
-                        </div>
+                        </div> */}
                       </div>
                     </Link>
 

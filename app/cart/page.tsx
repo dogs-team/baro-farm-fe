@@ -16,7 +16,7 @@ export default function CartPage() {
   const { items, updateQuantity, removeItem, getTotalPrice, addItem } = useCartStore()
   const { toast } = useToast()
 
-  const deliveryFee = items.length > 0 ? 3000 : 0
+  const deliveryFee = 0 // 무료 배송
   const totalPrice = getTotalPrice()
   const finalPrice = totalPrice + deliveryFee
 
@@ -176,7 +176,7 @@ export default function CartPage() {
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Truck className="h-4 w-4" />
-                  <span>30,000원 이상 구매 시 무료배송</span>
+                  <span>무료 배송</span>
                 </div>
               </Card>
             </div>
