@@ -28,6 +28,8 @@ let accessToken: string | null = null
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token
+  if (typeof window === 'undefined') return
+
   if (token) {
     localStorage.setItem('accessToken', token)
   } else {
@@ -48,34 +50,31 @@ class ApiClient {
   private baseUrl: string
 
   constructor(service: ServiceName) {
+    // [!!!] config.ts에서 이미 "GATEWAY_BASE + 서비스 prefix"까지 합쳐진 값이 들어옴
+    // 예: http://localhost:8080/auth-service
     this.baseUrl = API_URLS[service]
   }
 
-  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { params, ...fetchOptions } = options
+  private buildUrl(endpoint: string, params?: RequestOptions['params']) {
+    // endpoint는 항상 "/..." 형태로 들어오는 걸 권장
+    // (혹시 "api/v1"처럼 슬래시 없이 들어와도 안전하게 처리)
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
 
-    // Build URL with query params
-    let url = `${this.baseUrl}${endpoint}`
+    let url = `${this.baseUrl}${normalizedEndpoint}`
+
     if (params) {
       const searchParams = new URLSearchParams()
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          searchParams.append(key, String(value))
-        }
+        if (value !== undefined) searchParams.append(key, String(value))
       })
       const queryString = searchParams.toString()
-      if (queryString) {
-        url += `?${queryString}`
-      }
+      if (queryString) url += `?${queryString}`
     }
 
-    // Default headers
-    // const headers: HeadersInit = {
-    //   'Content-Type': 'application/json',
-    //   ...fetchOptions.headers,
-    // }
-    // Default headers
+    return url
+  }
 
+  private buildHeaders(fetchOptions: RequestOptions) {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(fetchOptions.headers instanceof Headers
@@ -85,11 +84,75 @@ class ApiClient {
           : (fetchOptions.headers ?? {})),
     }
 
-    // Add auth token if available
     const token = getAccessToken()
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    return headers
+  }
+
+  private async parseError(response: Response, url: string): Promise<ApiError> {
+    let errorData: Record<string, any> = {}
+
+    try {
+      const text = await response.text()
+      if (text) errorData = JSON.parse(text)
+    } catch {
+      // JSON 파싱 실패 시 빈 객체 유지
     }
+
+    const errorMessage =
+      errorData.message ||
+      errorData.error ||
+      errorData.details ||
+      errorData.errorMessage ||
+      response.statusText ||
+      '알 수 없는 오류가 발생했습니다.'
+
+    let statusMessage = ''
+    switch (response.status) {
+      case 400:
+        statusMessage = '잘못된 요청입니다.'
+        break
+      case 401:
+        statusMessage = '인증이 필요합니다. 로그인해주세요.'
+        break
+      case 403:
+        statusMessage = '접근 권한이 없습니다.'
+        break
+      case 404:
+        statusMessage = '요청한 리소스를 찾을 수 없습니다.'
+        break
+      case 409:
+        statusMessage = '이미 존재하는 데이터입니다.'
+        break
+      case 422:
+        statusMessage = '입력 데이터가 올바르지 않습니다.'
+        break
+      case 500:
+        statusMessage = '서버 오류가 발생했습니다.'
+        break
+      case 503:
+        statusMessage = '서비스를 일시적으로 사용할 수 없습니다.'
+        break
+      default:
+        statusMessage = `서버 오류 (${response.status})`
+    }
+
+    return {
+      status: response.status,
+      message: errorMessage !== response.statusText ? errorMessage : statusMessage,
+      code: errorData.code || errorData.error,
+      details: errorData.details || errorData.message,
+      error: errorData.error,
+      path: errorData.path || url,
+      timestamp: errorData.timestamp,
+    }
+  }
+
+  private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+    const { params, ...fetchOptions } = options
+    const url = this.buildUrl(endpoint, params)
+    const headers = this.buildHeaders(fetchOptions)
 
     try {
       const response = await fetch(url, {
@@ -97,82 +160,26 @@ class ApiClient {
         headers,
       })
 
-      // Handle non-OK responses
       if (!response.ok) {
-        let errorData: Record<string, unknown> = {}
-        try {
-          const text = await response.text()
-          if (text) {
-            errorData = JSON.parse(text) as Record<string, unknown>
-          }
-        } catch {
-          // JSON 파싱 실패 시 빈 객체 사용
-        }
-
-        // 에러 메시지 추출 (다양한 형식 지원)
-        const errorMessage =
-          errorData.message ||
-          errorData.error ||
-          errorData.details ||
-          errorData.errorMessage ||
-          response.statusText ||
-          '알 수 없는 오류가 발생했습니다.'
-
-        // HTTP 상태 코드별 기본 메시지
-        let statusMessage = ''
-        switch (response.status) {
-          case 400:
-            statusMessage = '잘못된 요청입니다.'
-            break
-          case 401:
-            statusMessage = '인증이 필요합니다. 로그인해주세요.'
-            break
-          case 403:
-            statusMessage = '접근 권한이 없습니다.'
-            break
-          case 404:
-            statusMessage = '요청한 리소스를 찾을 수 없습니다.'
-            break
-          case 409:
-            statusMessage = '이미 존재하는 데이터입니다.'
-            break
-          case 422:
-            statusMessage = '입력 데이터가 올바르지 않습니다.'
-            break
-          case 500:
-            statusMessage = '서버 오류가 발생했습니다.'
-            break
-          case 503:
-            statusMessage = '서비스를 일시적으로 사용할 수 없습니다.'
-            break
-          default:
-            statusMessage = `서버 오류 (${response.status})`
-        }
-
-        throw {
-          status: response.status,
-          message: errorMessage !== response.statusText ? errorMessage : statusMessage,
-          code: errorData.code || errorData.error,
-          details: errorData.details || errorData.message,
-          error: errorData.error,
-          path: errorData.path || url,
-          timestamp: errorData.timestamp,
-        } as ApiError
+        throw await this.parseError(response, url)
       }
 
-      // Handle empty responses
+      // 204 No Content
       if (response.status === 204) {
         return {} as T
       }
 
-      return response.json()
+      // 응답이 비어있을 가능성도 방어 (ex: 200인데 body 없음)
+      const text = await response.text()
+      if (!text) return {} as T
+
+      return JSON.parse(text) as T
     } catch (error) {
-      // 이미 ApiError인 경우 그대로 던지기
+      // 이미 ApiError면 그대로 throw
       if ((error as ApiError).status !== undefined) {
         throw error
       }
 
-      // 네트워크 오류 처리
       const networkError = error as Error
       let errorMessage = '네트워크 오류가 발생했습니다.'
 
@@ -205,7 +212,7 @@ class ApiClient {
     return this.request<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data !== undefined ? JSON.stringify(data) : undefined,
     })
   }
 
@@ -213,7 +220,7 @@ class ApiClient {
     return this.request<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data !== undefined ? JSON.stringify(data) : undefined,
     })
   }
 
@@ -221,7 +228,7 @@ class ApiClient {
     return this.request<T>(endpoint, {
       ...options,
       method: 'PATCH',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data !== undefined ? JSON.stringify(data) : undefined,
     })
   }
 
