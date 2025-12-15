@@ -11,6 +11,7 @@ import { getAccessToken, setAccessToken } from '@/lib/api/client'
 import { authService } from '@/lib/api/services/auth'
 import { useCartStore } from '@/lib/cart-store'
 import { useToast } from '@/hooks/use-toast'
+import { SearchBox } from '@/components/search/search-box'
 
 interface HeaderProps {
   showCart?: boolean
@@ -22,6 +23,10 @@ export function Header({ showCart = false }: HeaderProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const cartItemsCount = useCartStore((state) => state.items.length)
   const clearCart = useCartStore((state) => state.clearCart)
+
+  const handleSearch = (query: string) => {
+    router.push(`/search?q=${encodeURIComponent(query)}`)
+  }
 
   useEffect(() => {
     // 로그인 상태 확인
@@ -121,6 +126,14 @@ export function Header({ showCart = false }: HeaderProps) {
             소개
           </Link>
         </nav>
+
+        <div className="flex-1 max-w-md mx-4 hidden md:block">
+          <SearchBox
+            placeholder="상품, 농장, 체험 검색..."
+            onSearch={handleSearch}
+            className="w-full"
+          />
+        </div>
 
         <div className="flex items-center gap-3">
           {/* TODO: 알림 기능 추가 예정 */}
