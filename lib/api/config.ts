@@ -3,7 +3,9 @@
 // API Service URLs Configuration
 // 모든 요청은 Gateway를 통해 라우팅 (NEXT_PUBLIC_GATEWAY_URL)
 
-const GATEWAY_BASE = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080'
+// 로컬 개발 환경에서는 실제 서버 URL 사용 (localhost:8080은 로컬 Gateway가 아닌 경우)
+// 프로덕션에서는 환경 변수로 설정된 Gateway URL 사용
+const GATEWAY_BASE = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://3.34.14.73:8080'
 
 // Gateway 라우팅 규칙(prefix)과 1:1로 맞춤
 export const SERVICE_PREFIX = {

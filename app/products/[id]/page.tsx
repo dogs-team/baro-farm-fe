@@ -26,6 +26,7 @@ import { ReviewForm, ReviewList, ReviewSummary, type Review } from '@/components
 import { Header } from '@/components/layout/header'
 import { productService } from '@/lib/api/services/product'
 import type { Product } from '@/lib/api/types'
+import { getProductImages } from '@/lib/utils/product-images'
 
 export default function ProductDetailPage() {
   const router = useRouter()
@@ -72,6 +73,8 @@ export default function ProductDetailPage() {
     }
   }, [mounted, productId, router, toast])
 
+  // 상품명에 따른 이미지 매핑은 lib/utils/product-images.ts의 getProductImages 함수 사용
+
   // 임시 더미 데이터 (API 실패 시 대체용)
   const dummyProduct = {
     id: 1,
@@ -100,31 +103,40 @@ export default function ProductDetailPage() {
 
   // API에서 가져온 상품 데이터를 표시 형식으로 변환
   const displayProduct = product
-    ? {
-        id: product.id,
-        name: product.productName || product.name || '',
-        farm: product.farmName || '',
-        farmId: product.sellerId || '',
-        location: product.farmLocation || '',
-        price: product.price || 0,
-        originalPrice:
-          product.productStatus === 'DISCOUNTED' ? (product.price || 0) * 1.2 : product.price || 0,
-        images: product.imageUrls || product.images || [],
-        rating: product.rating || 0,
-        reviews: product.reviewCount || 0,
-        tag: '베스트', // TODO: 태그 정보 추가
-        category: product.productCategory || product.category || '',
-        description: product.description || '',
-        weight: '1kg', // TODO: 무게 정보 추가
-        certification: '유기농 인증', // TODO: 인증 정보 추가
-        delivery: '수확 후 당일 배송', // TODO: 배송 정보 추가
-        features: [
-          '100% 유기농 재배',
-          '무농약, 무화학비료',
-          '당일 수확 당일 배송',
-          'GAP 인증 농장',
-        ], // TODO: 특징 정보 추가
-      }
+    ? (() => {
+        const productName = product.productName || product.name || ''
+        const imageUrls = product.imageUrls || product.images || []
+        // imageUrls가 비어있으면 productName에 맞는 이미지 사용
+        const images = getProductImages(productName, product.id, imageUrls)
+
+        return {
+          id: product.id,
+          name: productName,
+          farm: product.farmName || '',
+          farmId: product.sellerId || '',
+          location: product.farmLocation || '',
+          price: product.price || 0,
+          originalPrice:
+            product.productStatus === 'DISCOUNTED'
+              ? (product.price || 0) * 1.2
+              : product.price || 0,
+          images,
+          rating: product.rating || 0,
+          reviews: product.reviewCount || 0,
+          tag: '베스트', // TODO: 태그 정보 추가
+          category: product.productCategory || product.category || '',
+          description: product.description || '',
+          weight: '1kg', // TODO: 무게 정보 추가
+          certification: '유기농 인증', // TODO: 인증 정보 추가
+          delivery: '수확 후 당일 배송', // TODO: 배송 정보 추가
+          features: [
+            '100% 유기농 재배',
+            '무농약, 무화학비료',
+            '당일 수확 당일 배송',
+            'GAP 인증 농장',
+          ], // TODO: 특징 정보 추가
+        }
+      })()
     : dummyProduct
 
   const reviews: Review[] = [
@@ -194,6 +206,8 @@ export default function ProductDetailPage() {
 
     addItem({
       id: Number(displayProduct.id) || 0, // TODO: UUID를 number로 변환하는 로직 개선 필요
+      productId: String(displayProduct.id),
+      sellerId: String(displayProduct.farmId),
       name: displayProduct.name,
       price: displayProduct.price,
       image: displayProduct.images[0] || '/placeholder.svg',
@@ -225,6 +239,8 @@ export default function ProductDetailPage() {
     // 바로 구매: 선택한 수량만 장바구니에 추가 (기존 아이템은 유지)
     addItem({
       id: Number(displayProduct.id) || 0, // TODO: UUID를 number로 변환하는 로직 개선 필요
+      productId: String(displayProduct.id),
+      sellerId: String(displayProduct.farmId),
       name: displayProduct.name,
       price: displayProduct.price,
       image: displayProduct.images[0] || '/placeholder.svg',

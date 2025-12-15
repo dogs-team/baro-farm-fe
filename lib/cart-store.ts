@@ -17,6 +17,8 @@ export interface CartItem {
   quantity: number
   image: string
   farm: string
+  productId?: string // 실제 상품 UUID
+  sellerId?: string // 판매자 UUID
   maxQuantity?: number
   isBuyNow?: boolean // 바로 구매로 추가된 아이템인지 표시
 }

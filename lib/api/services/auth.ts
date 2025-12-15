@@ -1,5 +1,5 @@
 // lib/api/services/auth.ts
-import { authApi, setAccessToken } from '../client'
+import { authApi, setAccessToken, setRefreshToken, setAuthTokens } from '../client'
 import type {
   LoginRequest,
   LoginResult,
@@ -23,28 +23,48 @@ export const authService = {
   // 일반 로그인
   async login(data: LoginRequest): Promise<LoginResult> {
     const response = await authApi.post<LoginResult>('/api/v1/auth/login', data)
-    setAccessToken(response.accessToken)
+    // accessToken, refreshToken, userId 모두 localStorage에 저장
+    setAuthTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      userId: response.userId,
+    })
     return response
   },
 
   // 농가 로그인
   async farmerLogin(data: LoginRequest): Promise<LoginResult> {
     const response = await authApi.post<LoginResult>('/api/v1/auth/login', data)
-    setAccessToken(response.accessToken)
+    // accessToken, refreshToken, userId 모두 localStorage에 저장
+    setAuthTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      userId: response.userId,
+    })
     return response
   },
 
   // 일반 회원가입
   async signup(data: SignupRequest): Promise<SignUpResult> {
     const response = await authApi.post<SignUpResult>('/api/v1/auth/signup', data)
-    setAccessToken(response.accessToken)
+    // accessToken, refreshToken, userId 모두 localStorage에 저장
+    setAuthTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      userId: response.userId,
+    })
     return response
   },
 
   // 농가 회원가입
   async farmerSignup(data: FarmerSignupRequest): Promise<SignUpResult> {
     const response = await authApi.post<SignUpResult>('/api/v1/auth/signup', data)
-    setAccessToken(response.accessToken)
+    // accessToken, refreshToken, userId 모두 localStorage에 저장
+    setAuthTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      userId: response.userId,
+    })
     return response
   },
 
@@ -53,14 +73,20 @@ export const authService = {
     const response = await authApi.post<TokenResult>('/api/v1/auth/refresh', {
       refreshToken,
     } as RefreshTokenRequest)
+    // 토큰 갱신 시 accessToken만 업데이트 (refreshToken과 userId는 유지)
     setAccessToken(response.accessToken)
+    // refreshToken도 업데이트되는 경우를 대비
+    if (response.refreshToken) {
+      setRefreshToken(response.refreshToken)
+    }
     return response
   },
 
   // 로그아웃
   async logout(data?: LogoutRequest): Promise<void> {
     await authApi.post('/api/v1/auth/logout', data || {})
-    setAccessToken(null)
+    // 모든 토큰과 사용자 정보 삭제
+    setAuthTokens(null)
   },
 
   // 현재 사용자 정보 조회
@@ -90,10 +116,16 @@ export const authService = {
 
   // 이메일 인증코드 검증
   async verifyEmailCode(email: string, code: string): Promise<{ verified: boolean }> {
-    return authApi.post('/api/v1/auth/verification/email/verify-code', {
-      email,
-      code,
-    } as VerifyCodeRequest)
+    const response = await authApi.post<{ verified?: boolean }>(
+      '/api/v1/auth/verification/email/verify-code',
+      {
+        email,
+        code,
+      } as VerifyCodeRequest
+    )
+    // response body가 없거나 verified 필드가 없어도 200 OK면 인증 성공으로 처리
+    // (에러가 발생하면 ApiClient에서 throw되므로 여기까지 오면 성공)
+    return { verified: response?.verified ?? true }
   },
 
   // 이메일 인증 (토큰 기반)

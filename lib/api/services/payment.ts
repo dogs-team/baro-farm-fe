@@ -28,14 +28,21 @@ export const paymentService = {
 export const depositService = {
   // 예치금 조회
   async getDeposit(): Promise<{ balance: number }> {
-    return orderApi.get<{ balance: number }>('/api/v1/deposits')
+    const response = await orderApi.get<{ data: { balance: number } }>('/api/v1/deposits')
+    // API 응답이 { status, data: { balance }, message } 형태이므로 data 필드 추출
+    return response.data
   },
 
   // 예치금 충전 요청 생성
   async createCharge(
     data: DepositChargeCreateRequest
   ): Promise<{ chargeId: string; amount: number }> {
-    return orderApi.post<{ chargeId: string; amount: number }>('/api/v1/deposits/charges', data)
+    const response = await orderApi.post<{ data: { chargeId: string; amount: number } }>(
+      '/api/v1/deposits/charges',
+      data
+    )
+    // API 응답이 { status, data: { chargeId, amount }, message } 형태이므로 data 필드 추출
+    return response.data || response
   },
 
   // 예치금으로 주문 결제
