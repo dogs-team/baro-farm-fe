@@ -45,6 +45,55 @@ export const getAccessToken = (): string | null => {
   return accessToken
 }
 
+export const setRefreshToken = (token: string | null) => {
+  if (typeof window === 'undefined') return
+
+  if (token) {
+    localStorage.setItem('refreshToken', token)
+  } else {
+    localStorage.removeItem('refreshToken')
+  }
+}
+
+export const getRefreshToken = (): string | null => {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('refreshToken')
+}
+
+export const setUserId = (userId: string | null) => {
+  if (typeof window === 'undefined') return
+
+  if (userId) {
+    localStorage.setItem('userId', userId)
+  } else {
+    localStorage.removeItem('userId')
+  }
+}
+
+export const getUserId = (): string | null => {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('userId')
+}
+
+// 모든 토큰과 사용자 정보 저장
+export const setAuthTokens = (
+  data: {
+    accessToken: string
+    refreshToken: string
+    userId: string
+  } | null
+) => {
+  if (data) {
+    setAccessToken(data.accessToken)
+    setRefreshToken(data.refreshToken)
+    setUserId(data.userId)
+  } else {
+    setAccessToken(null)
+    setRefreshToken(null)
+    setUserId(null)
+  }
+}
+
 // JWT 토큰에서 userId 추출
 export const getUserIdFromToken = (): string | null => {
   const token = getAccessToken()
