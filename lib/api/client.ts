@@ -113,6 +113,45 @@ export const getUserIdFromToken = (): string | null => {
   }
 }
 
+// accessToken 만료 시 refreshToken으로 재발급 시도
+const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return false
+
+  try {
+    const url = `${API_URLS.AUTH}/api/v1/auth/refresh`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken }),
+    })
+
+    if (!response.ok) {
+      // 리프레시 토큰도 유효하지 않음
+      setAuthTokens(null)
+      return false
+    }
+
+    const data = (await response.json()) as {
+      accessToken: string
+      refreshToken?: string
+    }
+
+    setAccessToken(data.accessToken)
+    if (data.refreshToken) {
+      setRefreshToken(data.refreshToken)
+    }
+
+    return true
+  } catch (error) {
+    console.error('[ApiClient] refresh token failed:', error)
+    setAuthTokens(null)
+    return false
+  }
+}
+
 // API Client Class
 class ApiClient {
   private baseUrl: string
@@ -232,12 +271,10 @@ class ApiClient {
   private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { params, ...fetchOptions } = options
     const url = this.buildUrl(endpoint, params)
-    const headers = this.buildHeaders(fetchOptions)
-
-    try {
+    const doFetch = async () => {
       const response = await fetch(url, {
         ...fetchOptions,
-        headers,
+        headers: this.buildHeaders(fetchOptions),
       })
 
       if (!response.ok) {
@@ -254,10 +291,27 @@ class ApiClient {
       if (!text) return {} as T
 
       return JSON.parse(text) as T
+    }
+
+    try {
+      return await doFetch()
     } catch (error) {
+      const apiError = error as ApiError
+
+      // accessToken 만료(401) 시 refreshToken으로 한 번만 재시도
+      if (apiError.status === 401) {
+        const refreshed = await refreshAccessTokenWithRefreshToken()
+        if (refreshed) {
+          // 새 accessToken으로 한 번 더 시도
+          return await doFetch()
+        }
+        // refreshToken도 만료/실패 → 토큰 모두 제거 (사실상 로그아웃 상태)
+        setAuthTokens(null)
+      }
+
       // 이미 ApiError면 그대로 throw
-      if ((error as ApiError).status !== undefined) {
-        throw error
+      if (apiError.status !== undefined) {
+        throw apiError
       }
 
       const networkError = error as Error

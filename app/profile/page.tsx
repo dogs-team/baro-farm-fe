@@ -101,6 +101,9 @@ export default function ProfilePage() {
   // 리뷰 개수 상태
   const [reviewCount, setReviewCount] = useState(0)
   const [isLoadingReviews, setIsLoadingReviews] = useState(false)
+  const [tossWidget, setTossWidget] = useState<
+    import('@/types/toss-payments').TossPaymentsInstance | null
+  >(null)
 
   const handleSellerApplication = async () => {
     if (!sellerApplication.farmName || !sellerApplication.farmAddress) {
@@ -355,6 +358,74 @@ export default function ProfilePage() {
     }
   }, [mounted])
 
+  // 토스페이먼츠 위젯 로드 (예치금 충전용)
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return
+
+    const loadTossWidget = () => {
+      try {
+        if (window.TossPayments) {
+          const clientKey =
+            process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
+          if (!clientKey) {
+            console.error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.')
+            return
+          }
+          const widget = window.TossPayments(clientKey)
+          if (widget && typeof widget.requestPayment === 'function') {
+            setTossWidget(widget)
+            console.log('[Profile] 토스페이먼츠 위젯 초기화 완료')
+          } else {
+            console.error(
+              '[Profile] 토스페이먼츠 위젯 초기화 실패: requestPayment 함수가 없습니다.'
+            )
+          }
+        } else {
+          const script = document.createElement('script')
+          script.src = 'https://js.tosspayments.com/v1/payment'
+          script.async = true
+          script.onload = () => {
+            setTimeout(() => {
+              try {
+                const clientKey =
+                  process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
+                if (!clientKey) {
+                  console.error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.')
+                  return
+                }
+                if (window.TossPayments) {
+                  const widget = window.TossPayments(clientKey)
+                  if (widget && typeof widget.requestPayment === 'function') {
+                    setTossWidget(widget)
+                    console.log('[Profile] 토스페이먼츠 위젯 초기화 완료')
+                  } else {
+                    console.error(
+                      '[Profile] 토스페이먼츠 위젯 초기화 실패: requestPayment 함수가 없습니다.'
+                    )
+                  }
+                } else {
+                  console.error(
+                    '[Profile] 토스페이먼츠 스크립트 로드 후 TossPayments 객체를 찾을 수 없습니다.'
+                  )
+                }
+              } catch (error) {
+                console.error('[Profile] 토스페이먼츠 위젯 초기화 중 오류:', error)
+              }
+            }, 100)
+          }
+          script.onerror = () => {
+            console.error('[Profile] 토스페이먼츠 스크립트 로드 실패')
+          }
+          document.body.appendChild(script)
+        }
+      } catch (error) {
+        console.error('[Profile] 토스페이먼츠 위젯 로드 중 오류:', error)
+      }
+    }
+
+    loadTossWidget()
+  }, [mounted])
+
   // 예치금 충전 처리
   const handleDepositCharge = async () => {
     const amount = parseInt(chargeAmount.replace(/,/g, ''), 10)
@@ -380,20 +451,41 @@ export default function ProfilePage() {
     setIsCharging(true)
     try {
       const response = await depositService.createCharge({ amount })
-      toast({
-        title: '예치금 충전 요청 완료',
-        description: `${amount.toLocaleString()}원 충전이 요청되었습니다. 결제를 진행해주세요.`,
+      const chargeId = response.chargeId
+      const chargeAmount = response.amount
+
+      if (!tossWidget || typeof tossWidget.requestPayment !== 'function') {
+        toast({
+          title: '결제 위젯 로딩 중',
+          description: '결제 위젯을 불러오는 중입니다. 잠시 후 다시 시도해주세요.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const baseUrl = typeof window !== 'undefined' && window.location ? window.location.origin : ''
+      const successUrl = `${baseUrl}/deposit/success`
+      const failUrl = `${baseUrl}/deposit/fail`
+
+      console.log('[Profile] 예치금 충전 요청:', {
+        chargeId,
+        amount: chargeAmount,
+        successUrl,
+        failUrl,
       })
 
-      // TODO: 실제 결제 프로세스 연동 (토스페이먼츠 등)
-      // 현재는 충전 요청만 생성하고, 실제 결제는 별도로 처리해야 함
-      console.log('예치금 충전 요청:', response)
+      await tossWidget.requestPayment('간편결제', {
+        orderId: chargeId,
+        amount: chargeAmount,
+        orderName: '예치금 충전',
+        customerName: user.name || user.email || '고객',
+        successUrl,
+        failUrl,
+      })
 
+      // 결제 성공 시 successUrl로 이동하므로 여기서는 다이얼로그만 닫음
       setIsDepositChargeDialogOpen(false)
       setChargeAmount('')
-
-      // 예치금 잔액 다시 조회
-      await fetchDepositBalance()
     } catch (error: any) {
       console.error('예치금 충전 실패:', error)
       toast({

@@ -502,6 +502,10 @@ function CheckoutPageContent() {
   const deliveryFee = 0 // 무료 배송
   const finalPrice = totalPrice + deliveryFee
 
+  const isDepositSelected = formData.paymentMethod === 'deposit'
+  const isDepositInsufficient =
+    isDepositSelected && (depositBalance == null || depositBalance < finalPrice)
+
   // 디버깅 로그
   useEffect(() => {
     if (mounted) {
@@ -567,9 +571,50 @@ function CheckoutPageContent() {
       return
     }
 
+    // 주문 생성 공통 로직
+    const createOrder = async () => {
+      // 주문 생성 요청 데이터 구성
+      const orderRequest = {
+        receiverName: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        zipCode: formData.zipCode,
+        address: formData.address,
+        addressDetail: formData.addressDetail,
+        deliveryMemo: formData.deliveryNote || undefined,
+        items: checkoutItems.map((item) => {
+          const productId = item.productId
+          const sellerId = item.sellerId
+
+          if (!productId || !sellerId) {
+            throw new Error(
+              '상품 정보가 올바르지 않습니다. 상품 상세 페이지에서 다시 시도해주세요.'
+            )
+          }
+
+          return {
+            productId,
+            sellerId,
+            quantity: item.quantity,
+            unitPrice: item.price,
+          }
+        }),
+      }
+
+      const orderResponse = await orderService.createOrder(orderRequest)
+      const orderId = orderResponse.orderId || `ORDER-${orderResponse.orderId}`
+      const orderName =
+        checkoutItems.length === 1
+          ? checkoutItems[0].name
+          : `${checkoutItems[0].name} 외 ${checkoutItems.length - 1}개`
+
+      return { orderId, orderName }
+    }
+
     // 예치금 결제 처리
     if (formData.paymentMethod === 'deposit') {
-      if (depositBalance === null || depositBalance < finalPrice) {
+      // depositBalance가 null/undefined 이거나, 결제 금액보다 적으면 결제 불가
+      if (depositBalance == null || depositBalance < finalPrice) {
         toast({
           title: '예치금 부족',
           description: '예치금이 부족합니다. 토스결제를 이용해주세요.',
@@ -581,16 +626,14 @@ function CheckoutPageContent() {
       setIsProcessing(true)
 
       try {
-        // TODO: Implement actual order processing with backend API
-        console.log('[v0] Processing order with deposit:', {
-          items: checkoutItems,
-          formData,
-          totalPrice: finalPrice,
-          paymentMethod: 'deposit',
-        })
+        // 1. 주문 생성
+        const { orderId } = await createOrder()
 
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        // 2. 예치금으로 결제
+        await depositService.payWithDeposit({
+          orderId,
+          amount: finalPrice,
+        })
 
         // 바로 구매로 추가된 아이템만 제거 (일반 장바구니 아이템은 유지)
         clearBuyNowItems()
@@ -600,11 +643,13 @@ function CheckoutPageContent() {
           description: `총 ${finalPrice.toLocaleString()}원이 예치금으로 결제되었습니다.`,
         })
 
-        router.push('/order/success')
-      } catch {
+        // paymentKey는 없지만, /order/success 페이지는 paymentKey 없으면 승인 호출을 생략하고 UI만 보여줌
+        router.push(`/order/success?orderId=${orderId}`)
+      } catch (error: any) {
+        console.error('예치금 결제 실패:', error)
         toast({
           title: '주문 실패',
-          description: '주문 처리 중 오류가 발생했습니다. 다시 시도해주세요.',
+          description: error?.message || '예치금 결제 중 오류가 발생했습니다. 다시 시도해주세요.',
           variant: 'destructive',
         })
       } finally {
@@ -633,30 +678,9 @@ function CheckoutPageContent() {
         let orderName: string
 
         try {
-          // 주문 생성 요청 데이터 구성
-          const orderRequest = {
-            receiverName: formData.name,
-            phone: formData.phone,
-            email: formData.email,
-            zipCode: formData.zipCode,
-            address: formData.address,
-            addressDetail: formData.addressDetail,
-            deliveryMemo: formData.deliveryNote || undefined,
-            items: checkoutItems.map((item) => ({
-              productId: String(item.id), // UUID로 변환 (임시: 실제로는 UUID여야 함)
-              sellerId: '', // TODO: 실제 sellerId를 가져와야 함 (임시 빈 문자열)
-              quantity: item.quantity,
-              unitPrice: item.price,
-            })),
-          }
-
-          const orderResponse = await orderService.createOrder(orderRequest)
-
-          orderId = orderResponse.orderId || `ORDER-${orderResponse.orderId}`
-          orderName =
-            checkoutItems.length === 1
-              ? checkoutItems[0].name
-              : `${checkoutItems[0].name} 외 ${checkoutItems.length - 1}개`
+          const order = await createOrder()
+          orderId = order.orderId
+          orderName = order.orderName
         } catch (orderError: any) {
           console.error('주문 생성 실패:', orderError)
           // 주문 생성 실패 시 임시 주문 ID 생성 (테스트용)
@@ -985,16 +1009,16 @@ function CheckoutPageContent() {
                 </Select>
 
                 {/* 예치금 잔액 표시 */}
-                {formData.paymentMethod === 'deposit' && depositBalance !== null && (
+                {isDepositSelected && (
                   <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <Wallet className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">예치금 잔액</span>
                     </div>
                     <div className="text-2xl font-bold text-primary">
-                      {depositBalance.toLocaleString()}원
+                      {(depositBalance ?? 0).toLocaleString()}원
                     </div>
-                    {depositBalance < finalPrice && (
+                    {isDepositInsufficient && (
                       <p className="text-sm text-destructive mt-2">
                         예치금이 부족합니다. 토스결제를 이용해주세요.
                       </p>
@@ -1053,7 +1077,11 @@ function CheckoutPageContent() {
                 <Button
                   type="submit"
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                  disabled={isProcessing}
+                  disabled={
+                    isProcessing ||
+                    (formData.paymentMethod === 'deposit' &&
+                      (depositBalance == null || depositBalance < finalPrice))
+                  }
                 >
                   {isProcessing
                     ? '처리 중...'

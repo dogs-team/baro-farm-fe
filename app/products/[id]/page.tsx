@@ -206,6 +206,8 @@ export default function ProductDetailPage() {
 
     addItem({
       id: Number(displayProduct.id) || 0, // TODO: UUID를 number로 변환하는 로직 개선 필요
+      productId: String(displayProduct.id),
+      sellerId: String(displayProduct.farmId),
       name: displayProduct.name,
       price: displayProduct.price,
       image: displayProduct.images[0] || '/placeholder.svg',
@@ -237,6 +239,8 @@ export default function ProductDetailPage() {
     // 바로 구매: 선택한 수량만 장바구니에 추가 (기존 아이템은 유지)
     addItem({
       id: Number(displayProduct.id) || 0, // TODO: UUID를 number로 변환하는 로직 개선 필요
+      productId: String(displayProduct.id),
+      sellerId: String(displayProduct.farmId),
       name: displayProduct.name,
       price: displayProduct.price,
       image: displayProduct.images[0] || '/placeholder.svg',
