@@ -23,28 +23,24 @@ export const searchService = {
 
   // 통합 자동완성
   async getAutocomplete(keyword: string): Promise<UnifiedAutoCompleteResponse> {
-    return searchApi.get<UnifiedAutoCompleteResponse>('/api/v1/search/autocomplete', {
+    return searchApi.get<UnifiedAutoCompleteResponse>('/search/autocomplete', {
       params: { keyword },
     })
   },
 
   // 상품 자동완성
   async getProductAutocomplete(keyword: string): Promise<ProductAutoItem[]> {
-    return searchApi.get<ProductAutoItem[]>('/api/v1/search/product/autocomplete', {
-      params: { keyword },
-    })
+    return searchApi.get<ProductAutoItem[]>('/search/product/autocomplete', { params: { keyword } })
   },
 
   // 농장 자동완성
   async getFarmAutocomplete(keyword: string): Promise<FarmAutoItem[]> {
-    return searchApi.get<FarmAutoItem[]>('/api/v1/search/farm/autocomplete', {
-      params: { keyword },
-    })
+    return searchApi.get<FarmAutoItem[]>('/search/farm/autocomplete', { params: { keyword } })
   },
 
   // 체험 자동완성
   async getExperienceAutocomplete(keyword: string): Promise<ExperienceAutoItem[]> {
-    return searchApi.get<ExperienceAutoItem[]>('/api/v1/search/experience/autocomplete', {
+    return searchApi.get<ExperienceAutoItem[]>('/search/experience/autocomplete', {
       params: { keyword },
     })
   },
