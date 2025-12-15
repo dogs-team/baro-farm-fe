@@ -12,26 +12,26 @@ export const farmService = {
   async getFarms(
     params?: PaginationParams & { keyword?: string; location?: string }
   ): Promise<PaginatedResponse<Farm>> {
-    return farmApi.get<PaginatedResponse<Farm>>('/farms', { params })
+    return farmApi.get<PaginatedResponse<Farm>>('/api/v1/farms', { params })
   },
 
   // 농장 정보 등록
   async createFarm(data: FarmCreateRequestDto): Promise<Farm> {
-    return farmApi.post<Farm>('/farms', data)
+    return farmApi.post<Farm>('/api/v1/farms', data)
   },
 
   // 농장 상세 조회
   async getFarm(id: string): Promise<Farm> {
-    return farmApi.get<Farm>(`/farms/${id}`)
+    return farmApi.get<Farm>(`/api/v1/farms/${id}`)
   },
 
   // 농장 정보 수정
   async updateFarm(id: string, data: FarmUpdateRequestDto): Promise<Farm> {
-    return farmApi.put<Farm>(`/farms/${id}`, data)
+    return farmApi.put<Farm>(`/api/v1/farms/${id}`, data)
   },
 
   // 농장 삭제
   async deleteFarm(id: string): Promise<void> {
-    return farmApi.delete<void>(`/farms/${id}`)
+    return farmApi.delete<void>(`/api/v1/farms/${id}`)
   },
 }

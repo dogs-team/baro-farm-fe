@@ -106,14 +106,15 @@ export default function ProductDetailPage() {
         farm: product.farmName || '',
         farmId: product.sellerId || '',
         location: product.farmLocation || '',
-        price: product.price,
-        originalPrice: product.price, // TODO: 할인가 계산
+        price: product.price || 0,
+        originalPrice:
+          product.productStatus === 'DISCOUNTED' ? (product.price || 0) * 1.2 : product.price || 0,
         images: product.imageUrls || product.images || [],
         rating: product.rating || 0,
         reviews: product.reviewCount || 0,
         tag: '베스트', // TODO: 태그 정보 추가
         category: product.productCategory || product.category || '',
-        description: product.description,
+        description: product.description || '',
         weight: '1kg', // TODO: 무게 정보 추가
         certification: '유기농 인증', // TODO: 인증 정보 추가
         delivery: '수확 후 당일 배송', // TODO: 배송 정보 추가
@@ -342,15 +343,23 @@ export default function ProductDetailPage() {
             <div className="space-y-2">
               <div className="flex items-baseline gap-3">
                 <span className="text-3xl font-bold">
-                  {displayProduct.price.toLocaleString()}원
+                  {(displayProduct.price || 0).toLocaleString()}원
                 </span>
-                <span className="text-lg text-muted-foreground line-through">
-                  {displayProduct.originalPrice.toLocaleString()}원
-                </span>
-                <Badge variant="destructive">
-                  {Math.round((1 - displayProduct.price / displayProduct.originalPrice) * 100)}%
-                  할인
-                </Badge>
+                {displayProduct.originalPrice > displayProduct.price && (
+                  <>
+                    <span className="text-lg text-muted-foreground line-through">
+                      {(displayProduct.originalPrice || 0).toLocaleString()}원
+                    </span>
+                    <Badge variant="destructive">
+                      {Math.round(
+                        ((displayProduct.originalPrice - displayProduct.price) /
+                          displayProduct.originalPrice) *
+                          100
+                      )}
+                      % 할인
+                    </Badge>
+                  </>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">
                 {displayProduct.weight} 기준 가격 (배송비 별도)
@@ -516,7 +525,9 @@ export default function ProductDetailPage() {
                         <Star className="h-3 w-3 fill-primary text-primary" />
                         <span className="text-xs">{item.rating}</span>
                       </div>
-                      <p className="font-semibold text-sm">{item.price.toLocaleString()}원</p>
+                      <p className="font-semibold text-sm">
+                        {(item.price || 0).toLocaleString()}원
+                      </p>
                     </div>
                   </Link>
                 ))}

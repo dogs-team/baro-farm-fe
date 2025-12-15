@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -16,137 +16,160 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { productService } from '@/lib/api/services/product'
+import type { Product } from '@/lib/api/types'
 
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [sortBy, setSortBy] = useState('popular')
+  const [products, setProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
-  const products = [
-    {
-      id: 1,
-      name: '유기농 방울토마토',
-      farm: '햇살농장',
-      location: '충남 당진',
-      price: 8500,
-      originalPrice: 12000,
-      image: '/fresh-organic-cherry-tomatoes.jpg',
-      rating: 4.8,
-      reviews: 124,
-      tag: '베스트',
-      category: '채소',
-    },
-    {
-      id: 2,
-      name: '무농약 상추',
-      farm: '초록들판',
-      location: '경기 양평',
-      price: 5000,
-      originalPrice: 7000,
-      image: '/fresh-organic-lettuce.png',
-      rating: 4.9,
-      reviews: 89,
-      tag: '신선',
-      category: '채소',
-    },
-    {
-      id: 3,
-      name: '친환경 딸기',
-      farm: '달콤농원',
-      location: '전북 완주',
-      price: 15000,
-      originalPrice: 18000,
-      image: '/images/strawberries.png',
-      rating: 5.0,
-      reviews: 203,
-      tag: '인기',
-      category: '과일',
-    },
-    {
-      id: 4,
-      name: '유기농 감자',
-      farm: '푸른밭농장',
-      location: '강원 평창',
-      price: 12000,
-      originalPrice: 15000,
-      image: '/fresh-organic-potatoes.jpg',
-      rating: 4.7,
-      reviews: 67,
-      tag: '할인',
-      category: '채소',
-    },
-    {
-      id: 5,
-      name: '무농약 사과',
-      farm: '사과마을',
-      location: '경북 청송',
-      price: 18000,
-      originalPrice: 22000,
-      image: '/images/apples.png',
-      rating: 4.9,
-      reviews: 156,
-      tag: '베스트',
-      category: '과일',
-    },
-    {
-      id: 6,
-      name: '유기농 당근',
-      farm: '건강농장',
-      location: '제주',
-      price: 6500,
-      originalPrice: 8500,
-      image: '/fresh-organic-carrots.jpg',
-      rating: 4.6,
-      reviews: 92,
-      tag: '신선',
-      category: '채소',
-    },
-    {
-      id: 7,
-      name: '친환경 블루베리',
-      farm: '베리팜',
-      location: '전남 고흥',
-      price: 12000,
-      originalPrice: 15000,
-      image: '/fresh-organic-blueberries.jpg',
-      rating: 4.8,
-      reviews: 134,
-      tag: '인기',
-      category: '과일',
-    },
-    {
-      id: 8,
-      name: '무농약 브로콜리',
-      farm: '그린농원',
-      location: '충북 충주',
-      price: 7000,
-      originalPrice: 9000,
-      image: '/fresh-organic-broccoli.jpg',
-      rating: 4.7,
-      reviews: 78,
-      tag: '할인',
-      category: '채소',
-    },
-  ]
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // 상품 목록 로드
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!mounted) return
+
+      setIsLoading(true)
+      try {
+        const params: { category?: string; keyword?: string; page?: number; size?: number } = {}
+        if (category !== 'all') {
+          params.category = category
+        }
+        if (searchQuery.trim()) {
+          params.keyword = searchQuery.trim()
+        }
+        const response = await productService.getProducts(params)
+        // response.content가 배열인지 확인하고, 없으면 빈 배열로 설정
+        setProducts(Array.isArray(response?.content) ? response.content : [])
+      } catch (error) {
+        console.error('상품 조회 실패:', error)
+        // 에러 발생 시 빈 배열로 설정
+        setProducts([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [mounted, category, searchQuery])
+
+  // 카테고리 한글 변환 맵
+  const categoryMap: Record<string, string> = {
+    FRUIT: '과일',
+    VEGETABLE: '채소',
+    GRAIN: '곡물',
+    NUT: '견과',
+    ROOT: '뿌리',
+    MUSHROOM: '버섯',
+    ETC: '기타',
+  }
+
+  // 상품명에 따른 이미지 매핑
+  const getProductImage = (productName: string, productId: string): string => {
+    const name = productName.toLowerCase()
+
+    // 상품명 키워드에 따른 이미지 매핑
+    if (name.includes('토마토') || name.includes('tomato')) {
+      return '/fresh-organic-cherry-tomatoes.jpg'
+    }
+    if (name.includes('상추') || name.includes('lettuce')) {
+      return '/fresh-organic-lettuce.png'
+    }
+    if (name.includes('딸기') || name.includes('strawberry')) {
+      return '/images/strawberries.png'
+    }
+    if (name.includes('감자') || name.includes('potato')) {
+      return '/fresh-organic-potatoes.jpg'
+    }
+    if (name.includes('사과') || name.includes('apple')) {
+      return '/images/apples.png'
+    }
+    if (name.includes('당근') || name.includes('carrot')) {
+      return '/fresh-organic-carrots.jpg'
+    }
+    if (name.includes('블루베리') || name.includes('blueberry')) {
+      return '/fresh-organic-blueberries.jpg'
+    }
+    if (name.includes('브로콜리') || name.includes('broccoli')) {
+      return '/fresh-organic-broccoli.jpg'
+    }
+    if (name.includes('오이') || name.includes('cucumber')) {
+      return '/fresh-organic-lettuce.png'
+    }
+    if (name.includes('배추') || name.includes('cabbage')) {
+      return '/fresh-organic-lettuce.png'
+    }
+    if (name.includes('양파') || name.includes('onion')) {
+      return '/fresh-organic-potatoes.jpg'
+    }
+    if (name.includes('고추') || name.includes('pepper')) {
+      return '/fresh-organic-cherry-tomatoes.jpg'
+    }
+
+    // 매칭되지 않으면 상품 ID를 기반으로 랜덤하게 선택
+    const fallbackImages = [
+      '/fresh-organic-cherry-tomatoes.jpg',
+      '/fresh-organic-lettuce.png',
+      '/images/strawberries.png',
+      '/fresh-organic-potatoes.jpg',
+      '/images/apples.png',
+      '/fresh-organic-carrots.jpg',
+      '/fresh-organic-blueberries.jpg',
+      '/fresh-organic-broccoli.jpg',
+    ]
+
+    // productId의 해시값을 사용하여 일관된 랜덤 선택
+    const hash = productId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    return fallbackImages[hash % fallbackImages.length]
+  }
+
+  // API 데이터를 표시 형식으로 변환
+  const displayProducts = useMemo(() => {
+    // products가 배열이 아니면 빈 배열 반환
+    if (!Array.isArray(products)) {
+      return []
+    }
+    return products.map((product) => {
+      const productName = product.productName || product.name || ''
+      const defaultImage = getProductImage(productName, product.id)
+
+      return {
+        id: product.id,
+        name: productName,
+        farm: product.farmName || '농장',
+        location: product.farmLocation || '',
+        price: product.price,
+        originalPrice: product.productStatus === 'DISCOUNTED' ? product.price * 1.2 : product.price,
+        image: product.imageUrls?.[0] || product.images?.[0] || defaultImage,
+        rating: product.rating || 0,
+        reviews: 0, // TODO: 리뷰 개수 API 추가 시 업데이트
+        tag:
+          product.productStatus === 'DISCOUNTED'
+            ? '할인'
+            : product.productStatus === 'ON_SALE'
+              ? '판매중'
+              : '베스트',
+        category: categoryMap[product.productCategory] || product.category || '기타',
+      }
+    })
+  }, [products])
 
   // 필터링 및 정렬 로직
   const filteredAndSortedProducts = useMemo(() => {
-    let filtered = [...products]
+    let filtered = [...displayProducts]
 
-    // 검색 필터
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(query) ||
-          product.farm.toLowerCase().includes(query) ||
-          product.location.toLowerCase().includes(query)
-      )
-    }
-
-    // 카테고리 필터
+    // 카테고리 필터 (이미 API에서 필터링되지만 클라이언트에서도 추가 필터링)
     if (category !== 'all') {
-      filtered = filtered.filter((product) => product.category === category)
+      // category가 ProductCategory 값이면 한글로 변환하여 비교
+      const categoryValue = categoryMap[category] || category
+      filtered = filtered.filter((product) => product.category === categoryValue)
     }
 
     // 정렬
@@ -155,7 +178,7 @@ export default function ProductsPage() {
         filtered.sort((a, b) => b.reviews - a.reviews)
         break
       case 'latest':
-        filtered.sort((a, b) => b.id - a.id)
+        // 최신순은 createdAt 기준으로 정렬 (API에서 정렬된 데이터를 받아옴)
         break
       case 'low-price':
         filtered.sort((a, b) => a.price - b.price)
@@ -171,9 +194,9 @@ export default function ProductsPage() {
     }
 
     return filtered
-  }, [searchQuery, category, sortBy])
+  }, [displayProducts, category, sortBy])
 
-  const hasActiveFilters = searchQuery.trim() || category !== 'all'
+  const hasActiveFilters = category !== 'all'
 
   const clearFilters = () => {
     setSearchQuery('')
@@ -215,10 +238,13 @@ export default function ProductsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">전체</SelectItem>
-                <SelectItem value="채소">채소</SelectItem>
-                <SelectItem value="과일">과일</SelectItem>
-                <SelectItem value="곡물">곡물</SelectItem>
-                <SelectItem value="기타">기타</SelectItem>
+                <SelectItem value="FRUIT">과일</SelectItem>
+                <SelectItem value="VEGETABLE">채소</SelectItem>
+                <SelectItem value="GRAIN">곡물</SelectItem>
+                <SelectItem value="NUT">견과</SelectItem>
+                <SelectItem value="ROOT">뿌리</SelectItem>
+                <SelectItem value="MUSHROOM">버섯</SelectItem>
+                <SelectItem value="ETC">기타</SelectItem>
               </SelectContent>
             </Select>
 
@@ -248,13 +274,19 @@ export default function ProductsPage() {
         <div className="container mx-auto px-4">
           <div className="mb-6 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              총{' '}
-              <span className="font-semibold text-foreground">
-                {filteredAndSortedProducts.length}
-              </span>
-              개의 상품
-              {hasActiveFilters && (
-                <span className="ml-2 text-xs">(전체 {products.length}개 중)</span>
+              {isLoading ? (
+                '로딩 중...'
+              ) : (
+                <>
+                  총{' '}
+                  <span className="font-semibold text-foreground">
+                    {filteredAndSortedProducts.length}
+                  </span>
+                  개의 상품
+                  {hasActiveFilters && (
+                    <span className="ml-2 text-xs">(전체 {products.length}개 중)</span>
+                  )}
+                </>
               )}
             </p>
             {hasActiveFilters && (
@@ -270,7 +302,11 @@ export default function ProductsPage() {
             )}
           </div>
 
-          {filteredAndSortedProducts.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground">상품을 불러오는 중...</p>
+            </div>
+          ) : filteredAndSortedProducts.length === 0 ? (
             <div className="text-center py-16">
               <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">검색 결과가 없습니다</h3>
