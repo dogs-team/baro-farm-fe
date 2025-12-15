@@ -34,7 +34,7 @@ export const uploadService = {
     }
 
     // 백엔드 API로 전송 (Support Service)
-    const response = await experienceApi.post<UploadResponse>('/files/upload', formData, {
+    const response = await experienceApi.post<UploadResponse>('/api/v1/files/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -59,7 +59,7 @@ export const uploadService = {
     }
 
     const response = await experienceApi.post<MultipleUploadResponse>(
-      '/files/upload/multiple',
+      '/api/v1/files/upload/multiple',
       formData,
       {
         headers: {
@@ -112,7 +112,7 @@ export const uploadService = {
    * @param fileUrl - 삭제할 파일 URL
    */
   async deleteFile(fileUrl: string): Promise<void> {
-    await experienceApi.delete('/files', {
+    await experienceApi.delete('/api/v1/files', {
       params: { url: fileUrl },
     })
   },

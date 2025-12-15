@@ -13,31 +13,33 @@ export const reviewService = {
     productId: string,
     params?: PaginationParams
   ): Promise<PaginatedResponse<Review>> {
-    return reviewApi.get<PaginatedResponse<Review>>(`/products/${productId}/reviews`, { params })
+    return reviewApi.get<PaginatedResponse<Review>>(`/api/v1/products/${productId}/reviews`, {
+      params,
+    })
   },
 
   // 제품 리뷰 등록
   async createProductReview(productId: string, data: ReviewCreateRequest): Promise<Review> {
-    return reviewApi.post<Review>(`/products/${productId}/reviews`, data)
+    return reviewApi.post<Review>(`/api/v1/products/${productId}/reviews`, data)
   },
 
   // 내 리뷰 목록 조회
   async getMyReviews(params?: PaginationParams): Promise<PaginatedResponse<Review>> {
-    return reviewApi.get<PaginatedResponse<Review>>('/me/reviews', { params })
+    return reviewApi.get<PaginatedResponse<Review>>('/api/v1/me/reviews', { params })
   },
 
   // 리뷰 상세 조회
   async getReview(reviewId: string): Promise<Review> {
-    return reviewApi.get<Review>(`/reviews/${reviewId}`)
+    return reviewApi.get<Review>(`/api/v1/reviews/${reviewId}`)
   },
 
   // 리뷰 수정
   async updateReview(reviewId: string, data: ReviewUpdateRequest): Promise<Review> {
-    return reviewApi.put<Review>(`/reviews/${reviewId}`, data)
+    return reviewApi.put<Review>(`/api/v1/reviews/${reviewId}`, data)
   },
 
   // 리뷰 삭제
   async deleteReview(reviewId: string): Promise<void> {
-    return reviewApi.delete(`/reviews/${reviewId}`)
+    return reviewApi.delete(`/api/v1/reviews/${reviewId}`)
   },
 }
