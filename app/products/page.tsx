@@ -46,7 +46,8 @@ export default function ProductsPage() {
           params.keyword = searchQuery.trim()
         }
         const response = await productService.getProducts(params)
-        setProducts(response.content)
+        // response.content가 배열인지 확인하고, 없으면 빈 배열로 설정
+        setProducts(Array.isArray(response?.content) ? response.content : [])
       } catch (error) {
         console.error('상품 조회 실패:', error)
         // 에러 발생 시 빈 배열로 설정
@@ -131,6 +132,10 @@ export default function ProductsPage() {
 
   // API 데이터를 표시 형식으로 변환
   const displayProducts = useMemo(() => {
+    // products가 배열이 아니면 빈 배열 반환
+    if (!Array.isArray(products)) {
+      return []
+    }
     return products.map((product) => {
       const productName = product.productName || product.name || ''
       const defaultImage = getProductImage(productName, product.id)

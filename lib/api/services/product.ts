@@ -10,9 +10,14 @@ import type {
 export const productService = {
   // 상품 목록 조회
   async getProducts(params?: ProductListParams): Promise<PaginatedResponse<Product>> {
-    return productApi.get<PaginatedResponse<Product>>('/api/v1/products', {
-      params: params as Record<string, string | number | boolean | undefined>,
-    })
+    const response = await productApi.get<{ data: PaginatedResponse<Product> }>(
+      '/api/v1/products',
+      {
+        params: params as Record<string, string | number | boolean | undefined>,
+      }
+    )
+    // API 응답이 { status, data: { content, ... }, message } 형태이므로 data 필드 추출
+    return response.data
   },
 
   // 상품 생성
@@ -22,7 +27,9 @@ export const productService = {
 
   // 상품 상세 조회
   async getProduct(id: string): Promise<Product> {
-    return productApi.get<Product>(`/api/v1/products/${id}`)
+    const response = await productApi.get<{ data: Product }>(`/api/v1/products/${id}`)
+    // API 응답이 { status, data: { ... }, message } 형태이므로 data 필드 추출
+    return response.data
   },
 
   // 상품 수정
