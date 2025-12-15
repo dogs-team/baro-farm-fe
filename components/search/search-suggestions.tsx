@@ -129,23 +129,25 @@ export function SearchSuggestions({
               </button>
             </div>
             {recentSearches.map((keyword, index) => (
-              <button
+              <div
                 key={index}
-                onClick={() => handleSelect(keyword)}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-muted rounded-md transition-colors flex items-center justify-between group"
+                className="w-full hover:bg-muted rounded-md transition-colors flex items-center justify-between group"
               >
-                <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleSelect(keyword)}
+                  className="flex-1 px-3 py-2 text-left text-sm flex items-center gap-2"
+                >
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span>{keyword}</span>
-                </div>
+                </button>
                 <button
                   onClick={(e) => handleRemoveRecent(e, keyword)}
-                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
+                  className="px-3 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-opacity"
                   aria-label="삭제"
                 >
                   <X className="h-4 w-4" />
                 </button>
-              </button>
+              </div>
             ))}
           </div>
         )}

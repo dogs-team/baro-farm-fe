@@ -18,7 +18,12 @@ export const searchService = {
       page: params.page,
       size: params.size,
     }
-    return searchApi.get<UnifiedSearchResponse>('/api/v1/search', { params: queryParams })
+    const response = await searchApi.get<{
+      status: number
+      data: UnifiedSearchResponse
+      message: string | null
+    }>('/api/v1/search', { params: queryParams })
+    return response.data
   },
 
   // 통합 자동완성

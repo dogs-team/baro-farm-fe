@@ -100,29 +100,31 @@ function SearchResults() {
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="mb-8">
             <TabsTrigger value="all">전체</TabsTrigger>
-            <TabsTrigger value="products">상품 ({results.products.totalElements})</TabsTrigger>
-            <TabsTrigger value="farms">농장 ({results.farms.totalElements})</TabsTrigger>
+            <TabsTrigger value="products">
+              상품 ({results.products?.totalElements ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="farms">농장 ({results.farms?.totalElements ?? 0})</TabsTrigger>
             <TabsTrigger value="experiences">
-              체험 ({results.experiences.totalElements})
+              체험 ({results.experiences?.totalElements ?? 0})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-12">
             {/* Products Section */}
-            {results.products.totalElements > 0 && (
+            {(results.products?.totalElements ?? 0) > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold flex items-center gap-2">
                     <ShoppingBag className="h-5 w-5" /> 상품
                   </h2>
-                  {results.products.totalElements > 4 && (
+                  {(results.products?.totalElements ?? 0) > 4 && (
                     <Button variant="ghost" size="sm" asChild>
                       <Link href={`/products?search=${query}`}>더보기</Link>
                     </Button>
                   )}
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  {results.products.content.slice(0, 4).map((product) => (
+                  {(results.products?.content || []).slice(0, 4).map((product) => (
                     <ProductCard key={product.productId} product={product} />
                   ))}
                 </div>
@@ -130,20 +132,20 @@ function SearchResults() {
             )}
 
             {/* Farms Section */}
-            {results.farms.totalElements > 0 && (
+            {(results.farms?.totalElements ?? 0) > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold flex items-center gap-2">
                     <Tractor className="h-5 w-5" /> 농장
                   </h2>
-                  {results.farms.totalElements > 4 && (
+                  {(results.farms?.totalElements ?? 0) > 4 && (
                     <Button variant="ghost" size="sm" asChild>
                       <Link href={`/farms?search=${query}`}>더보기</Link>
                     </Button>
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {results.farms.content.slice(0, 6).map((farm) => (
+                  {(results.farms?.content || []).slice(0, 6).map((farm) => (
                     <FarmCard key={farm.farmId} farm={farm} />
                   ))}
                 </div>
@@ -151,20 +153,20 @@ function SearchResults() {
             )}
 
             {/* Experiences Section */}
-            {results.experiences.totalElements > 0 && (
+            {(results.experiences?.totalElements ?? 0) > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold flex items-center gap-2">
                     <Tent className="h-5 w-5" /> 체험
                   </h2>
-                  {results.experiences.totalElements > 4 && (
+                  {(results.experiences?.totalElements ?? 0) > 4 && (
                     <Button variant="ghost" size="sm" asChild>
                       <Link href={`/experiences?search=${query}`}>더보기</Link>
                     </Button>
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {results.experiences.content.slice(0, 6).map((experience) => (
+                  {(results.experiences?.content || []).slice(0, 6).map((experience) => (
                     <ExperienceCard key={experience.experienceId} experience={experience} />
                   ))}
                 </div>
@@ -174,31 +176,33 @@ function SearchResults() {
 
           <TabsContent value="products">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {results.products.content.map((product) => (
+              {(results.products?.content || []).map((product) => (
                 <ProductCard key={product.productId} product={product} />
               ))}
             </div>
-            {results.products.content.length === 0 && (
+            {(results.products?.content || []).length === 0 && (
               <EmptyState message="검색된 상품이 없습니다." />
             )}
           </TabsContent>
 
           <TabsContent value="farms">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {results.farms.content.map((farm) => (
+              {(results.farms?.content || []).map((farm) => (
                 <FarmCard key={farm.farmId} farm={farm} />
               ))}
             </div>
-            {results.farms.content.length === 0 && <EmptyState message="검색된 농장이 없습니다." />}
+            {(results.farms?.content || []).length === 0 && (
+              <EmptyState message="검색된 농장이 없습니다." />
+            )}
           </TabsContent>
 
           <TabsContent value="experiences">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {results.experiences.content.map((experience) => (
+              {(results.experiences?.content || []).map((experience) => (
                 <ExperienceCard key={experience.experienceId} experience={experience} />
               ))}
             </div>
-            {results.experiences.content.length === 0 && (
+            {(results.experiences?.content || []).length === 0 && (
               <EmptyState message="검색된 체험이 없습니다." />
             )}
           </TabsContent>
