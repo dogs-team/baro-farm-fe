@@ -1,8 +1,7 @@
-import { sellerApi } from '../client'
-import type { SellerApplyRequestDto, MySettlementResponse } from '../types'
 import { sellerApi, settlementApi } from '../client'
 import type {
   SellerApplyRequestDto,
+  MySettlementResponse,
   Settlement,
   PaginatedResponse,
   PaginationParams,

@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useLogout } from '@/hooks/useLogout'
 import { authService } from '@/lib/api/services/auth'
 import { sellerService } from '@/lib/api/services/seller'
+import { farmService } from '@/lib/api/services/farm'
 import { useProfileUser } from './hooks/useProfileUser'
 import { useProfileOrders } from './hooks/useProfileOrders'
 import { useProfileDeposit } from './hooks/useProfileDeposit'
@@ -47,6 +48,10 @@ export function ProfileContainer() {
   const [isLoadingSettlement, setIsLoadingSettlement] = useState(false)
   const [settlementData, setSettlementData] = useState<MySettlementResponse | null>(null)
   const [settlementMonth, setSettlementMonth] = useState<SettlementMonth | null>(null)
+
+  // 내 농장 보유 여부 (SELLER 전용)
+  const [hasFarm, setHasFarm] = useState<boolean | null>(null)
+  const [isCheckingFarm, setIsCheckingFarm] = useState(false)
 
   // 이번달 정산금액 조회 (판매자만)
   useEffect(() => {
@@ -93,6 +98,32 @@ export function ProfileContainer() {
     }
 
     fetchMonthlySettlement()
+  }, [mounted, user.role])
+
+  // SELLER의 경우 내 농장 보유 여부 확인
+  useEffect(() => {
+    const checkMyFarm = async () => {
+      if (!mounted || user.role !== 'SELLER') return
+
+      setIsCheckingFarm(true)
+      try {
+        const response = await farmService.getFarms({ page: 0, size: 1 })
+        const content = Array.isArray(response?.content) ? response.content : []
+        setHasFarm(content.length > 0)
+      } catch (error: any) {
+        if (error?.status === 404) {
+          // 농장이 없는 경우 (정상 케이스)
+          setHasFarm(false)
+        } else {
+          console.error('내 농장 조회 실패:', error)
+          setHasFarm(false)
+        }
+      } finally {
+        setIsCheckingFarm(false)
+      }
+    }
+
+    checkMyFarm()
   }, [mounted, user.role])
 
   const handleSellerApplication = async () => {
@@ -181,6 +212,10 @@ export function ProfileContainer() {
     isLoadingSettlement,
     settlementData,
     settlementMonth,
+
+    // Farm state
+    hasFarm,
+    isCheckingFarm,
 
     // UI state
     activeTab,
