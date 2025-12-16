@@ -7,17 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  User,
   Package,
-  Heart,
   MapPin,
-  CreditCard,
   Settings,
   LogOut,
   Edit,
   Phone,
   Mail,
-  Calendar,
   ShoppingBag,
   Star,
   DollarSign,
@@ -28,13 +24,6 @@ import Image from 'next/image'
 import { Header } from '@/components/layout/header'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -47,7 +36,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { Store } from 'lucide-react'
-import { getAccessToken, setAccessToken } from '@/lib/api/client'
+import { setAccessToken } from '@/lib/api/client'
 import { authService } from '@/lib/api/services/auth'
 import { useCartStore } from '@/lib/cart-store'
 import { useAddressStore } from '@/lib/address-store'
@@ -62,8 +51,9 @@ export default function ProfilePage() {
   const router = useRouter()
   const { toast } = useToast()
   const clearCart = useCartStore((state) => state.clearCart)
-  const { addresses, addAddress, updateAddress, deleteAddress, setDefaultAddress } =
-    useAddressStore()
+  const { addresses, addAddress, updateAddress, deleteAddress } = useAddressStore()
+  // TODO: 기본 배송지 설정 기능 추가 예정
+  // const { setDefaultAddress } = useAddressStore()
   const [activeTab, setActiveTab] = useState('overview')
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false)
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
@@ -145,11 +135,12 @@ export default function ProfilePage() {
       setTimeout(() => {
         window.location.reload()
       }, 1500)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('판매자 전환 실패:', error)
       toast({
         title: '신청 실패',
-        description: error?.message || '판매자 전환 신청 중 오류가 발생했습니다.',
+        description:
+          (error as { message?: string })?.message || '판매자 전환 신청 중 오류가 발생했습니다.',
         variant: 'destructive',
       })
     }
@@ -289,8 +280,6 @@ export default function ProfilePage() {
         const now = new Date()
         const year = now.getFullYear()
         const month = now.getMonth() + 1
-        const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-        const endDate = new Date(year, month, 0).toISOString().split('T')[0]
 
         const response = await sellerService.getSettlements({
           page: 1,
@@ -330,18 +319,24 @@ export default function ProfilePage() {
     try {
       const response = await depositService.getDeposit()
       setDepositBalance(response.balance)
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 404 에러인 경우 예치금 계정이 없는 것으로 처리 (정상)
-      if (error?.status === 404) {
+      if ((error as { status?: number })?.status === 404) {
         console.log('예치금 계정 없음 (정상):', error?.message || '예치금 계정이 없습니다.')
         setDepositBalance(0)
       } else {
         // 다른 에러인 경우 상세 정보 로깅
+        const err = error as {
+          status?: number
+          message?: string
+          code?: string
+          details?: string
+        }
         console.error('예치금 조회 실패:', {
-          status: error?.status,
-          message: error?.message,
-          code: error?.code,
-          details: error?.details,
+          status: err?.status,
+          message: err?.message,
+          code: err?.code,
+          details: err?.details,
           error: error,
         })
         setDepositBalance(0)
@@ -486,11 +481,12 @@ export default function ProfilePage() {
       // 결제 성공 시 successUrl로 이동하므로 여기서는 다이얼로그만 닫음
       setIsDepositChargeDialogOpen(false)
       setChargeAmount('')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('예치금 충전 실패:', error)
       toast({
         title: '충전 실패',
-        description: error?.message || '예치금 충전 중 오류가 발생했습니다.',
+        description:
+          (error as { message?: string })?.message || '예치금 충전 중 오류가 발생했습니다.',
         variant: 'destructive',
       })
     } finally {
@@ -518,7 +514,7 @@ export default function ProfilePage() {
     label: '예치금',
     value: isLoadingDeposit
       ? '조회 중...'
-      : depositBalance !== null
+      : typeof depositBalance === 'number'
         ? `${depositBalance.toLocaleString()}원`
         : '0원',
     icon: Wallet,
@@ -570,22 +566,23 @@ export default function ProfilePage() {
     }
   })
 
-  const favoriteProducts = [
-    {
-      id: 1,
-      name: '유기농 방울토마토',
-      price: 8500,
-      image: '/fresh-organic-cherry-tomatoes.jpg',
-      rating: 4.8,
-    },
-    {
-      id: 2,
-      name: '무농약 상추',
-      price: 5000,
-      image: '/fresh-organic-lettuce.png',
-      rating: 4.9,
-    },
-  ]
+  // TODO: 찜하기 기능 추가 예정
+  // const favoriteProducts = [
+  //   {
+  //     id: 1,
+  //     name: '유기농 방울토마토',
+  //     price: 8500,
+  //     image: '/fresh-organic-cherry-tomatoes.jpg',
+  //     rating: 4.8,
+  //   },
+  //   {
+  //     id: 2,
+  //     name: '무농약 상추',
+  //     price: 5000,
+  //     image: '/fresh-organic-lettuce.png',
+  //     rating: 4.9,
+  //   },
+  // ]
 
   const handleSaveAddress = (addressData: Omit<import('@/lib/api/types').Address, 'id'>) => {
     if (editingAddressId) {
@@ -615,12 +612,13 @@ export default function ProfilePage() {
     })
   }
 
-  const handleSetDefaultAddress = (id: number) => {
-    setDefaultAddress(id)
-    toast({
-      title: '기본 배송지로 설정되었습니다',
-    })
-  }
+  // TODO: 기본 배송지 설정 기능 추가 예정
+  // const handleSetDefaultAddress = (id: number) => {
+  //   setDefaultAddress(id)
+  //   toast({
+  //     title: '기본 배송지로 설정되었습니다',
+  //   })
+  // }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -795,7 +793,8 @@ export default function ProfilePage() {
                           ))}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          현재 잔액: {depositBalance !== null ? depositBalance.toLocaleString() : 0}
+                          현재 잔액:{' '}
+                          {typeof depositBalance === 'number' ? depositBalance.toLocaleString() : 0}
                           원
                         </p>
                       </div>
@@ -937,7 +936,9 @@ export default function ProfilePage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-lg font-semibold">구매자</h3>
-                      {user.role === 'BUYER' && <Badge variant="default">현재 역할</Badge>}
+                      {(user.role === 'USER' || user.role === 'BUYER') && (
+                        <Badge variant="default">현재 역할</Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
                       농산물을 구매하고 농장 체험을 예약할 수 있습니다.
@@ -972,8 +973,8 @@ export default function ProfilePage() {
                       <li>• 농장 정보 관리</li>
                       <li>• 매출 및 정산 관리</li>
                     </ul>
-                    {/* 판매자가 아닌 경우 판매자 전환 버튼 표시 */}
-                    {user.role !== 'SELLER' && user.userId && (
+                    {/* role이 USER 인 경우에만 판매자 전환 버튼 표시 */}
+                    {user.role === 'USER' && user.userId && (
                       <Dialog open={isSellerDialogOpen} onOpenChange={setIsSellerDialogOpen}>
                         <DialogTrigger asChild>
                           <Button className="mt-2">
@@ -1067,9 +1068,15 @@ export default function ProfilePage() {
                       </Dialog>
                     )}
                     {user.role === 'SELLER' && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button asChild>
                           <Link href="/farmer/dashboard">판매자 대시보드로 이동</Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                          <Link href="/farmer/farm">내 농장 관리</Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                          <Link href="/farmer/experiences">체험 프로그램 관리</Link>
                         </Button>
                       </div>
                     )}

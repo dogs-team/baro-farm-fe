@@ -12,7 +12,11 @@ export const farmService = {
   async getFarms(
     params?: PaginationParams & { keyword?: string; location?: string }
   ): Promise<PaginatedResponse<Farm>> {
-    return farmApi.get<PaginatedResponse<Farm>>('/api/v1/farms', { params })
+    const response = await farmApi.get<{ data: PaginatedResponse<Farm> }>('/api/v1/farms', {
+      params: params as Record<string, string | number | boolean | undefined> | undefined,
+    })
+    // API 응답이 { status, data: { content, ... }, message } 형태이므로 data 필드 추출
+    return response.data
   },
 
   // 농장 정보 등록
@@ -22,7 +26,9 @@ export const farmService = {
 
   // 농장 상세 조회
   async getFarm(id: string): Promise<Farm> {
-    return farmApi.get<Farm>(`/api/v1/farms/${id}`)
+    const response = await farmApi.get<{ data: Farm }>(`/api/v1/farms/${id}`)
+    // API 응답이 { status, data: { ... }, message } 형태이므로 data 필드 추출
+    return response.data
   },
 
   // 농장 정보 수정
