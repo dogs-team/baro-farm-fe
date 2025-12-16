@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { FarmerNav } from '../components/farmer-nav'
 
 export default function FarmerDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview')
@@ -171,6 +172,7 @@ export default function FarmerDashboardPage() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
+        <FarmerNav />
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">대시보드</h1>

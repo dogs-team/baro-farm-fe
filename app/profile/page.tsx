@@ -45,6 +45,7 @@ import { sellerService } from '@/lib/api/services/seller'
 import { depositService } from '@/lib/api/services/payment'
 import { orderService } from '@/lib/api/services/order'
 import { reviewService } from '@/lib/api/services/review'
+import { farmService } from '@/lib/api/services/farm'
 import type { MeResponse, OrderDetailInfo } from '@/lib/api/types'
 
 export default function ProfilePage() {
@@ -94,6 +95,9 @@ export default function ProfilePage() {
   const [tossWidget, setTossWidget] = useState<
     import('@/types/toss-payments').TossPaymentsInstance | null
   >(null)
+  // 내 농장 보유 여부 (SELLER 전용)
+  const [hasFarm, setHasFarm] = useState<boolean | null>(null)
+  const [isCheckingFarm, setIsCheckingFarm] = useState(false)
 
   const handleSellerApplication = async () => {
     if (!sellerApplication.farmName || !sellerApplication.farmAddress) {
@@ -302,9 +306,23 @@ export default function ProfilePage() {
         )
 
         setMonthlySettlement(totalAmount)
-      } catch (error) {
-        console.error('정산금액 조회 실패:', error)
-        // API 실패 시에도 UI는 표시 (에러는 무시)
+      } catch (error: unknown) {
+        // 404 에러인 경우 정산 내역이 없는 것으로 처리 (정상)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+          console.log('정산 내역이 없습니다.')
+          setMonthlySettlement(0)
+        } else {
+          console.error('정산금액 조회 실패:', error)
+          const errorMessage =
+            error instanceof Error ? error.message : '정산 정보를 불러오는 중 오류가 발생했습니다.'
+          console.error('에러 상세:', {
+            message: errorMessage,
+            status:
+              error && typeof error === 'object' && 'status' in error ? error.status : undefined,
+          })
+          // API 실패 시에도 UI는 표시 (에러는 무시)
+          setMonthlySettlement(0)
+        }
       } finally {
         setIsLoadingSettlement(false)
       }
@@ -353,6 +371,32 @@ export default function ProfilePage() {
       fetchDepositBalance()
     }
   }, [mounted])
+
+  // SELLER의 경우 내 농장 보유 여부 확인
+  useEffect(() => {
+    const checkMyFarm = async () => {
+      if (!mounted || user.role !== 'SELLER') return
+
+      setIsCheckingFarm(true)
+      try {
+        const response = await farmService.getFarms({ page: 0, size: 1 })
+        const content = Array.isArray(response?.content) ? response.content : []
+        setHasFarm(content.length > 0)
+      } catch (error: any) {
+        if (error?.status === 404) {
+          // 농장이 없는 경우 (정상 케이스)
+          setHasFarm(false)
+        } else {
+          console.error('내 농장 조회 실패:', error)
+          setHasFarm(false)
+        }
+      } finally {
+        setIsCheckingFarm(false)
+      }
+    }
+
+    checkMyFarm()
+  }, [mounted, user.role])
 
   // 토스페이먼츠 위젯 로드 (예치금 충전용)
   useEffect(() => {
@@ -678,7 +722,7 @@ export default function ProfilePage() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">마이페이지</h1>
-          <p className="text-muted-foreground">내 정보와 주문 내역을 관리하세요</p>
+          <p className="text-muted-foreground">내 정보와 주문 및 활동을 관리하세요</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -687,7 +731,7 @@ export default function ProfilePage() {
             <TabsTrigger value="orders">주문 내역</TabsTrigger>
             {/* TODO: 찜하기 기능 추가 예정 */}
             {/* <TabsTrigger value="favorites">찜한 상품</TabsTrigger> */}
-            <TabsTrigger value="role">역할 관리</TabsTrigger>
+            <TabsTrigger value="role">관리</TabsTrigger>
             <TabsTrigger value="settings">설정</TabsTrigger>
           </TabsList>
 
@@ -943,10 +987,10 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
 
-          {/* Role Management Tab */}
+          {/* Management Tab */}
           <TabsContent value="role" className="space-y-6">
             <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">역할 관리</h2>
+              <h2 className="text-xl font-semibold mb-4">관리</h2>
               <div className="space-y-6">
                 <div className="flex items-start gap-4 p-4 border rounded-lg">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -1087,16 +1131,35 @@ export default function ProfilePage() {
                       </Dialog>
                     )}
                     {user.role === 'SELLER' && (
-                      <div className="flex flex-wrap gap-2">
-                        <Button asChild>
-                          <Link href="/farmer/dashboard">판매자 대시보드로 이동</Link>
-                        </Button>
-                        <Button variant="outline" asChild>
-                          <Link href="/farmer/farm">내 농장 관리</Link>
-                        </Button>
-                        <Button variant="outline" asChild>
-                          <Link href="/farmer/experiences">체험 프로그램 관리</Link>
-                        </Button>
+                      <div className="flex flex-col gap-2">
+                        {isCheckingFarm ? (
+                          <p className="text-sm text-muted-foreground">
+                            내 농장 정보를 확인하는 중입니다...
+                          </p>
+                        ) : hasFarm ? (
+                          <div className="flex flex-wrap gap-2">
+                            <Button asChild>
+                              <Link href="/farmer/dashboard">판매자 대시보드로 이동</Link>
+                            </Button>
+                            <Button variant="outline" asChild>
+                              <Link href="/farmer/farm">내 농장 관리</Link>
+                            </Button>
+                            <Button variant="outline" asChild>
+                              <Link href="/farmer/experiences">체험 프로그램 관리</Link>
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <p className="text-sm text-muted-foreground">
+                              아직 등록된 농장이 없습니다. 먼저 농장을 등록해주세요.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <Button asChild>
+                                <Link href="/farmer/farm">농장 등록하러 가기</Link>
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
