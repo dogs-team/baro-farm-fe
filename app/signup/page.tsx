@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { authService } from '@/lib/api/services/auth'
+import { depositService } from '@/lib/api/services/payment'
 import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
 
 export default function SignupPage() {
@@ -151,6 +152,14 @@ export default function SignupPage() {
         name: formData.name,
         phone: formData.phone,
       })
+
+      // 회원가입 성공 시 예치금 계정 생성
+      try {
+        await depositService.createDeposit()
+      } catch (depositError) {
+        // 예치금 계정 생성 실패는 로그만 남기고 회원가입은 성공으로 처리
+        console.error('예치금 계정 생성 실패 (회원가입은 성공):', depositError)
+      }
 
       toast({
         title: '회원가입 완료',

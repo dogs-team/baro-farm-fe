@@ -26,6 +26,11 @@ export const paymentService = {
 }
 
 export const depositService = {
+  // 예치금 계정 생성 (회원가입 시 자동 생성)
+  async createDeposit(): Promise<void> {
+    await orderApi.post('/api/v1/deposits/create')
+  },
+
   // 예치금 조회
   async getDeposit(): Promise<{ balance: number }> {
     const response = await orderApi.get<{ data: { balance: number } }>('/api/v1/deposits')
