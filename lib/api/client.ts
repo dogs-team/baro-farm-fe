@@ -11,7 +11,7 @@ const GATEWAY_URL = (
   process.env.NEXT_PUBLIC_API_GATEWAY_URL &&
   process.env.NEXT_PUBLIC_API_GATEWAY_URL.trim().length > 0
     ? process.env.NEXT_PUBLIC_API_GATEWAY_URL
-    : 'http://localhost:8080'
+    : 'http://3.34.14.73:8080'
 ).replace(/\/$/, '')
 
 export const API_URLS = {
@@ -92,6 +92,22 @@ export const setUserId = (userId: string | null) => {
 export const getUserId = (): string | null => {
   if (typeof window === 'undefined') return null
   return window.localStorage.getItem(USER_ID_KEY)
+}
+
+export const getUserIdFromToken = (): string | null => {
+  const token = getAccessToken()
+  if (!token) return null
+  try {
+    // JWT는 base64로 인코딩된 3부분으로 구성: header.payload.signature
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    // payload 디코딩
+    const payload = JSON.parse(atob(parts[1]))
+    return payload.uid || payload.userId || null
+  } catch (error) {
+    console.error('Failed to decode token:', error)
+    return null
+  }
 }
 
 export const setAuthTokens = (tokens: StoredTokens | null) => {
@@ -413,16 +429,19 @@ class ApiClient {
 
 export const authApi = new ApiClient(API_URLS.AUTH)
 export const buyerApi = new ApiClient(API_URLS.BUYER)
+// 장바구니는 Buyer 서비스 사용
+export const cartApi = buyerApi
 export const sellerApi = new ApiClient(API_URLS.SELLER)
 export const orderApi = new ApiClient(API_URLS.ORDER)
 export const paymentApi = orderApi // 결제/예치금은 Order 서비스 사용
 
-// Support 서비스 (검색, 리뷰, 체험 등)
+// Support 서비스 (검색, 리뷰, 체험, 정산, 배송 등)
 const supportApi = new ApiClient(API_URLS.SUPPORT)
 export const searchApi = supportApi
 export const reviewApi = supportApi
 export const experienceApi = supportApi
 export const notificationApi = supportApi
+export const settlementApi = supportApi
 
 // 상품/농장 등은 Buyer/Seller 조합으로 사용
 export const productApi = new ApiClient(API_URLS.BUYER)

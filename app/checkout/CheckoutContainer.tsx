@@ -67,7 +67,7 @@ export function CheckoutContainer() {
     const fetchDepositBalance = async () => {
       try {
         const response = await depositService.getDeposit()
-        setDepositBalance(response.balance)
+        setDepositBalance(response.amount)
       } catch (error: any) {
         console.error('예치금 조회 실패:', error)
         if (error?.status === 404) {
