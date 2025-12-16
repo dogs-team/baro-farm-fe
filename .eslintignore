@@ -1,0 +1,21 @@
+# Scripts (browser/Node.js 환경)
+scripts/**/*.js
+scripts/**/*.ts
+
+# Test files
+*.spec.ts
+test-*.ts
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Config files
+*.config.js
+*.config.ts
+
