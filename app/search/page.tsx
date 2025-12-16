@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/layout/header'
 import { searchService } from '@/lib/api/services/search'
@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Search, ShoppingBag, Tractor, Tent, AlertCircle } from 'lucide-react'
 import { ProductCard } from '@/components/product/product-card'
 import { FarmCard } from '@/components/product/farm-card'
-import { ExperienceCard } from '@/components/product/experience-card'
+import { ExperienceCard } from '@/components/experience/experience-card'
 
 function SearchResults() {
   const searchParams = useSearchParams()
@@ -187,14 +187,23 @@ function SearchResults() {
                   {(results.experiences?.content || []).slice(0, 3).map((experience) => (
                     <ExperienceCard
                       key={experience.experienceId}
-                      id={experience.experienceId}
-                      title={experience.title}
-                      farm="농장 정보 없음"
-                      location=""
-                      price={experience.pricePerPerson}
-                      image={experience.imageUrl || '/placeholder.svg'}
-                      duration="-"
-                      capacity="-"
+                      experience={{
+                        experienceId: experience.experienceId,
+                        farmId: '', // 검색 결과에는 없음
+                        title: experience.title,
+                        description: '더 자세한 정보는 상세 페이지에서 확인하세요.', // 기본 설명
+                        pricePerPerson: experience.pricePerPerson,
+                        capacity: 10, // 기본 정원
+                        durationMinutes: 60, // 기본 1시간
+                        availableStartDate: '', // 검색 결과에는 없음
+                        availableEndDate: '', // 검색 결과에는 없음
+                        status: 'ON_SALE' as const, // 기본값
+                        farmName: '상세 정보에서 확인',
+                        farmLocation: '상세 정보에서 확인',
+                        imageUrl: experience.imageUrl || '/placeholder.svg',
+                        rating: 0,
+                        reviewCount: 0,
+                      }}
                     />
                   ))}
                 </div>
@@ -248,14 +257,23 @@ function SearchResults() {
               {(results.experiences?.content || []).map((experience) => (
                 <ExperienceCard
                   key={experience.experienceId}
-                  id={experience.experienceId}
-                  title={experience.title}
-                  farm="농장 정보 없음"
-                  location=""
-                  price={experience.pricePerPerson}
-                  image={experience.imageUrl || '/placeholder.svg'}
-                  duration="-"
-                  capacity="-"
+                  experience={{
+                    experienceId: experience.experienceId,
+                    farmId: '', // 검색 결과에는 없음
+                    title: experience.title,
+                    description: '더 자세한 정보는 상세 페이지에서 확인하세요.', // 기본 설명
+                    pricePerPerson: experience.pricePerPerson,
+                    capacity: 10, // 기본 정원
+                    durationMinutes: 60, // 기본 1시간
+                    availableStartDate: '', // 검색 결과에는 없음
+                    availableEndDate: '', // 검색 결과에는 없음
+                    status: 'ON_SALE' as const, // 기본값
+                    farmName: '상세 정보에서 확인',
+                    farmLocation: '상세 정보에서 확인',
+                    imageUrl: experience.imageUrl || '/placeholder.svg',
+                    rating: 0,
+                    reviewCount: 0,
+                  }}
                 />
               ))}
             </div>

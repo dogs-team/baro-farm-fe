@@ -6,30 +6,43 @@ import { MapPin, Clock, Users } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import type { Experience } from '@/lib/api/types'
+
+// 체험 카드에 필요한 추가 정보들
+export interface ExperienceCardData extends Experience {
+  farmName?: string
+  farmLocation?: string
+  imageUrl?: string
+  rating?: number
+  reviewCount?: number
+}
 
 interface ExperienceCardProps {
-  id: string | number
-  title: string
-  farm: string
-  location: string
-  price: number
-  image: string
-  duration: string
-  capacity: string
+  experience: ExperienceCardData
   className?: string
 }
 
-export function ExperienceCard({
-  id,
-  title,
-  farm,
-  location,
-  price,
-  image,
-  duration,
-  capacity,
-  className,
-}: ExperienceCardProps) {
+export function ExperienceCard({ experience, className }: ExperienceCardProps) {
+  const {
+    experienceId: id,
+    title,
+    farmName,
+    farmLocation,
+    pricePerPerson,
+    capacity,
+    durationMinutes,
+    status,
+    imageUrl,
+  } = experience
+
+  // 표시용 데이터 변환
+  const displayPrice = pricePerPerson || 0
+  const displayImage = imageUrl || '/placeholder.svg'
+  const displayDuration = `${Math.floor((durationMinutes || 120) / 60)}시간`
+  const displayCapacity = `최대 ${capacity || 10}명`
+  const displayFarm = farmName || ''
+  const displayLocation = farmLocation || ''
+  const displayStatus = status === 'ON_SALE' ? '판매중' : '마감'
   return (
     <div
       className={cn(
@@ -40,7 +53,7 @@ export function ExperienceCard({
       <Link href={`/experiences/${id}`} className="block h-full flex flex-col">
         <div className="relative h-64 overflow-hidden bg-muted">
           <Image
-            src={image || '/placeholder.svg'}
+            src={displayImage}
             alt={title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
@@ -50,18 +63,20 @@ export function ExperienceCard({
               variant="secondary"
               className="backdrop-blur-md bg-white/80 text-foreground text-xs font-semibold shadow-sm"
             >
-              체험 프로그램
+              {displayStatus}
             </Badge>
           </div>
         </div>
         <div className="p-5 flex flex-col flex-1">
           {/* Farm Info */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3 font-medium">
-            <MapPin className="h-3.5 w-3.5 text-primary" />
-            <span className="truncate max-w-[120px]">{farm}</span>
-            <span className="text-border">•</span>
-            <span className="truncate">{location}</span>
-          </div>
+          {(displayFarm || displayLocation) && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3 font-medium">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              {displayFarm && <span className="truncate max-w-[120px]">{displayFarm}</span>}
+              {displayFarm && displayLocation && <span className="text-border">•</span>}
+              {displayLocation && <span className="truncate">{displayLocation}</span>}
+            </div>
+          )}
 
           {/* Title */}
           <h3 className="text-xl font-bold mb-3 line-clamp-2 text-foreground group-hover:text-primary transition-colors duration-200">
@@ -72,17 +87,17 @@ export function ExperienceCard({
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
             <div className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-md">
               <Clock className="h-3.5 w-3.5" />
-              <span>{duration}</span>
+              <span>{displayDuration}</span>
             </div>
             <div className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-md">
               <Users className="h-3.5 w-3.5" />
-              <span>{capacity}</span>
+              <span>{displayCapacity}</span>
             </div>
           </div>
 
           {/* Price & Action */}
           <div className="mt-auto flex items-center justify-between pt-4 border-t border-border/50">
-            <div className="text-xl font-bold text-primary">{price.toLocaleString()}원</div>
+            <div className="text-xl font-bold text-primary">{displayPrice.toLocaleString()}원</div>
             <Button
               size="sm"
               variant="outline"

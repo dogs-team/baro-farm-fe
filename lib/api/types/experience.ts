@@ -26,64 +26,24 @@ export interface ExperienceUpdateRequest {
   status?: ExperienceStatus
 }
 
+// FARM_EXPERIENCE (체험 프로그램)
 export interface Experience {
-  id: string // UUID
-  farmId: string // UUID
+  experienceId: string // PK, UUID
+  farmId: string // FK → FARM.farm_id, UUID
   title: string
   description: string
-  pricePerPerson: number
-  capacity: number
-  durationMinutes: number
-  availableStartDate: string
-  availableEndDate: string
-  status: ExperienceStatus
-  // Legacy fields for backward compatibility
-  price?: number
-  duration?: string
-  maxParticipants?: number
-  availableDates?: string[]
-  category?: string
-  tags?: string[]
-  rating?: number
-  reviewCount?: number
+  pricePerPerson: number // BigInteger
+  capacity: number // Integer
+  durationMinutes: number // Integer
+  availableStartDate: string // Date
+  availableEndDate: string // Date
+  status: ExperienceStatus // Enum: ON_SALE, CLOSED
   createdAt?: string
-  images?: string[]
-  farmName?: string
-  farmLocation?: string
+  updatedAt?: string
 }
 
-export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
-
-export interface ReservationRequest {
-  experienceId: string // UUID
-  buyerId: string // UUID
-  reservedDate: string // date format: YYYY-MM-DD
-  reservedTimeSlot: string
-  headCount: number
-  totalPrice: number
-}
-
-export interface ExperienceBooking {
-  id: string // UUID (reservationId)
-  experienceId: string // UUID
-  experienceTitle?: string
-  userId?: string // UUID
-  buyerId?: string // UUID
-  date?: string
-  reservedDate?: string
-  reservedTimeSlot?: string
-  participants?: number
-  headCount?: number
-  totalPrice: number
-  status: ReservationStatus
-  createdAt?: string
-}
-
-// Legacy types for backward compatibility
-export type BookingStatus = ReservationStatus
-
-export interface CreateBookingRequest {
-  experienceId: string
-  date: string
-  participants: number
-}
+// 현재 프로젝트에서 사용하지 않는 레거시 타입들 제거됨
+// - ExperienceTimeSlot
+// - ReservationStatus
+// - ReservationRequest
+// - ExperienceBooking
