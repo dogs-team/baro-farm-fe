@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -29,35 +29,164 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { FarmerNav } from '../components/farmer-nav'
+import { farmService } from '@/lib/api/services/farm'
+import type { Farm } from '@/lib/api/types'
+
+interface FarmFormData {
+  id?: string
+  name: string
+  description: string
+  address: string
+  phone: string
+  email: string
+  businessNumber: string
+  certifications: string[]
+  operatingHours: string
+  parkingAvailable: boolean
+  facilities: string[]
+}
 
 export default function FarmManagementPage() {
   const { toast } = useToast()
+  const [mounted, setMounted] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [farmData, setFarmData] = useState({
-    name: '햇살농장',
-    description:
-      '신선하고 건강한 유기농 농산물을 재배하는 햇살농장입니다. 30년 이상의 농업 경험을 바탕으로 최고 품질의 농산물을 생산하고 있습니다.',
-    address: '경기도 양평군 양평읍 농장길 123',
-    phone: '031-1234-5678',
-    email: 'sunny@farm.com',
-    businessNumber: '123-45-67890',
-    certifications: ['유기농 인증', '무농약 인증', 'GAP 인증'],
-    operatingHours: '평일 09:00 - 18:00, 주말 09:00 - 17:00',
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isNewFarm, setIsNewFarm] = useState(false)
+  const [myFarms, setMyFarms] = useState<Farm[]>([])
+  const [selectedFarmId, setSelectedFarmId] = useState<string | 'new' | null>(null)
+  const [farmData, setFarmData] = useState<FarmFormData>({
+    name: '',
+    description: '',
+    address: '',
+    phone: '',
+    email: '',
+    businessNumber: '',
+    certifications: [],
+    operatingHours: '',
     parkingAvailable: true,
-    facilities: ['주차장', '화장실', '휴게실', '판매장'],
+    facilities: [],
   })
 
-  const handleSave = () => {
-    // TODO: API 연동
-    toast({
-      title: '농장 정보 저장 완료',
-      description: '농장 정보가 업데이트되었습니다.',
-    })
-    setIsEditing(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // 내 농장 목록 조회
+  useEffect(() => {
+    const fetchMyFarms = async () => {
+      if (!mounted) return
+
+      setIsLoading(true)
+      try {
+        const response = await farmService.getMyFarms({ page: 0, size: 20 })
+        const content = Array.isArray(response?.content) ? response.content : []
+        setMyFarms(content)
+
+        if (content.length > 0) {
+          // 기본 선택: 첫 번째 농장
+          const first = content[0]
+          setSelectedFarmId(first.id)
+          setFarmData({
+            id: first.id,
+            name: (first as any).name || '',
+            description: (first as any).description || '',
+            address: (first as any).address || '',
+            phone: (first as any).phone || '',
+            email: (first as any).email || '',
+            businessNumber: (first as any).businessNumber || '',
+            certifications: (first as any).certifications || [],
+            operatingHours: (first as any).operatingHours || '',
+            parkingAvailable: (first as any).parkingAvailable ?? true,
+            facilities: (first as any).facilities || [],
+          })
+          setIsNewFarm(false)
+          setIsEditing(false)
+        } else {
+          // 등록된 농장이 없으면 신규 등록 모드
+          setIsNewFarm(true)
+          setSelectedFarmId('new')
+          setIsEditing(true)
+        }
+      } catch (error: any) {
+        console.error('내 농장 목록 조회 실패:', error)
+        toast({
+          title: '농장 정보 조회 실패',
+          description: error?.message || '농장 정보를 불러오지 못했습니다.',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchMyFarms()
+  }, [mounted, toast])
+
+  const handleSave = async () => {
+    if (!farmData.name || !farmData.address) {
+      toast({
+        title: '필수 항목 입력',
+        description: '농장명과 주소는 필수 입력 항목입니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      if (isNewFarm || !selectedFarmId || selectedFarmId === 'new') {
+        // 농장 신규 등록
+        const created = await farmService.createFarm({
+          name: farmData.name,
+          description: farmData.description,
+          address: farmData.address,
+          phone: farmData.phone,
+          email: farmData.email,
+          businessNumber: farmData.businessNumber,
+        } as any)
+
+        setFarmData((prev) => ({
+          ...prev,
+          id: (created as any).id,
+        }))
+        setMyFarms((prev) => [...prev, created])
+        setSelectedFarmId((created as any).id)
+        setIsNewFarm(false)
+      } else if (farmData.id && selectedFarmId && selectedFarmId !== 'new') {
+        // 기존 농장 정보 수정
+        await farmService.updateFarm(farmData.id, {
+          name: farmData.name,
+          description: farmData.description,
+          address: farmData.address,
+          phone: farmData.phone,
+          email: farmData.email,
+          businessNumber: farmData.businessNumber,
+        } as any)
+      }
+
+      toast({
+        title: isNewFarm ? '농장 등록 완료' : '농장 정보 저장 완료',
+        description: isNewFarm
+          ? '농장이 성공적으로 등록되었습니다.'
+          : '농장 정보가 업데이트되었습니다.',
+      })
+      setIsEditing(false)
+    } catch (error: any) {
+      console.error('농장 정보 저장 실패:', error)
+      toast({
+        title: '농장 정보 저장 실패',
+        description: error?.message || '농장 정보를 저장하는 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleChange = (field: string, value: any) => {
-    setFarmData({ ...farmData, [field]: value })
+  const handleChange = (field: keyof FarmFormData, value: any) => {
+    setFarmData((prev) => ({ ...prev, [field]: value }))
   }
 
   return (
@@ -105,23 +234,30 @@ export default function FarmManagementPage() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
+        <FarmerNav />
         {/* Page Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">농장 정보 관리</h1>
-            <p className="text-muted-foreground">농장의 기본 정보를 관리하세요</p>
+            <h1 className="text-3xl font-bold mb-2">
+              {isNewFarm ? '농장 등록' : '농장 정보 관리'}
+            </h1>
+            <p className="text-muted-foreground">
+              {isNewFarm
+                ? '농장의 기본 정보를 입력하여 농장을 등록하세요.'
+                : '농장의 기본 정보를 관리하세요.'}
+            </p>
           </div>
           <div className="flex gap-3">
             {!isEditing ? (
               <Button onClick={() => setIsEditing(true)}>편집하기</Button>
             ) : (
               <>
-                <Button variant="outline" onClick={() => setIsEditing(false)}>
+                <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
                   취소
                 </Button>
-                <Button onClick={handleSave}>
+                <Button onClick={handleSave} disabled={isSaving}>
                   <Save className="h-4 w-4 mr-2" />
-                  저장하기
+                  {isSaving ? '저장 중...' : isNewFarm ? '등록하기' : '저장하기'}
                 </Button>
               </>
             )}
@@ -277,28 +413,6 @@ export default function FarmManagementPage() {
                     이미지 변경
                   </Button>
                 )}
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h2 className="text-xl font-bold mb-4">통계</h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">등록 상품</span>
-                  <span className="font-semibold">12개</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">등록 체험</span>
-                  <span className="font-semibold">3개</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">평균 평점</span>
-                  <span className="font-semibold">4.8</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">리뷰 수</span>
-                  <span className="font-semibold">124건</span>
-                </div>
               </div>
             </Card>
 

@@ -1,5 +1,5 @@
 // lib/api/services/auth.ts
-import { authApi, setAccessToken, setRefreshToken, setAuthTokens } from '../client'
+import { authApi, setAccessToken, setRefreshToken, setAuthTokens, setUserRole } from '../client'
 import type {
   LoginRequest,
   LoginResult,
@@ -93,10 +93,17 @@ export const authService = {
   async getCurrentUser(): Promise<MeResponse> {
     const response = await authApi.get<{ data: MeResponse } | MeResponse>('/api/v1/auth/me')
     // API 응답이 { status, data: { ... }, message } 형태이면 data 필드 추출
-    if (response && typeof response === 'object' && 'data' in response) {
-      return response.data
+    const userData =
+      response && typeof response === 'object' && 'data' in response
+        ? response.data
+        : (response as MeResponse)
+
+    // role을 localStorage에 저장 (X-User-Role 헤더에 사용)
+    if (userData.role) {
+      setUserRole(userData.role)
     }
-    return response as MeResponse
+
+    return userData
   },
 
   // 비밀번호 재설정 코드 요청

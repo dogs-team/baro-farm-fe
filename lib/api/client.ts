@@ -45,11 +45,13 @@ export const API_URLS = {
 const ACCESS_TOKEN_KEY = 'accessToken'
 const REFRESH_TOKEN_KEY = 'refreshToken'
 const USER_ID_KEY = 'userId'
+const USER_ROLE_KEY = 'userRole'
 
 export type StoredTokens = {
   accessToken: string
   refreshToken?: string
   userId?: string
+  userRole?: string
 }
 
 export const setAccessToken = (token: string | null) => {
@@ -110,11 +112,26 @@ export const getUserIdFromToken = (): string | null => {
   }
 }
 
+export const setUserRole = (role: string | null) => {
+  if (typeof window === 'undefined') return
+  if (!role) {
+    window.localStorage.removeItem(USER_ROLE_KEY)
+    return
+  }
+  window.localStorage.setItem(USER_ROLE_KEY, role)
+}
+
+export const getUserRole = (): string | null => {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(USER_ROLE_KEY)
+}
+
 export const setAuthTokens = (tokens: StoredTokens | null) => {
   if (!tokens) {
     setAccessToken(null)
     setRefreshToken(null)
     setUserId(null)
+    setUserRole(null)
     return
   }
 
@@ -267,6 +284,12 @@ class ApiClient {
       headers['X-User-Id'] = userId
     }
 
+    // 상품 등록 등에서 사용하는 X-User-Role 헤더
+    const userRole = getUserRole()
+    if (userRole) {
+      headers['X-User-Role'] = userRole
+    }
+
     return {
       ...headers,
       ...(options?.headers || {}),
@@ -281,13 +304,18 @@ class ApiClient {
     try {
       const text = await response.text()
       if (text) {
-        const data = JSON.parse(text)
-        message = data.message || data.error || message
-        code = data.code
-        details = data
+        try {
+          const data = JSON.parse(text)
+          message = data.message || data.error || message
+          code = data.code
+          details = data
+        } catch {
+          // JSON 파싱 실패 시 텍스트를 메시지로 사용
+          message = text || message
+        }
       }
     } catch {
-      // ignore JSON parse error
+      // ignore text read error
     }
 
     const error: ApiError = Object.assign(new Error(message), {
@@ -297,12 +325,22 @@ class ApiClient {
       details,
     })
 
-    console.error('[ApiClient] API Error:', {
-      url,
-      status: response.status,
-      message,
-      details,
-    })
+    // 에러 로깅 시 순환 참조 방지를 위해 각 속성을 개별적으로 로깅
+    console.error('[ApiClient] API Error:')
+    console.error('  URL:', url)
+    console.error('  Status:', response.status)
+    console.error('  Status Text:', response.statusText)
+    console.error('  Message:', message)
+    if (code) {
+      console.error('  Code:', code)
+    }
+    if (details) {
+      try {
+        console.error('  Details:', JSON.stringify(details, null, 2))
+      } catch {
+        console.error('  Details: [직렬화 불가능한 객체]')
+      }
+    }
 
     return error
   }

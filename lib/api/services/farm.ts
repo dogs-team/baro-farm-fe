@@ -24,6 +24,15 @@ export const farmService = {
     return farmApi.post<Farm>('/api/v1/farms', data)
   },
 
+  // 내 농장 목록 조회 (/api/v1/farms/me → PaginatedResponse<Farm>)
+  async getMyFarms(params?: PaginationParams): Promise<PaginatedResponse<Farm>> {
+    const response = await farmApi.get<{ data: PaginatedResponse<Farm> }>('/api/v1/farms/me', {
+      params: params as Record<string, string | number | boolean | undefined> | undefined,
+    })
+    // API 응답이 { status, data: { content, ... }, message } 형태이므로 data 필드 추출
+    return response.data
+  },
+
   // 농장 상세 조회
   async getFarm(id: string): Promise<Farm> {
     const response = await farmApi.get<{ data: Farm }>(`/api/v1/farms/${id}`)

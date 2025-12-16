@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { FarmerNav } from '../components/farmer-nav'
 
 export default function FarmerOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all')
@@ -154,6 +155,7 @@ export default function FarmerOrdersPage() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
+        <FarmerNav />
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">주문 관리</h1>
           <p className="text-muted-foreground">고객의 주문을 확인하고 배송을 관리하세요</p>
