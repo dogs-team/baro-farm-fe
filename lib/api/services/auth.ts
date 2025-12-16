@@ -91,7 +91,12 @@ export const authService = {
 
   // 현재 사용자 정보 조회
   async getCurrentUser(): Promise<MeResponse> {
-    return authApi.get<MeResponse>('/api/v1/auth/me')
+    const response = await authApi.get<{ data: MeResponse } | MeResponse>('/api/v1/auth/me')
+    // API 응답이 { status, data: { ... }, message } 형태이면 data 필드 추출
+    if (response && typeof response === 'object' && 'data' in response) {
+      return response.data
+    }
+    return response as MeResponse
   },
 
   // 비밀번호 재설정 코드 요청

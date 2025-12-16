@@ -116,10 +116,15 @@ export const getUserIdFromToken = (): string | null => {
 // accessToken 만료 시 refreshToken으로 재발급 시도
 const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
   const refreshToken = getRefreshToken()
-  if (!refreshToken) return false
+  if (!refreshToken) {
+    console.log('[ApiClient] refreshToken이 없습니다.')
+    return false
+  }
 
   try {
     const url = `${API_URLS.AUTH}/api/v1/auth/refresh`
+    console.log('[ApiClient] refreshToken으로 accessToken 재발급 시도:', url)
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -129,20 +134,59 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
     })
 
     if (!response.ok) {
-      // 리프레시 토큰도 유효하지 않음
+      console.error('[ApiClient] refreshToken API 실패:', response.status, response.statusText)
+      // 리프레시 토큰도 유효하지 않음 → 로그아웃 처리
       setAuthTokens(null)
       return false
     }
 
-    const data = (await response.json()) as {
+    const responseData = (await response.json()) as
+      | {
+          userId: string
+          email: string
+          accessToken: string
+          refreshToken: string
+        }
+      | {
+          status: number
+          data: {
+            userId: string
+            email: string
+            accessToken: string
+            refreshToken: string
+          }
+          message?: string
+        }
+
+    // API 응답이 { status, data, message } 형태인지 확인
+    let tokenData: {
+      userId: string
+      email: string
       accessToken: string
-      refreshToken?: string
+      refreshToken: string
+    }
+    if ('data' in responseData && responseData.data) {
+      tokenData = responseData.data
+    } else if ('accessToken' in responseData && 'refreshToken' in responseData) {
+      tokenData = responseData as {
+        userId: string
+        email: string
+        accessToken: string
+        refreshToken: string
+      }
+    } else {
+      console.error('[ApiClient] refreshToken 응답 구조가 올바르지 않습니다:', responseData)
+      setAuthTokens(null)
+      return false
     }
 
-    setAccessToken(data.accessToken)
-    if (data.refreshToken) {
-      setRefreshToken(data.refreshToken)
-    }
+    console.log('[ApiClient] accessToken 재발급 성공')
+    // userId, accessToken, refreshToken 모두 저장
+    setAuthTokens({
+      accessToken: tokenData.accessToken,
+      refreshToken: tokenData.refreshToken,
+      userId: tokenData.userId,
+    })
 
     return true
   } catch (error) {
