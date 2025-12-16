@@ -4,18 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import {
-  MapPin,
-  Star,
-  Minus,
-  Plus,
-  ShoppingCart,
-  Heart,
-  Share2,
-  Truck,
-  Shield,
-  Leaf,
-} from 'lucide-react'
+import { MapPin, Star, Minus, Plus, ShoppingCart, Share2, Truck, Shield, Leaf } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useParams } from 'next/navigation'
@@ -25,6 +14,7 @@ import { ToastAction } from '@/components/ui/toast'
 import { ReviewForm, ReviewList, ReviewSummary, type Review } from '@/components/review'
 import { Header } from '@/components/layout/header'
 import { productService } from '@/lib/api/services/product'
+import { cartService } from '@/lib/api/services/cart'
 import type { Product } from '@/lib/api/types'
 import { getProductImages } from '@/lib/utils/product-images'
 
@@ -40,7 +30,6 @@ export default function ProductDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const { addItem, getTotalItems } = useCartStore()
   const { toast } = useToast()
-  const cartItemsCount = mounted ? getTotalItems() : 0
 
   useEffect(() => {
     setMounted(true)
@@ -74,32 +63,6 @@ export default function ProductDetailPage() {
   }, [mounted, productId, router, toast])
 
   // 상품명에 따른 이미지 매핑은 lib/utils/product-images.ts의 getProductImages 함수 사용
-
-  // 임시 더미 데이터 (API 실패 시 대체용)
-  const dummyProduct = {
-    id: 1,
-    name: '유기농 방울토마토',
-    farm: '햇살농장',
-    farmId: 1,
-    location: '충남 당진',
-    price: 8500,
-    originalPrice: 12000,
-    images: [
-      '/fresh-organic-cherry-tomatoes-on-vine.jpg',
-      '/organic-cherry-tomatoes-in-basket.jpg',
-      '/cherry-tomatoes-close-up.jpg',
-    ],
-    rating: 4.8,
-    reviews: 124,
-    tag: '베스트',
-    category: '채소',
-    description:
-      '햇살농장에서 정성껏 키운 유기농 방울토마토입니다. 화학비료나 농약을 전혀 사용하지 않고 자연의 힘으로 키워낸 건강한 토마토입니다.',
-    weight: '1kg',
-    certification: '유기농 인증',
-    delivery: '수확 후 당일 배송',
-    features: ['100% 유기농 재배', '무농약, 무화학비료', '당일 수확 당일 배송', 'GAP 인증 농장'],
-  }
 
   // API에서 가져온 상품 데이터를 표시 형식으로 변환
   const displayProduct = product
@@ -137,7 +100,7 @@ export default function ProductDetailPage() {
           ], // TODO: 특징 정보 추가
         }
       })()
-    : dummyProduct
+    : null
 
   const reviews: Review[] = [
     {
@@ -201,31 +164,49 @@ export default function ProductDetailPage() {
     },
   ]
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!displayProduct) return
 
-    addItem({
-      id: Number(displayProduct.id) || 0, // TODO: UUID를 number로 변환하는 로직 개선 필요
-      productId: String(displayProduct.id),
-      sellerId: String(displayProduct.farmId),
-      name: displayProduct.name,
-      price: displayProduct.price,
-      image: displayProduct.images[0] || '/placeholder.svg',
-      farm: displayProduct.farm,
-      quantity,
-    })
+    try {
+      // 서버 API로 장바구니에 상품 추가
+      await cartService.addItemToCart(displayProduct.id, {
+        productId: displayProduct.id,
+        quantity,
+        unitPrice: displayProduct.price,
+        optionInfoJson: '',
+      })
 
-    toast({
-      title: '장바구니에 추가되었습니다',
-      description: `${displayProduct.name} ${quantity}개가 장바구니에 담겼습니다.`,
-      action: (
-        <ToastAction altText="장바구니 보기" onClick={() => router.push('/cart')}>
-          장바구니 보기
-        </ToastAction>
-      ),
-    })
+      // 로컬 스토어도 업데이트 (캐시 용도)
+      addItem({
+        id: Number(displayProduct.id) || 0, // TODO: UUID를 number로 변환하는 로직 개선 필요
+        productId: String(displayProduct.id),
+        sellerId: String(displayProduct.farmId),
+        name: displayProduct.name,
+        price: displayProduct.price,
+        image: displayProduct.images[0] || '/placeholder.svg',
+        farm: displayProduct.farm,
+        quantity,
+      })
 
-    setQuantity(1)
+      toast({
+        title: '장바구니에 추가되었습니다',
+        description: `${displayProduct.name} ${quantity}개가 장바구니에 담겼습니다.`,
+        action: (
+          <ToastAction altText="장바구니 보기" onClick={() => router.push('/cart')}>
+            장바구니 보기
+          </ToastAction>
+        ),
+      })
+
+      setQuantity(1)
+    } catch (error) {
+      console.error('장바구니 추가 실패:', error)
+      toast({
+        title: '장바구니 추가 실패',
+        description: '장바구니에 상품을 추가하는데 실패했습니다.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleBuyNow = async () => {
@@ -284,12 +265,39 @@ export default function ProductDetailPage() {
     )
   }
 
+  // API 로드 완료 후 상품 데이터가 없는 경우 (에러 또는 없는 상품)
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header showCart />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center space-y-4">
+            <h1 className="text-2xl font-bold">상품을 찾을 수 없습니다</h1>
+            <p className="text-muted-foreground">
+              요청하신 상품이 존재하지 않거나 삭제되었을 수 있습니다.
+            </p>
+            <Button asChild>
+              <Link href="/products">상품 목록으로 돌아가기</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // displayProduct가 null인 경우 (데이터 변환 실패)
   if (!displayProduct) {
     return (
       <div className="min-h-screen bg-background">
         <Header showCart />
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">상품을 찾을 수 없습니다.</div>
+          <div className="text-center space-y-4">
+            <h1 className="text-2xl font-bold">상품 정보 처리 중 오류가 발생했습니다</h1>
+            <p className="text-muted-foreground">상품 정보를 표시하는데 문제가 있습니다.</p>
+            <Button asChild>
+              <Link href="/products">상품 목록으로 돌아가기</Link>
+            </Button>
+          </div>
         </div>
       </div>
     )

@@ -6,6 +6,8 @@ export interface CartItemInfo {
   productId: string // UUID
   quantity: number
   unitPrice: number
+  lineTotalPrice: number
+  optionInfoJson?: string
   productName?: string // Optional for display
   productImage?: string // Optional for display
 }
@@ -19,8 +21,15 @@ export interface CartInfo {
   updatedAt: string
 }
 
+// API Response Types
+export interface CartResponse {
+  status: number
+  data: CartInfo
+  message: string
+}
+
 export interface AddItemRequest {
-  productId: string // UUID
+  productId: string | number // UUID or legacy number
   quantity: number
 }
 
