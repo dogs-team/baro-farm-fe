@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Sprout, Leaf, Heart, TrendingDown, MapPin, Star } from 'lucide-react'
+import { Sprout, Leaf, Heart, TrendingDown } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Header } from '@/components/layout/header'
+import { ScrollCTA } from '@/components/scroll-cta'
+import { HeroSlider } from '@/components/landing/hero-slider'
+import { ProductCard } from '@/components/product/product-card'
+import { ExperienceCard } from '@/components/product/experience-card'
 
 export default function HomePage() {
   const featuredProducts = [
@@ -96,300 +97,298 @@ export default function HomePage() {
       {/* Header */}
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative py-20 md:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
-        <div className="container mx-auto px-4 relative">
-          <div className="max-w-3xl mx-auto text-center">
-            <Badge className="mb-4" variant="secondary">
-              Farm-to-Table
-            </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-balance">
-              농장에서 식탁까지,
-              <br />
-              신선함을 바로 전합니다
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 text-pretty">
-              환경을 생각하고 탄소 발자국을 줄이는 직거래 플랫폼. 신선한 농산물과 특별한 농장 체험을
-              만나보세요.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" asChild>
-                <Link href="/products">농산물 둘러보기</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link href="/experiences">농장 체험 예약</Link>
-              </Button>
-            </div>
-          </div>
+      {/* Hero Section - Greenlabs Style */}
+      <HeroSlider />
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">320+</div>
-              <div className="text-sm text-muted-foreground">등록 농가</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">1,200+</div>
-              <div className="text-sm text-muted-foreground">신선 농산물</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">85%</div>
-              <div className="text-sm text-muted-foreground">탄소 절감</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">50k+</div>
-              <div className="text-sm text-muted-foreground">만족한 고객</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">왜 바로팜일까요?</h2>
-            <p className="text-lg text-muted-foreground">
+      {/* Features - Greenlabs Style */}
+      <section className="pt-20 pb-12 md:pt-28 md:pb-16 bg-gray-50 dark:bg-gray-900">
+        <div className="container mx-auto px-6 md:px-8 max-w-7xl">
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-4xl md:text-6xl font-semibold mb-6 text-gray-900 dark:text-white tracking-tight">
+              왜 바로팜일까요?
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto font-normal">
               농가와 소비자를 직접 연결하는 지속가능한 플랫폼
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Leaf className="h-6 w-6 text-primary" />
+          <div className="grid md:grid-cols-3 gap-12 md:gap-16 max-w-6xl mx-auto">
+            <div className="text-center">
+              <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 bg-[#F0FDF4] dark:bg-green-950/30 rounded-2xl border border-[#D1FAE5] dark:border-green-900/50">
+                <Leaf className="h-12 w-12 text-[#22C55E] dark:text-[#4ADE80]" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">환경 보호</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-2xl md:text-3xl font-semibold mb-3 text-gray-900 dark:text-white">
+                환경 보호
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed font-normal">
                 중간 유통 단계를 줄여 탄소 배출을 최소화하고 포장재 사용을 줄입니다
               </p>
-            </Card>
+            </div>
 
-            <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <TrendingDown className="h-6 w-6 text-primary" />
+            <div className="text-center">
+              <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 bg-[#F0FDF4] dark:bg-green-950/30 rounded-2xl border border-[#D1FAE5] dark:border-green-900/50">
+                <TrendingDown className="h-12 w-12 text-[#22C55E] dark:text-[#4ADE80]" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">합리적 가격</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-2xl md:text-3xl font-semibold mb-3 text-gray-900 dark:text-white">
+                합리적 가격
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed font-normal">
                 직거래로 중간 마진을 없애 농가와 소비자 모두에게 이익을 제공합니다
               </p>
-            </Card>
+            </div>
 
-            <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Heart className="h-6 w-6 text-primary" />
+            <div className="text-center">
+              <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 bg-[#F0FDF4] dark:bg-green-950/30 rounded-2xl border border-[#D1FAE5] dark:border-green-900/50">
+                <Heart className="h-12 w-12 text-[#22C55E] dark:text-[#4ADE80]" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">농가 활성화</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-2xl md:text-3xl font-semibold mb-3 text-gray-900 dark:text-white">
+                농가 활성화
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed font-normal">
                 농장 체험 프로그램으로 농가에 새로운 수익원을 제공합니다
               </p>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Products */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">오늘의 신선 농산물</h2>
-              <p className="text-muted-foreground">농장에서 직접 배송되는 신선한 농산물</p>
             </div>
-            <Button variant="outline" asChild>
-              <Link href="/products">전체보기</Link>
-            </Button>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <Card
-                key={product.id}
-                className="overflow-hidden group hover:shadow-lg transition-shadow"
-              >
-                <Link href={`/products/${product.id}`}>
-                  <div className="relative aspect-square overflow-hidden bg-muted">
-                    <Image
-                      src={product.image || '/placeholder.svg'}
-                      alt={product.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform"
-                    />
-                    <Badge className="absolute top-3 left-3">{product.tag}</Badge>
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                      <MapPin className="h-3 w-3" />
-                      <span>{product.farm}</span>
-                      <span className="mx-1">•</span>
-                      <span>{product.location}</span>
-                    </div>
-                    <h3 className="font-semibold mb-2">{product.name}</h3>
-                    <div className="flex items-center gap-1 mb-3">
-                      <Star className="h-4 w-4 fill-primary text-primary" />
-                      <span className="text-sm font-medium">{product.rating}</span>
-                      <span className="text-sm text-muted-foreground">({product.reviews})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold">{product.price.toLocaleString()}원</span>
-                      <span className="text-sm text-muted-foreground line-through">
-                        {product.originalPrice.toLocaleString()}원
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </Card>
-            ))}
           </div>
         </div>
       </section>
 
-      {/* Farm Experiences */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">농장 체험 프로그램</h2>
-              <p className="text-muted-foreground">도시를 벗어나 자연과 함께하는 특별한 경험</p>
-            </div>
-            <Button variant="outline" asChild>
-              <Link href="/experiences">전체보기</Link>
-            </Button>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {experiences.map((exp) => (
-              <Card
-                key={exp.id}
-                className="overflow-hidden group hover:shadow-lg transition-shadow"
-              >
-                <Link href={`/experiences/${exp.id}`}>
-                  <div className="relative h-48 overflow-hidden bg-muted">
-                    <Image
-                      src={exp.image || '/placeholder.svg'}
-                      alt={exp.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform"
-                    />
-                  </div>
-                  <div className="p-5">
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                      <MapPin className="h-3 w-3" />
-                      <span>{exp.farm}</span>
-                      <span className="mx-1">•</span>
-                      <span>{exp.location}</span>
-                    </div>
-                    <h3 className="text-lg font-semibold mb-3">{exp.title}</h3>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                      <span>{exp.duration}</span>
-                      <span>{exp.capacity}</span>
-                    </div>
-                    <div className="text-xl font-bold text-primary">
-                      {exp.price.toLocaleString()}원
-                    </div>
-                  </div>
-                </Link>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <Card className="bg-primary text-primary-foreground p-12 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">농가이신가요?</h2>
-            <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
-              바로팜과 함께 더 많은 고객을 만나고, 농장 체험 프로그램으로 새로운 수익을 창출하세요
-            </p>
-            <Button size="lg" variant="secondary" asChild>
-              <Link href="/farmer/signup">농가 등록하기</Link>
-            </Button>
-          </Card>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t py-12 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Sprout className="h-5 w-5 text-primary" />
-                <span className="font-bold">바로팜</span>
+      {/* Stats - Clean Minimal Style */}
+      <section className="pt-10 pb-16 md:pt-12 md:pb-20 bg-gray-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800">
+        <div className="container mx-auto px-6 md:px-8 max-w-7xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 max-w-5xl mx-auto">
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-[#22C55E] dark:text-[#4ADE80] mb-2 tracking-tight">
+                320+
               </div>
-              <p className="text-sm text-muted-foreground">
+              <div className="text-sm md:text-base text-gray-700 dark:text-gray-300 font-medium">
+                등록 농가
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-[#22C55E] dark:text-[#4ADE80] mb-2 tracking-tight">
+                1,200+
+              </div>
+              <div className="text-sm md:text-base text-gray-700 dark:text-gray-300 font-medium">
+                신선 농산물
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-[#22C55E] dark:text-[#4ADE80] mb-2 tracking-tight">
+                85%
+              </div>
+              <div className="text-sm md:text-base text-gray-700 dark:text-gray-300 font-medium">
+                탄소 절감
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-[#22C55E] dark:text-[#4ADE80] mb-2 tracking-tight">
+                50k+
+              </div>
+              <div className="text-sm md:text-base text-gray-700 dark:text-gray-300 font-medium">
+                만족한 고객
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Products - E-commerce Style */}
+      <section className="py-32 md:py-40 bg-white dark:bg-gray-950">
+        <div className="container mx-auto px-6 md:px-8 max-w-7xl">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-16">
+            <div className="mb-8 md:mb-0">
+              <h2 className="text-4xl md:text-6xl font-semibold mb-4 text-gray-900 dark:text-white tracking-tight">
+                오늘의 신선 농산물
+              </h2>
+              <p className="text-lg text-gray-600 dark:text-gray-400 font-normal">
+                농장에서 직접 배송되는 신선한 농산물
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-2 border-[#22C55E] text-[#22C55E] hover:bg-[#F0FDF4] dark:hover:bg-green-950/30 rounded-lg font-semibold transition-all"
+              asChild
+            >
+              <Link href="/products">전체보기 →</Link>
+            </Button>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {featuredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                farm={product.farm}
+                location={product.location}
+                price={product.price}
+                originalPrice={product.originalPrice}
+                image={product.image}
+                rating={product.rating}
+                reviews={product.reviews}
+                tag={product.tag}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Farm Experiences - Greenlabs Style */}
+      <section className="py-32 md:py-40 bg-[#F9FAF8] dark:bg-gray-900">
+        <div className="container mx-auto px-6 md:px-8 max-w-7xl">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-16">
+            <div className="mb-8 md:mb-0">
+              <h2 className="text-4xl md:text-6xl font-semibold mb-4 text-gray-900 dark:text-white tracking-tight">
+                농장 체험 프로그램
+              </h2>
+              <p className="text-lg text-gray-600 dark:text-gray-400 font-normal">
+                도시를 벗어나 자연과 함께하는 특별한 경험
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-2 border-[#22C55E] text-[#22C55E] hover:bg-[#F0FDF4] dark:hover:bg-green-950/30 rounded-lg font-semibold transition-all"
+              asChild
+            >
+              <Link href="/experiences">전체보기 →</Link>
+            </Button>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {experiences.map((exp) => (
+              <ExperienceCard
+                key={exp.id}
+                id={exp.id}
+                title={exp.title}
+                farm={exp.farm}
+                location={exp.location}
+                price={exp.price}
+                image={exp.image}
+                duration={exp.duration}
+                capacity={exp.capacity}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer - Clean Style */}
+      <footer className="border-t border-gray-200 dark:border-gray-800 py-16 bg-white dark:bg-gray-950">
+        <div className="container mx-auto px-6 md:px-8 max-w-7xl">
+          <div className="grid md:grid-cols-4 gap-12 mb-12">
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <Sprout className="h-5 w-5 text-[#22C55E] dark:text-[#4ADE80]" />
+                <span className="font-light text-lg text-gray-900 dark:text-white">바로팜</span>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-light leading-relaxed">
                 농장에서 식탁까지, 신선함을 바로 전하는 Farm-to-Table 플랫폼
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">서비스</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-light text-sm mb-6 text-gray-900 dark:text-white uppercase tracking-wider">
+                서비스
+              </h4>
+              <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
                 <li>
-                  <Link href="/products" className="hover:text-foreground">
+                  <Link
+                    href="/products"
+                    className="hover:text-gray-900 dark:hover:text-white transition-colors font-light"
+                  >
                     농산물 장터
                   </Link>
                 </li>
                 <li>
-                  <Link href="/experiences" className="hover:text-foreground">
+                  <Link
+                    href="/experiences"
+                    className="hover:text-gray-900 dark:hover:text-white transition-colors font-light"
+                  >
                     농장 체험
                   </Link>
                 </li>
                 <li>
-                  <Link href="/farms" className="hover:text-foreground">
+                  <Link
+                    href="/farms"
+                    className="hover:text-gray-900 dark:hover:text-white transition-colors font-light"
+                  >
                     농장 찾기
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">농가</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-light text-sm mb-6 text-gray-900 dark:text-white uppercase tracking-wider">
+                농가
+              </h4>
+              <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
                 <li>
-                  <Link href="/farmer/signup" className="hover:text-foreground">
+                  <Link
+                    href="/farmer/signup"
+                    className="hover:text-gray-900 dark:hover:text-white transition-colors font-light"
+                  >
                     농가 등록
                   </Link>
                 </li>
                 <li>
-                  <Link href="/farmer/login" className="hover:text-foreground">
+                  <Link
+                    href="/farmer/login"
+                    className="hover:text-gray-900 dark:hover:text-white transition-colors font-light"
+                  >
                     농가 로그인
                   </Link>
                 </li>
                 <li>
-                  <Link href="/farmer/guide" className="hover:text-foreground">
+                  <Link
+                    href="/farmer/guide"
+                    className="hover:text-gray-900 dark:hover:text-white transition-colors font-light"
+                  >
                     이용 가이드
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">고객센터</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-light text-sm mb-6 text-gray-900 dark:text-white uppercase tracking-wider">
+                고객센터
+              </h4>
+              <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
                 <li>
-                  <Link href="/help" className="hover:text-foreground">
+                  <Link
+                    href="/help"
+                    className="hover:text-gray-900 dark:hover:text-white transition-colors font-light"
+                  >
                     자주 묻는 질문
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="hover:text-foreground">
+                  <Link
+                    href="/contact"
+                    className="hover:text-gray-900 dark:hover:text-white transition-colors font-light"
+                  >
                     문의하기
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="hover:text-foreground">
+                  <Link
+                    href="/terms"
+                    className="hover:text-gray-900 dark:hover:text-white transition-colors font-light"
+                  >
                     이용약관
                   </Link>
                 </li>
               </ul>
             </div>
           </div>
-          <div className="border-t pt-8 text-center text-sm text-muted-foreground">
+          <div className="border-t border-gray-200 dark:border-gray-800 pt-8 text-center text-sm text-gray-600 dark:text-gray-400 font-light">
             <p>&copy; 2025 바로팜 BaroFarm. All rights reserved.</p>
           </div>
         </div>
       </footer>
+
+      {/* Scroll-triggered CTA */}
+      <ScrollCTA />
     </div>
   )
 }

@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FarmCard } from '@/components/product/farm-card'
 
 interface DisplayFarm {
   id: string
@@ -267,81 +268,17 @@ export default function FarmsPage() {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAndSortedFarms.map((farm) => (
-                <Card
+                <FarmCard
                   key={farm.id}
-                  className="overflow-hidden group hover:shadow-lg transition-shadow"
-                >
-                  <Link href={`/farms/${farm.id}`} className="block">
-                    <div className="relative h-48 overflow-hidden bg-muted">
-                      <Image
-                        src={farm.image || '/placeholder.svg'}
-                        alt={farm.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform"
-                      />
-                    </div>
-                  </Link>
-                  <div className="p-5">
-                    <Link href={`/farms/${farm.id}`} className="block">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="text-xl font-semibold mb-1 hover:text-primary transition-colors">
-                            {farm.name}
-                          </h3>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            <span>{farm.location}</span>
-                          </div>
-                        </div>
-                        {/* TODO: 평점 및 리뷰 기능 추가 예정 */}
-                        {/* <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-primary text-primary" />
-                          <span className="text-sm font-medium">{farm.rating}</span>
-                          <span className="text-sm text-muted-foreground">({farm.reviews})</span>
-                        </div> */}
-                      </div>
-                    </Link>
-
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {farm.certification.map((cert) => (
-                        <Badge key={cert} variant="secondary" className="text-xs">
-                          {cert}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">판매 상품</span>
-                        <span className="font-medium">{farm.products}개</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">체험 프로그램</span>
-                        <span className="font-medium">{farm.experiences}개</span>
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <p className="text-sm text-muted-foreground mb-2">주요 특산품</p>
-                      <div className="flex flex-wrap gap-1">
-                        {farm.specialties.map((specialty) => (
-                          <Badge key={specialty} variant="outline" className="text-xs">
-                            {specialty}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-4 border-t">
-                      <Button variant="outline" size="sm" className="flex-1" asChild>
-                        <Link href={`/farms/${farm.id}`}>농장 상세보기</Link>
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1" asChild>
-                        <Link href={`/products?farm=${farm.id}`}>상품 보기</Link>
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
+                  id={farm.id}
+                  name={farm.name}
+                  location={farm.location}
+                  products={farm.products}
+                  experiences={farm.experiences}
+                  image={farm.image}
+                  specialties={farm.specialties}
+                  certification={farm.certification}
+                />
               ))}
             </div>
           )}

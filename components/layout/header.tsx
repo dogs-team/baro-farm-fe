@@ -102,32 +102,42 @@ export function Header({ showCart = false }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <Sprout className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">바로팜</span>
+    <header className="sticky top-0 z-50 border-b border-[#E5E5E5] dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg supports-[backdrop-filter]:bg-white/90 dark:supports-[backdrop-filter]:bg-gray-950/90">
+      <div className="container mx-auto flex h-20 items-center justify-between px-6 md:px-8 max-w-7xl">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#F0FDF4] dark:bg-green-950/30 group-hover:bg-[#D1FAE5] dark:group-hover:bg-green-900/50 transition-colors">
+            <Sprout className="h-5 w-5 text-[#22C55E] dark:text-[#4ADE80] group-hover:text-[#16A34A] dark:group-hover:text-[#22C55E] transition-colors" />
+          </div>
+          <span className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight">
+            바로팜
+          </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6">
-          <Link href="/products" className="text-sm font-medium text-primary">
+        <nav className="hidden lg:flex items-center gap-10">
+          <Link
+            href="/products"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
+          >
             농산물 장터
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
           </Link>
           <Link
             href="/experiences"
-            className="text-sm font-medium hover:text-primary transition-colors"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
           >
             농장 체험
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
           </Link>
-          <Link href="/farms" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link
+            href="/farms"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
+          >
             농장 찾기
-          </Link>
-          <Link href="/about" className="text-sm font-medium hover:text-primary transition-colors">
-            소개
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
           </Link>
         </nav>
 
-        <div className="flex-1 max-w-md mx-4 hidden md:block">
+        <div className="flex-1 max-w-md mx-6 hidden md:block">
           <SearchBox
             placeholder="상품, 농장, 체험 검색..."
             onSearch={handleSearch}
@@ -135,15 +145,20 @@ export function Header({ showCart = false }: HeaderProps) {
           />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* TODO: 알림 기능 추가 예정 */}
           {/* <NotificationIcon /> */}
           {showCart && (
-            <Button variant="ghost" size="icon" className="relative" asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative hover:bg-[#F0FDF4] dark:hover:bg-green-950/30 rounded-lg transition-colors"
+              asChild
+            >
               <Link href="/cart">
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-5 w-5 text-gray-700 dark:text-gray-300" />
                 {cartItemsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[#22C55E] text-white text-xs flex items-center justify-center font-semibold shadow-sm">
                     {cartItemsCount}
                   </span>
                 )}
@@ -152,21 +167,47 @@ export function Header({ showCart = false }: HeaderProps) {
           )}
           {!isLoggedIn ? (
             <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/login">로그인</Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] hover:bg-transparent rounded-lg px-4 transition-colors relative group"
+                asChild
+              >
+                <Link href="/login" className="relative">
+                  로그인
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
+                </Link>
               </Button>
-              <Button size="sm" asChild>
+              <Button
+                size="sm"
+                className="text-sm font-semibold bg-[#22C55E] hover:bg-[#16A34A] text-white rounded-lg px-5 shadow-sm hover:shadow-md transition-all"
+                asChild
+              >
                 <Link href="/signup">회원가입</Link>
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/profile">마이페이지</Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] hover:bg-transparent rounded-lg px-4 transition-colors relative group"
+                asChild
+              >
+                <Link href="/profile" className="relative">
+                  마이페이지
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
+                </Link>
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] hover:bg-transparent rounded-lg px-4 transition-colors relative group"
+                onClick={handleLogout}
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 로그아웃
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
               </Button>
             </>
           )}
