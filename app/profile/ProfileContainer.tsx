@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { useLogout } from '@/hooks/useLogout'
 import { authService } from '@/lib/api/services/auth'
 import { sellerService } from '@/lib/api/services/seller'
 import { useProfileUser } from './hooks/useProfileUser'
@@ -9,32 +10,43 @@ import { useProfileOrders } from './hooks/useProfileOrders'
 import { useProfileDeposit } from './hooks/useProfileDeposit'
 import { useTossPayments } from './hooks/useTossPayments'
 import { ProfileView } from './ProfileView'
-import type { SellerApplication } from './types'
+import type {
+  MySettlementResponse,
+  SellerApplyRequestDto,
+  SettlementMonth,
+} from '@/lib/api/types/seller'
 
 export function ProfileContainer() {
   const { toast } = useToast()
+  const { logout } = useLogout()
   const { user, isLoadingUser, mounted, setUser } = useProfileUser()
-  const { orders, isLoadingOrders, orderCount, reviewCount, isLoadingReviews } = useProfileOrders(user.userId, mounted)
+  const { orders, isLoadingOrders, orderCount, reviewCount, isLoadingReviews } = useProfileOrders(
+    user.userId,
+    mounted
+  )
   const { depositBalance, isLoadingDeposit, fetchDepositBalance } = useProfileDeposit(mounted)
-  const { tossWidget, isCharging, handleDepositCharge } = useTossPayments(user)
+  const { isCharging, handleDepositCharge } = useTossPayments(user)
 
   // UI state
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('buyer')
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false)
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
   const [isDepositChargeDialogOpen, setIsDepositChargeDialogOpen] = useState(false)
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null)
   const [chargeAmount, setChargeAmount] = useState<string>('')
-  const [sellerApplication, setSellerApplication] = useState<SellerApplication>({
-    farmName: '',
-    farmAddress: '',
-    farmDescription: '',
-    businessNumber: '',
+  const [sellerApplication, setSellerApplication] = useState<SellerApplyRequestDto>({
+    storeName: '',
+    business_reg_no: '',
+    business_owner_name: '',
+    settlement_bank: '',
+    settlement_account: '',
   })
 
   // 판매자 정산금액 상태
   const [monthlySettlement, setMonthlySettlement] = useState<number | null>(null)
   const [isLoadingSettlement, setIsLoadingSettlement] = useState(false)
+  const [settlementData, setSettlementData] = useState<MySettlementResponse | null>(null)
+  const [settlementMonth, setSettlementMonth] = useState<SettlementMonth | null>(null)
 
   // 이번달 정산금액 조회 (판매자만)
   useEffect(() => {
@@ -43,34 +55,38 @@ export function ProfileContainer() {
 
       setIsLoadingSettlement(true)
       try {
-        const now = new Date()
-        const year = now.getFullYear()
-        const month = now.getMonth() + 1
+        const data = await sellerService.getMySettlements()
+        setSettlementData(data)
+        setSettlementMonth(data.settlementMonth)
 
-        const response = await sellerService.getSettlements({
-          page: 1,
-          size: 100,
-        })
+        // 이번 달 정산인지 확인
+        const currentMonth = new Date().getMonth() + 1 // JavaScript: 0-11, YearMonth: 1-12
+        const settlementMonthValue = data.settlementMonth.monthValue
 
-        // 이번달 정산금액 계산 (COMPLETED 상태만)
-        const currentMonthSettlements = response.content.filter((settlement) => {
-          const settlementDate = new Date(settlement.period.start)
-          return (
-            settlementDate.getFullYear() === year &&
-            settlementDate.getMonth() + 1 === month &&
-            settlement.status === 'COMPLETED'
+        if (settlementMonthValue === currentMonth) {
+          // 이번 달 정산 금액 사용
+          setMonthlySettlement(data.payoutAmount)
+        } else {
+          // 이번 달 정산이 아닌 경우 0으로 설정
+          console.warn(
+            `정산 데이터가 이번 달(${currentMonth})이 아닌 ${settlementMonthValue}월 데이터입니다.`
           )
-        })
-
-        const totalAmount = currentMonthSettlements.reduce(
-          (sum, settlement) => sum + settlement.netAmount,
-          0
-        )
-
-        setMonthlySettlement(totalAmount)
-      } catch (error) {
+          setMonthlySettlement(0)
+        }
+      } catch (error: any) {
         console.error('정산금액 조회 실패:', error)
-        // API 실패 시에도 UI는 표시 (에러는 무시)
+
+        // 404 에러인 경우 정산 데이터가 없음으로 처리
+        if (error.status === 404) {
+          setSettlementData(null)
+          setSettlementMonth(null)
+          setMonthlySettlement(0)
+        } else {
+          // 다른 에러는 기존처럼 처리
+          setSettlementData(null)
+          setSettlementMonth(null)
+          setMonthlySettlement(0)
+        }
       } finally {
         setIsLoadingSettlement(false)
       }
@@ -80,17 +96,17 @@ export function ProfileContainer() {
   }, [mounted, user.role])
 
   const handleSellerApplication = async () => {
-    if (!sellerApplication.farmName || !sellerApplication.farmAddress) {
+    if (!sellerApplication.storeName || !sellerApplication.business_reg_no) {
       toast({
         title: '필수 항목 입력',
-        description: '농장명과 주소를 입력해주세요.',
+        description: '상점 이름과 사업자 등록 번호를 입력해주세요.',
         variant: 'destructive',
       })
       return
     }
 
     try {
-      // grantSellerRole API 호출 (현재 사용자의 userId로 판매자 권한 부여)
+      // TODO: 실제 판매자 신청 API 호출 (현재는 grantSellerRole로 임시 처리)
       await authService.grantSellerRole(user.userId)
 
       toast({
@@ -100,10 +116,11 @@ export function ProfileContainer() {
 
       setIsSellerDialogOpen(false)
       setSellerApplication({
-        farmName: '',
-        farmAddress: '',
-        farmDescription: '',
-        businessNumber: '',
+        storeName: '',
+        business_reg_no: '',
+        business_owner_name: '',
+        settlement_bank: '',
+        settlement_account: '',
       })
 
       // 사용자 정보 다시 조회하여 역할 업데이트
@@ -138,6 +155,10 @@ export function ProfileContainer() {
     }
   }
 
+  const handleLogout = async () => {
+    await logout({ reload: true })
+  }
+
   const profileState = {
     // User state
     user,
@@ -158,6 +179,8 @@ export function ProfileContainer() {
     // Seller state
     monthlySettlement,
     isLoadingSettlement,
+    settlementData,
+    settlementMonth,
 
     // UI state
     activeTab,
@@ -180,12 +203,8 @@ export function ProfileContainer() {
     setSellerApplication,
     handleSellerApplication,
     handleDepositChargeClick,
+    handleLogout,
   }
 
-  return (
-    <ProfileView
-      state={profileState}
-      actions={profileActions}
-    />
-  )
+  return <ProfileView state={profileState} actions={profileActions} />
 }

@@ -1,4 +1,5 @@
 import type { MeResponse, OrderDetailInfo } from '@/lib/api/types'
+import type { SellerApplyRequestDto, MySettlementResponse, SettlementMonth } from '@/lib/api/types/seller'
 
 export interface ProfileUser extends MeResponse {
   name?: string
@@ -20,11 +21,17 @@ export interface ProfileStats {
   icon: React.ComponentType<{ className?: string }>
 }
 
-export interface SellerApplication {
-  farmName: string
-  farmAddress: string
-  farmDescription: string
-  businessNumber: string
+export interface ProfileActions {
+  setActiveTab: (tab: string) => void
+  setIsSellerDialogOpen: (open: boolean) => void
+  setIsAddressDialogOpen: (open: boolean) => void
+  setIsDepositChargeDialogOpen: (open: boolean) => void
+  setEditingAddressId: (id: number | null) => void
+  setChargeAmount: (amount: string) => void
+  setSellerApplication: (application: SellerApplyRequestDto) => void
+  handleSellerApplication: () => Promise<void>
+  handleDepositChargeClick: () => Promise<void>
+  handleLogout: () => Promise<void>
 }
 
 export interface ProfileState {
@@ -49,6 +56,8 @@ export interface ProfileState {
   // Seller state
   monthlySettlement: number | null
   isLoadingSettlement: boolean
+  settlementData: MySettlementResponse | null
+  settlementMonth: SettlementMonth | null
 
   // UI state
   activeTab: string
@@ -58,5 +67,5 @@ export interface ProfileState {
   editingAddressId: number | null
   chargeAmount: string
   isCharging: boolean
-  sellerApplication: SellerApplication
+  sellerApplication: SellerApplyRequestDto
 }
