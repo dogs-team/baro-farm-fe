@@ -7,7 +7,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useCartStore } from '@/lib/cart-store'
 import { useToast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/ui/toast'
-import { Header } from '@/components/layout/header'
+import { DetailPageLayout } from '@/components/layout/detail-page-layout'
 import {
   ProductMainSection,
   ProductSideSection,
@@ -16,9 +16,10 @@ import {
   type DisplayProduct,
 } from '@/components/product'
 import { productService } from '@/lib/api/services/product'
-import { farmService } from '@/lib/api/services/farm'
+import { sellerService } from '@/lib/api/services/seller'
 import { reviewService } from '@/lib/api/services/review'
-import type { Product, Farm, Review } from '@/lib/api/types'
+import type { Product, Review } from '@/lib/api/types'
+import type { SellerInfoData } from '@/lib/api/types/seller'
 import { cartService } from '@/lib/api/services/cart'
 
 export default function ProductDetailPage() {
@@ -29,7 +30,7 @@ export default function ProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [product, setProduct] = useState<Product | null>(null)
-  const [farm, setFarm] = useState<Farm | null>(null)
+  const [sellerInfo, setSellerInfo] = useState<SellerInfoData | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { addItem, getTotalItems } = useCartStore()
@@ -55,19 +56,19 @@ export default function ProductDetailPage() {
           })), // 리뷰 로드 실패 시 빈 배열로 처리
         ])
 
-        // 농장 정보 로드 (sellerId로 농장 조회)
-        let farmData: Farm | null = null
+        // 판매자 정보 로드 (sellerId로 판매자 정보 조회)
+        let sellerData: SellerInfoData | null = null
         if (productData.sellerId) {
           try {
-            farmData = await farmService.getFarm(productData.sellerId)
+            sellerData = await sellerService.getSellerInfo(productData.sellerId)
           } catch (error) {
-            console.warn('농장 정보 로드 실패:', error)
-            // 농장 정보 로드 실패 시 null로 처리
+            console.warn('판매자 정보 로드 실패:', error)
+            // 판매자 정보 로드 실패 시 null로 처리
           }
         }
 
         setProduct(productData)
-        setFarm(farmData)
+        setSellerInfo(sellerData)
         setReviews(reviewsData.content || [])
       } catch (error) {
         console.error('상품 조회 실패:', error)
@@ -111,8 +112,8 @@ export default function ProductDetailPage() {
           delivery: '수확 후 당일 배송', // TODO: 배송 정보 추가
 
           // computed 필드들 (별도 API에서 가져온 데이터 사용)
-          farmName: farm?.name || '',
-          farmLocation: farm?.address || '',
+          storeName: sellerInfo?.storeName || '',
+          farmLocation: '', // 판매자 정보에서는 위치 정보가 없으므로 빈 문자열
           reviews: reviews.length,
           rating: averageRating,
         } as DisplayProduct
@@ -163,7 +164,7 @@ export default function ProductDetailPage() {
         name: displayProduct.productName,
         price: displayProduct.price,
         image: displayProduct.imageUrls[0] || '/placeholder.svg',
-        farm: displayProduct.farmName || '',
+        farm: displayProduct.storeName || '',
         quantity,
       })
 
@@ -214,7 +215,7 @@ export default function ProductDetailPage() {
       name: displayProduct.productName,
       price: Number(displayProduct.price),
       image: displayProduct.imageUrls[0] ?? '/placeholder.svg',
-      farm: displayProduct.farmName || '',
+      store: displayProduct.storeName || '',
       quantity,
       timestamp: Date.now(),
     }
@@ -265,96 +266,83 @@ export default function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header showCart />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">로딩 중...</div>
-        </div>
-      </div>
+      <DetailPageLayout>
+        <div className="text-center">로딩 중...</div>
+      </DetailPageLayout>
     )
   }
 
   // API 로드 완료 후 상품 데이터가 없는 경우 (에러 또는 없는 상품)
   if (!product) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header showCart />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold">상품을 찾을 수 없습니다</h1>
-            <p className="text-muted-foreground">
-              요청하신 상품이 존재하지 않거나 삭제되었을 수 있습니다.
-            </p>
-            <Button asChild>
-              <Link href="/products">상품 목록으로 돌아가기</Link>
-            </Button>
-          </div>
+      <DetailPageLayout>
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold">상품을 찾을 수 없습니다</h1>
+          <p className="text-muted-foreground">
+            요청하신 상품이 존재하지 않거나 삭제되었을 수 있습니다.
+          </p>
+          <Button asChild>
+            <Link href="/products">상품 목록으로 돌아가기</Link>
+          </Button>
         </div>
-      </div>
+      </DetailPageLayout>
     )
   }
 
   // displayProduct가 null인 경우 (데이터 변환 실패)
   if (!displayProduct) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header showCart />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold">상품 정보 처리 중 오류가 발생했습니다</h1>
-            <p className="text-muted-foreground">상품 정보를 표시하는데 문제가 있습니다.</p>
-            <Button asChild>
-              <Link href="/products">상품 목록으로 돌아가기</Link>
-            </Button>
-          </div>
+      <DetailPageLayout>
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold">상품 정보 처리 중 오류가 발생했습니다</h1>
+          <p className="text-muted-foreground">상품 정보를 표시하는데 문제가 있습니다.</p>
+          <Button asChild>
+            <Link href="/products">상품 목록으로 돌아가기</Link>
+          </Button>
         </div>
-      </div>
+      </DetailPageLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header showCart />
-
+    <DetailPageLayout>
       {/* Product Detail */}
-      <div className="container mx-auto px-4 py-8">
-        <ProductMainSection
-          product={displayProduct}
-          quantity={quantity}
-          selectedImage={selectedImage}
-          onChangeQuantity={setQuantity}
-          onChangeSelectedImage={setSelectedImage}
-          onAddToCart={handleAddToCart}
-          onBuyNow={handleBuyNow}
-        />
+      <ProductMainSection
+        product={displayProduct}
+        quantity={quantity}
+        selectedImage={selectedImage}
+        onChangeQuantity={setQuantity}
+        onChangeSelectedImage={setSelectedImage}
+        onAddToCart={handleAddToCart}
+        onBuyNow={handleBuyNow}
+      />
 
-        {/* Product Description and Reviews */}
-        <div className="grid lg:grid-cols-3 gap-8 mb-12">
-          <div className="lg:col-span-2 space-y-8">
-            <ProductDescriptionSection description={displayProduct.description} />
+      {/* Product Description and Reviews */}
+      <div className="grid lg:grid-cols-3 gap-8 mb-12">
+        <div className="lg:col-span-2 space-y-8">
+          <ProductDescriptionSection description={displayProduct.description} />
 
-            <ProductReviewSection
-              productId={productId}
-              initialRating={displayProduct.rating || 0}
-              initialTotalReviews={displayProduct.reviews || 0}
-              initialRatingDistribution={[
-                { rating: 5, count: 0 },
-                { rating: 4, count: 0 },
-                { rating: 3, count: 0 },
-                { rating: 2, count: 0 },
-                { rating: 1, count: 0 },
-              ]}
-            />
-          </div>
-
-          <ProductSideSection
-            farm={displayProduct.farmName || ''}
-            farmId={displayProduct.sellerId}
-            location={displayProduct.farmLocation || ''}
-            relatedProducts={relatedProducts}
+          <ProductReviewSection
+            productId={productId}
+            initialRating={displayProduct.rating || 0}
+            initialTotalReviews={displayProduct.reviews || 0}
+            initialRatingDistribution={[
+              { rating: 5, count: 0 },
+              { rating: 4, count: 0 },
+              { rating: 3, count: 0 },
+              { rating: 2, count: 0 },
+              { rating: 1, count: 0 },
+            ]}
           />
         </div>
+
+        <ProductSideSection
+          farm={displayProduct.storeName || ''}
+          farmId={displayProduct.sellerId}
+          location="" // 판매자 정보에서는 위치 정보가 없으므로 빈 문자열
+          relatedProducts={relatedProducts}
+        />
       </div>
-    </div>
+    </DetailPageLayout>
   )
 }

@@ -6,58 +6,107 @@ import { ScrollCTA } from '@/components/scroll-cta'
 import { HeroSlider } from '@/components/landing/hero-slider'
 import { ProductCard } from '@/components/product/product-card'
 import { ExperienceCard } from '@/components/product/experience-card'
+import { productService } from '@/lib/api/services/product'
+import { sellerService } from '@/lib/api/services/seller'
+import { getProductImage } from '@/lib/utils/product-images'
 
-export default function HomePage() {
-  const featuredProducts = [
-    {
-      id: 1,
-      name: '유기농 방울토마토',
-      farm: '햇살농장',
-      location: '충남 당진',
-      price: 8500,
-      originalPrice: 12000,
-      image: '/fresh-organic-cherry-tomatoes.jpg',
-      rating: 4.8,
-      reviews: 124,
-      tag: '베스트',
-    },
-    {
-      id: 2,
-      name: '무농약 상추',
-      farm: '초록들판',
-      location: '경기 양평',
-      price: 5000,
-      originalPrice: 7000,
-      image: '/fresh-organic-lettuce.png',
-      rating: 4.9,
-      reviews: 89,
-      tag: '신선',
-    },
-    {
-      id: 3,
-      name: '친환경 딸기',
-      farm: '달콤농원',
-      location: '전북 완주',
-      price: 15000,
-      originalPrice: 18000,
-      image: '/images/strawberries.png',
-      rating: 5.0,
-      reviews: 203,
-      tag: '인기',
-    },
-    {
-      id: 4,
-      name: '유기농 감자',
-      farm: '푸른밭농장',
-      location: '강원 평창',
-      price: 12000,
-      originalPrice: 15000,
-      image: '/fresh-organic-potatoes.jpg',
-      rating: 4.7,
-      reviews: 67,
-      tag: '할인',
-    },
-  ]
+export default async function HomePage() {
+  // 실제 상품 데이터 가져오기 (인기 상품)
+  let featuredProducts = []
+  try {
+    const response = await productService.getProducts({
+      page: 0,
+      size: 4,
+      // 인기 상품 정렬 (API에서 지원한다면)
+    })
+
+    if (response?.content) {
+      // 각 상품의 판매자 정보 가져오기
+      const productsWithSellerInfo = await Promise.all(
+        response.content.map(async (product) => {
+          const productName = product.productName || product.name || ''
+          const defaultImage = getProductImage(productName, product.id)
+
+          let storeName = '판매자 정보 없음'
+          if (product.sellerId) {
+            try {
+              const sellerInfo = await sellerService.getSellerInfo(product.sellerId)
+              storeName = sellerInfo?.storeName || '판매자 정보 없음'
+            } catch (error) {
+              console.warn('판매자 정보 로드 실패:', error)
+            }
+          }
+
+          return {
+            id: product.id,
+            name: productName,
+            storeName,
+            price: product.price,
+            originalPrice: product.productStatus === 'DISCOUNTED' ? product.price * 1.2 : product.price,
+            image: product.imageUrls?.[0] || product.images?.[0] || defaultImage,
+            rating: product.rating || 0,
+            reviews: 0, // TODO: 리뷰 개수 API 추가 시 업데이트
+            tag: product.productStatus === 'DISCOUNTED'
+              ? '할인'
+              : product.productStatus === 'ON_SALE'
+                ? '판매중'
+                : '베스트',
+          }
+        })
+      )
+
+      featuredProducts = productsWithSellerInfo
+    }
+  } catch (error) {
+    console.error('상품 데이터 로드 실패:', error)
+    // 폴백 데이터 사용
+    featuredProducts = [
+      {
+        id: 1,
+        name: '유기농 방울토마토',
+        storeName: '햇살농장',
+        price: 8500,
+        originalPrice: 12000,
+        image: '/fresh-organic-cherry-tomatoes.jpg',
+        rating: 4.8,
+        reviews: 124,
+        tag: '베스트',
+      },
+      {
+        id: 2,
+        name: '무농약 상추',
+        storeName: '초록들판',
+        price: 5000,
+        originalPrice: 7000,
+        image: '/fresh-organic-lettuce.png',
+        rating: 4.9,
+        reviews: 89,
+        tag: '신선',
+      },
+      {
+        id: 3,
+        name: '친환경 딸기',
+        storeName: '달콤농원',
+        price: 15000,
+        originalPrice: 18000,
+        image: '/images/strawberries.png',
+        rating: 5.0,
+        reviews: 203,
+        tag: '인기',
+      },
+      {
+        id: 4,
+        name: '유기농 감자',
+        storeName: '푸른밭농장',
+        price: 12000,
+        originalPrice: 15000,
+        image: '/fresh-organic-potatoes.jpg',
+        rating: 4.7,
+        reviews: 67,
+        tag: '할인',
+      },
+    ]
+  }
 
   const experiences = [
     {
@@ -220,8 +269,7 @@ export default function HomePage() {
                 key={product.id}
                 id={product.id}
                 name={product.name}
-                farm={product.farm}
-                location={product.location}
+                storeName={product.storeName}
                 price={product.price}
                 originalPrice={product.originalPrice}
                 image={product.image}

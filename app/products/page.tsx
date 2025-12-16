@@ -2,11 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { MapPin, Star, Filter, X, Search } from 'lucide-react'
-import Link from 'next/link'
-import Image from 'next/image'
+import { Filter, X, Search } from 'lucide-react'
+import { ProductCard } from '@/components/product/product-card'
 import { SearchBox } from '@/components/search'
 import { Header } from '@/components/layout/header'
 import {
@@ -17,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { productService } from '@/lib/api/services/product'
+import { sellerService } from '@/lib/api/services/seller'
 import type { Product } from '@/lib/api/types'
 import {
   Pagination,
@@ -45,6 +43,7 @@ export default function ProductsPage() {
   const [category, setCategory] = useState('all')
   const [sortBy, setSortBy] = useState('popular')
   const [products, setProducts] = useState<Product[]>([])
+  const [displayProducts, setDisplayProducts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
@@ -80,7 +79,47 @@ export default function ProductsPage() {
         }
         const response = await productService.getProducts(params)
         // response.content가 배열인지 확인하고, 없으면 빈 배열로 설정
-        setProducts(Array.isArray(response?.content) ? response.content : [])
+        const productList = Array.isArray(response?.content) ? response.content : []
+        setProducts(productList)
+
+        // 각 상품의 판매자 정보를 가져와서 displayProducts 생성
+        const productsWithSellerInfo = await Promise.all(
+          productList.map(async (product) => {
+            const productName = product.productName
+            const defaultImage = getProductImage(productName, product.id)
+
+            let storeName = '판매자 정보 없음'
+            if (product.sellerId) {
+              try {
+                const sellerInfo = await sellerService.getSellerInfo(product.sellerId)
+                storeName = sellerInfo?.storeName || '판매자 정보 없음'
+              } catch (error) {
+                console.warn('판매자 정보 로드 실패:', error)
+              }
+            }
+
+            return {
+              id: product.id,
+              name: productName,
+              storeName,
+              price: product.price,
+              originalPrice:
+                product.productStatus === 'DISCOUNTED' ? product.price * 1.2 : product.price,
+              image: product.imageUrls?.[0] || defaultImage,
+              rating: 0,
+              reviews: 0, // TODO: 리뷰 개수 API 추가 시 업데이트
+              tag:
+                product.productStatus === 'DISCOUNTED'
+                  ? '할인'
+                  : product.productStatus === 'ON_SALE'
+                    ? '판매중'
+                    : '베스트',
+              category: categoryMap[product.productCategory] || '기타',
+            }
+          })
+        )
+        setDisplayProducts(productsWithSellerInfo)
+
         // 페이지네이션 정보 저장
         const paginationData = {
           totalPages: response.totalPages || 0,
@@ -106,37 +145,6 @@ export default function ProductsPage() {
   }, [mounted, category, searchQuery, currentPage])
 
   // 상품명에 따른 이미지 매핑은 lib/utils/product-images.ts의 getProductImage 함수 사용
-
-  // API 데이터를 표시 형식으로 변환
-  const displayProducts = useMemo(() => {
-    // products가 배열이 아니면 빈 배열 반환
-    if (!Array.isArray(products)) {
-      return []
-    }
-    return products.map((product) => {
-      const productName = product.productName || product.name || ''
-      const defaultImage = getProductImage(productName, product.id)
-
-      return {
-        id: product.id,
-        name: productName,
-        farm: product.farmName || '농장',
-        location: product.farmLocation || '',
-        price: product.price,
-        originalPrice: product.productStatus === 'DISCOUNTED' ? product.price * 1.2 : product.price,
-        image: product.imageUrls?.[0] || product.images?.[0] || defaultImage,
-        rating: product.rating || 0,
-        reviews: 0, // TODO: 리뷰 개수 API 추가 시 업데이트
-        tag:
-          product.productStatus === 'DISCOUNTED'
-            ? '할인'
-            : product.productStatus === 'ON_SALE'
-              ? '판매중'
-              : '베스트',
-        category: categoryMap[product.productCategory] || product.category || '기타',
-      }
-    })
-  }, [products])
 
   // 필터링 및 정렬 로직
   const filteredAndSortedProducts = useMemo(() => {
@@ -304,44 +312,18 @@ export default function ProductsPage() {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {filteredAndSortedProducts.map((product) => (
-                <Card
+                <ProductCard
                   key={product.id}
-                  className="overflow-hidden group hover:shadow-lg transition-shadow"
-                >
-                  <Link href={`/products/${product.id}`}>
-                    <div className="relative aspect-square overflow-hidden bg-muted">
-                      <Image
-                        src={product.image || '/placeholder.svg'}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <Badge className="absolute top-3 left-3">{product.tag}</Badge>
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                        <MapPin className="h-3 w-3" />
-                        <span>{product.farm}</span>
-                        <span className="mx-1">•</span>
-                        <span>{product.location}</span>
-                      </div>
-                      <h3 className="font-semibold mb-2">{product.name}</h3>
-                      <div className="flex items-center gap-1 mb-3">
-                        <Star className="h-4 w-4 fill-primary text-primary" />
-                        <span className="text-sm font-medium">{product.rating}</span>
-                        <span className="text-sm text-muted-foreground">({product.reviews})</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold">
-                          {product.price.toLocaleString()}원
-                        </span>
-                        <span className="text-sm text-muted-foreground line-through">
-                          {product.originalPrice.toLocaleString()}원
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </Card>
+                  id={product.id}
+                  name={product.name}
+                  storeName={product.storeName}
+                  price={product.price}
+                  originalPrice={product.originalPrice}
+                  image={product.image}
+                  rating={product.rating}
+                  reviews={product.reviews}
+                  tag={product.tag}
+                />
               ))}
             </div>
           )}

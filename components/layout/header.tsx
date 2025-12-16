@@ -19,9 +19,9 @@ interface HeaderProps {
 
 export function Header({ showCart = false }: HeaderProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const { logout } = useLogout()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
+  const [mounted, setMounted] = useState(false)
   const cartItemsCount = useCartStore((state) => state.items.length)
 
   const handleSearch = (query: string) => {
@@ -29,27 +29,25 @@ export function Header({ showCart = false }: HeaderProps) {
   }
 
   useEffect(() => {
+    setMounted(true)
+
     // 로그인 상태 확인
     const checkAuth = () => {
       const token = getAccessToken()
-      const dummyUser = typeof window !== 'undefined' ? localStorage.getItem('dummyUser') : null
+      const dummyUser = localStorage.getItem('dummyUser')
       setIsLoggedIn(!!(token || dummyUser))
     }
 
     checkAuth()
 
     // storage 이벤트 리스너 추가 (다른 탭에서 로그인/로그아웃 시 동기화)
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', checkAuth)
-      // 커스텀 이벤트 리스너 (같은 탭에서 로그인/로그아웃 시)
-      window.addEventListener('authStateChanged', checkAuth)
-    }
+    window.addEventListener('storage', checkAuth)
+    // 커스텀 이벤트 리스너 (같은 탭에서 로그인/로그아웃 시)
+    window.addEventListener('authStateChanged', checkAuth)
 
     return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('storage', checkAuth)
-        window.removeEventListener('authStateChanged', checkAuth)
-      }
+      window.removeEventListener('storage', checkAuth)
+      window.removeEventListener('authStateChanged', checkAuth)
     }
   }, [])
 
@@ -85,13 +83,14 @@ export function Header({ showCart = false }: HeaderProps) {
             농장 체험
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
           </Link>
-          <Link
+          {/* 농장 찾기 숨김 처리 */}
+          {/* <Link
             href="/farms"
             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
           >
             농장 찾기
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
-          </Link>
+          </Link> */}
         </nav>
 
         <div className="flex-1 max-w-md mx-6 hidden md:block">
@@ -105,22 +104,27 @@ export function Header({ showCart = false }: HeaderProps) {
         <div className="flex items-center gap-2">
           {/* TODO: 알림 기능 추가 예정 */}
           {/* <NotificationIcon /> */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative hover:bg-[#F0FDF4] dark:hover:bg-green-950/30 rounded-lg transition-colors"
-            asChild
-          >
-            <Link href="/cart">
-              <ShoppingCart className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-              {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[#22C55E] text-white text-xs flex items-center justify-center font-semibold shadow-sm">
-                  {cartItemsCount}
-                </span>
-              )}
-            </Link>
-          </Button>
-          {!isLoggedIn ? (
+          {showCart && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative hover:bg-[#F0FDF4] dark:hover:bg-green-950/30 rounded-lg transition-colors"
+              asChild
+            >
+              <Link href="/cart">
+                <ShoppingCart className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                {cartItemsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[#22C55E] text-white text-xs flex items-center justify-center font-semibold shadow-sm">
+                    {cartItemsCount}
+                  </span>
+                )}
+              </Link>
+            </Button>
+          )}
+          {isLoggedIn === null ? (
+            // 로딩 상태 - 서버와 클라이언트에서 동일하게 렌더링
+            <div className="w-20 h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          ) : !isLoggedIn ? (
             <>
               <Button
                 variant="ghost"
@@ -151,7 +155,7 @@ export function Header({ showCart = false }: HeaderProps) {
               >
                 <Link href="/profile" className="relative">
                   마이페이지
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:hover:text-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
                 </Link>
               </Button>
               <Button

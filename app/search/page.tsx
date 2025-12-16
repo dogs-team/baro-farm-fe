@@ -9,14 +9,13 @@ import { UnifiedSearchResponse } from '@/lib/api/types'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Search, ShoppingBag, Tractor, Tent, AlertCircle, X } from 'lucide-react'
+import { Search, ShoppingBag, Tractor, Tent, AlertCircle } from 'lucide-react'
 import { ProductCard } from '@/components/product/product-card'
 import { FarmCard } from '@/components/product/farm-card'
 import { ExperienceCard } from '@/components/product/experience-card'
 
 function SearchResults() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   // 'keyword' maps to 'q' in the header navigation, but let's support both just in case
   const query = searchParams.get('q') || searchParams.get('keyword') || ''
 
@@ -129,8 +128,7 @@ function SearchResults() {
                       key={product.productId}
                       id={product.productId}
                       name={product.productName}
-                      farm="농장 정보 없음" // Search API doesn't return info
-                      location=""
+                      storeName="상점 정보 없음" // Search API doesn't return info
                       price={product.price}
                       image={product.imageUrl || '/placeholder.svg'}
                       rating={0}
@@ -211,8 +209,7 @@ function SearchResults() {
                   key={product.productId}
                   id={product.productId}
                   name={product.productName}
-                  farm="농장 정보 없음"
-                  location=""
+                  storeName="상점 정보 없음"
                   price={product.price}
                   image={product.imageUrl || '/placeholder.svg'}
                   rating={0}

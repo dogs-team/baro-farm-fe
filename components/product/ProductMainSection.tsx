@@ -1,12 +1,11 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Star, Minus, Plus, ShoppingCart, Share2, Truck, Shield, Leaf } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import type { Product, ProductCategory, ProductStatus } from '@/lib/api/types/product'
+import type { Product } from '@/lib/api/types/product'
 
 // DisplayProduct - UI 표시용 데이터 구조 (Product 타입과 호환)
 export interface DisplayProduct extends Product {
@@ -18,8 +17,7 @@ export interface DisplayProduct extends Product {
   delivery: string
 
   // 편의를 위한 computed 필드들
-  farmName: string
-  farmLocation: string
+  storeName: string
   reviews: number
   rating: number
 }
@@ -113,9 +111,7 @@ export function ProductMainSection({
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-2"
           >
             <MapPin className="h-3 w-3" />
-            <span>{product.farmName}</span>
-            <span className="mx-1">•</span>
-            <span>{product.farmLocation}</span>
+            <span>{product.storeName}</span>
           </Link>
           <h1 className="text-3xl font-bold mb-4">{product.productName}</h1>
           <div className="flex items-center gap-2 mb-4">
