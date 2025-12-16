@@ -318,7 +318,8 @@ export default function ProfilePage() {
     setIsLoadingDeposit(true)
     try {
       const response = await depositService.getDeposit()
-      setDepositBalance(response.balance)
+      // 백엔드 응답: { status, data: { userId, amount }, message }
+      setDepositBalance(response.amount)
     } catch (error: unknown) {
       // 404 에러인 경우 예치금 계정이 없는 것으로 처리 (정상)
       if ((error as { status?: number })?.status === 404) {
@@ -474,8 +475,8 @@ export default function ProfilePage() {
 
       // 3. 토스페이먼츠 결제 위젯 열기
       const baseUrl = typeof window !== 'undefined' && window.location ? window.location.origin : ''
-      const successUrl = `${baseUrl}/deposit/success`
-      const failUrl = `${baseUrl}/deposit/fail`
+      const successUrl = `${baseUrl}/deposit/success?orderId=${encodeURIComponent(chargeId)}`
+      const failUrl = `${baseUrl}/deposit/fail?orderId=${encodeURIComponent(chargeId)}`
 
       console.log('[Profile] 토스페이먼츠 결제 요청:', {
         method: '간편결제',

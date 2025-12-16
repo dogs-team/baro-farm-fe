@@ -9,7 +9,15 @@ import { Suspense } from 'react'
 
 function DepositFailPageContent() {
   const searchParams = useSearchParams()
-  const orderId = searchParams.get('orderId') || '알 수 없음'
+  // 토스페이먼츠가 전달할 수 있는 파라미터들 확인
+  const orderId =
+    searchParams.get('orderId') ||
+    searchParams.get('chargeId') ||
+    searchParams.get('orderName') ||
+    '알 수 없음'
+  const paymentKey = searchParams.get('paymentKey')
+  const errorCode = searchParams.get('errorCode')
+  const errorMessage = searchParams.get('errorMessage')
 
   return (
     <div className="min-h-screen bg-background">
@@ -35,11 +43,24 @@ function DepositFailPageContent() {
             충전 ID: <span className="font-mono font-semibold text-foreground">{orderId}</span>
           </p>
 
-          <p className="text-muted-foreground mb-8">
+          <p className="text-muted-foreground mb-4">
             예치금 충전 중 오류가 발생했습니다.
             <br />
             다시 시도하시거나 다른 결제 수단을 이용해주세요.
           </p>
+
+          {(errorCode || errorMessage) && (
+            <div className="mb-8 p-4 bg-destructive/10 rounded-lg text-left">
+              {errorCode && (
+                <p className="text-sm text-muted-foreground mb-1">
+                  에러 코드: <span className="font-mono">{errorCode}</span>
+                </p>
+              )}
+              {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+            </div>
+          )}
+
+          {!errorCode && !errorMessage && <div className="mb-8" />}
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" asChild>

@@ -32,9 +32,11 @@ export const depositService = {
   },
 
   // 예치금 조회
-  async getDeposit(): Promise<{ balance: number }> {
-    const response = await orderApi.get<{ data: { balance: number } }>('/api/v1/deposits')
-    // API 응답이 { status, data: { balance }, message } 형태이므로 data 필드 추출
+  async getDeposit(): Promise<{ amount: number; userId?: string }> {
+    const response = await orderApi.get<{ data: { userId?: string; amount: number } }>(
+      '/api/v1/deposits'
+    )
+    // API 응답이 { status, data: { userId, amount }, message } 형태이므로 data 필드 추출
     return response.data
   },
 

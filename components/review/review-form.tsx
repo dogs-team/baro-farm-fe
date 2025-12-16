@@ -18,7 +18,13 @@ interface ReviewFormProps {
   onCancel?: () => void
 }
 
-export function ReviewForm({ productId, experienceId, onSubmit, onCancel }: ReviewFormProps) {
+export function ReviewForm({
+  productId,
+  experienceId,
+  orderItemId,
+  onSubmit,
+  onCancel,
+}: ReviewFormProps) {
   const { toast } = useToast()
   const [rating, setRating] = useState(0)
   const [hoveredRating, setHoveredRating] = useState(0)
@@ -58,13 +64,19 @@ export function ReviewForm({ productId, experienceId, onSubmit, onCancel }: Revi
         imageUrls = uploadResults.map((result) => result.url)
       }
 
+      // orderItemId가 없으면 에러
+      if (!orderItemId) {
+        throw new Error(
+          '주문 정보를 찾을 수 없습니다. 구매한 상품에 대해서만 리뷰를 작성할 수 있습니다.'
+        )
+      }
+
       // 상품 리뷰 등록
       if (productId && orderItemId) {
         await reviewService.createProductReview(String(productId), {
           orderItemId,
           rating,
           content: content.trim(),
-          imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
           reviewVisibility: 'PUBLIC', // 기본값: 공개
         })
       } else {
