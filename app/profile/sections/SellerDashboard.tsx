@@ -153,7 +153,10 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
         {/* Middle Column: 판매 통계 */}
         <div className="space-y-4">
           {/* 이번 달 정산금액 */}
-          <Card className="p-4 hover:bg-muted/50 transition-colors" onClick={() => router.push('/seller/settlement')}>
+          <Card
+            className="p-4 hover:bg-muted/50 transition-colors"
+            onClick={() => router.push('/seller/settlement')}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
                 <DollarSign className="h-5 w-5 text-green-600" />
@@ -163,16 +166,17 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
                 <div className="text-2xl font-bold">
                   {state.isLoadingSettlement
                     ? '...'
-                    : state.monthlySettlement !== null
-                      ? `${state.monthlySettlement.toLocaleString()}원`
-                      : '0원'}
+                    : `${state.monthlySettlement?.toLocaleString()}원`}
                 </div>
               </div>
             </div>
           </Card>
 
           {/* 총 판매 건수 */}
-          <Card className="p-4 hover:bg-muted/50 transition-colors" onClick={() => router.push('/seller/orders')}>
+          <Card
+            className="p-4 hover:bg-muted/50 transition-colors"
+            onClick={() => router.push('/seller/orders')}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
                 <Package className="h-5 w-5 text-blue-600" />
@@ -185,7 +189,6 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
               </div>
             </div>
           </Card>
-
         </div>
 
         {/* Right Column: 추가 통계 */}
@@ -204,7 +207,10 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
           </Card>
 
           {/* 리뷰 수 */}
-          <Card className="p-4  hover:bg-muted/50 transition-colors" onClick={() => router.push('/seller/reviews')}>
+          <Card
+            className="p-4  hover:bg-muted/50 transition-colors"
+            onClick={() => router.push('/seller/reviews')}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
                 <Star className="h-5 w-5 text-orange-600" />
@@ -268,7 +274,10 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
       </Card>
 
       {/* 판매 상품 목록 미리보기 */}
-      <Card className="p-4  hover:bg-muted/50 transition-colors" onClick={() => router.push('/seller/products')}>
+      <Card
+        className="p-4  hover:bg-muted/50 transition-colors"
+        onClick={() => router.push('/seller/products')}
+      >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">등록된 상품</h2>
           <Button variant="outline" size="sm">
@@ -279,7 +288,10 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
       </Card>
 
       {/* 최근 주문 현황 */}
-      <Card className="p-4  hover:bg-muted/50 transition-colors" onClick={() => router.push('/seller/orders')}>
+      <Card
+        className="p-4  hover:bg-muted/50 transition-colors"
+        onClick={() => router.push('/seller/orders')}
+      >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">최근 주문 현황</h2>
           <Button variant="outline" size="sm">

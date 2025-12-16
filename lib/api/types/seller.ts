@@ -48,7 +48,7 @@ export type SettlementStatementStatus = 'PENDING' | 'CONFIRMED' | 'PAID' | 'CANC
 // 내 정산 정보 응답 (SETTLEMENT_STATEMENT 기반)
 export interface MySettlementResponse {
   statementId: string // 정산 명세서 고유 ID (UUID)
-  settlementMonth: SettlementMonth // 정산 대상 월
+  settlementMonth: string // 정산 대상 월 (예: "2025-11")
   totalSales: number // 총 매출 합계
   totalCommission: number // 총 수수료 합계
   payoutAmount: number // 최종 지급 금액 (total_sales - total_commission)

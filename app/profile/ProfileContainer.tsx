@@ -44,7 +44,7 @@ export function ProfileContainer() {
   })
 
   // 판매자 정산금액 상태
-  const [monthlySettlement, setMonthlySettlement] = useState<number | null>(null)
+  const [monthlySettlement, setMonthlySettlement] = useState<number>(0)
   const [isLoadingSettlement, setIsLoadingSettlement] = useState(false)
   const [settlementData, setSettlementData] = useState<MySettlementResponse | null>(null)
   const [settlementMonth, setSettlementMonth] = useState<SettlementMonth | null>(null)
@@ -61,22 +61,37 @@ export function ProfileContainer() {
       setIsLoadingSettlement(true)
       try {
         const data = await sellerService.getMySettlements()
+        console.log('정산 데이터 수신:', data)
         setSettlementData(data)
-        setSettlementMonth(data.settlementMonth)
+        setMonthlySettlement(0) // 데이터를 가져오기 전에 초기화
+
+        // settlementMonth가 문자열("2025-11")인 경우 파싱
+        const settlementMonthStr = data.settlementMonth
+        const [year, month] = settlementMonthStr.split('-')
+        const settlementMonthValue = parseInt(month, 10)
+        setSettlementMonth({
+          year: parseInt(year, 10),
+          month: new Date(parseInt(year, 10), parseInt(month, 10) - 1).toLocaleString('en-US', { month: 'long' }).toUpperCase(),
+          monthValue: settlementMonthValue,
+          leapYear: new Date(parseInt(year, 10), 1, 29).getDate() === 29
+        })
 
         // 이번 달 정산인지 확인
         const currentMonth = new Date().getMonth() + 1 // JavaScript: 0-11, YearMonth: 1-12
-        const settlementMonthValue = data.settlementMonth.monthValue
+        console.log(`현재 월: ${currentMonth}, 정산 월: ${settlementMonthValue}, 금액: ${data.payoutAmount}`)
 
         if (settlementMonthValue === currentMonth) {
           // 이번 달 정산 금액 사용
           setMonthlySettlement(data.payoutAmount)
+          console.log(`이번 달 정산 금액 설정: ${data.payoutAmount}`)
         } else {
-          // 이번 달 정산이 아닌 경우 0으로 설정
+          // 이번 달 정산이 아닌 경우에도 기존 데이터 표시 (0이 아닌 실제 금액)
           console.warn(
             `정산 데이터가 이번 달(${currentMonth})이 아닌 ${settlementMonthValue}월 데이터입니다.`
           )
-          setMonthlySettlement(0)
+          // 기존 정산 금액을 표시 (없으면 0)
+          setMonthlySettlement(data.payoutAmount || 0)
+          console.log(`지난 달 정산 금액 설정: ${data.payoutAmount || 0}`)
         }
       } catch (error: any) {
         console.error('정산금액 조회 실패:', error)
