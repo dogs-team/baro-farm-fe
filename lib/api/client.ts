@@ -11,7 +11,7 @@ const GATEWAY_URL = (
   process.env.NEXT_PUBLIC_API_GATEWAY_URL &&
   process.env.NEXT_PUBLIC_API_GATEWAY_URL.trim().length > 0
     ? process.env.NEXT_PUBLIC_API_GATEWAY_URL
-    : 'http://3.34.14.73:8080'
+    : process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080'
 ).replace(/\/$/, '')
 
 export const API_URLS = {

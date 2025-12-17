@@ -15,7 +15,7 @@ services:
     environment:
       - NODE_ENV=production
       # 단일 게이트웨이 8080 포트 사용 (프론트는 이 값만 사용)
-      - NEXT_PUBLIC_GATEWAY_URL=http://host.docker.internal:8080
+      - NEXT_PUBLIC_API_GATEWAY_URL=http://host.docker.internal:8080
       - NEXT_PUBLIC_API_BASE_URL=http://host.docker.internal:8080
       # 결제 클라이언트 키 (배포 환경 값으로 교체)
       - NEXT_PUBLIC_TOSS_CLIENT_KEY=${NEXT_PUBLIC_TOSS_CLIENT_KEY:-your-toss-client-key}
