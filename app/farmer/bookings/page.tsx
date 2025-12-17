@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -49,12 +49,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { reservationService, experienceService, farmService } from '@/lib/api/services'
-import type {
-  BookingStatus,
-  ExperienceBooking,
-  PaginationParams,
-  Experience,
-} from '@/lib/api/types'
+import type { PaginationParams, Experience } from '@/lib/api/types'
 import { FarmerNav } from '../components/farmer-nav'
 
 interface BookingItem {
@@ -72,7 +67,40 @@ interface BookingItem {
   notes?: string
 }
 
+type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled'
+
+type BookingApi = {
+  id: string
+  experienceTitle?: string
+  date?: string
+  reservedDate?: string
+  reservedTimeSlot?: string
+  participants?: number
+  headCount?: number
+  status?: string
+  totalPrice: number
+  createdAt?: string
+  customerName?: string
+  customerPhone?: string
+  customerEmail?: string
+  notes?: string
+}
+
 export default function FarmerBookingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <p className="text-muted-foreground">예약 페이지를 불러오는 중...</p>
+        </div>
+      }
+    >
+      <FarmerBookingsPageContent />
+    </Suspense>
+  )
+}
+
+function FarmerBookingsPageContent() {
   const { toast } = useToast()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -90,7 +118,6 @@ export default function FarmerBookingsPage() {
     urlExperienceId || undefined
   )
   const [isLoadingExperiences, setIsLoadingExperiences] = useState(false)
-  const [isLoadingBookings, setIsLoadingBookings] = useState(false)
 
   // 농장 목록 조회
   useEffect(() => {
@@ -138,13 +165,15 @@ export default function FarmerBookingsPage() {
         if (
           urlExperienceId &&
           content.some(
-            (exp) => (exp as any).experienceId === urlExperienceId || exp.id === urlExperienceId
+            (exp) =>
+              exp.experienceId === urlExperienceId ||
+              (exp as { id?: string }).id === urlExperienceId
           )
         ) {
           setSelectedExperienceId(urlExperienceId)
         } else if (content.length > 0 && !selectedExperienceId) {
           const firstExp = content[0]
-          setSelectedExperienceId((firstExp as any).experienceId || firstExp.id)
+          setSelectedExperienceId(firstExp.experienceId || (firstExp as { id?: string }).id)
         }
       } catch (error: unknown) {
         console.error('체험 목록 조회 실패:', error)
@@ -160,7 +189,7 @@ export default function FarmerBookingsPage() {
       }
     }
     fetchExperiences()
-  }, [mounted, selectedFarmId, urlExperienceId, toast])
+  }, [mounted, selectedFarmId, urlExperienceId, toast, selectedExperienceId])
 
   // 체험 선택 변경 시 URL 업데이트
   const handleExperienceChange = (experienceId: string) => {
@@ -175,11 +204,10 @@ export default function FarmerBookingsPage() {
       return
     }
 
-    setIsLoadingBookings(true)
     try {
       const response = await reservationService.getReservations(params)
       const content = Array.isArray(response?.content) ? response.content : []
-      const mapped: BookingItem[] = content.map((booking: ExperienceBooking) => ({
+      const mapped: BookingItem[] = content.map((booking: BookingApi) => ({
         id: booking.id,
         experienceTitle: booking.experienceTitle || '체험 프로그램',
         date: booking.date || booking.reservedDate || '',
@@ -197,8 +225,6 @@ export default function FarmerBookingsPage() {
         description: '예약 정보를 불러오는 중 오류가 발생했습니다.',
         variant: 'destructive',
       })
-    } finally {
-      setIsLoadingBookings(false)
     }
   }
 
@@ -218,21 +244,21 @@ export default function FarmerBookingsPage() {
     setMounted(true)
   }, [])
 
-  const handleConfirmBooking = (id: string) => {
+  const handleConfirmBooking = () => {
     toast({
       title: '예약 확정 완료',
       description: '예약이 확정되었습니다.',
     })
   }
 
-  const handleCancelBooking = (id: string) => {
+  const handleCancelBooking = () => {
     toast({
       title: '예약 취소 완료',
       description: '예약이 취소되었습니다.',
     })
   }
 
-  const handleCompleteBooking = (id: string) => {
+  const handleCompleteBooking = () => {
     toast({
       title: '체험 완료 처리',
       description: '체험이 완료 처리되었습니다.',
@@ -341,7 +367,8 @@ export default function FarmerBookingsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {experiences.map((exp) => {
-                    const expId = (exp as any).experienceId || exp.id
+                    const legacyId = (exp as { id?: string }).id
+                    const expId = exp.experienceId || legacyId || 'unknown'
                     return (
                       <SelectItem key={expId} value={expId}>
                         {exp.title} {exp.status === 'CLOSED' && '(종료)'}
@@ -461,14 +488,14 @@ export default function FarmerBookingsPage() {
                       </Button>
                       {(booking.status === 'pending' || booking.status === 'PENDING') && (
                         <>
-                          <Button size="sm" onClick={() => handleConfirmBooking(booking.id)}>
+                          <Button size="sm" onClick={() => handleConfirmBooking()}>
                             <CheckCircle className="h-4 w-4 mr-1" />
                             확정
                           </Button>
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleCancelBooking(booking.id)}
+                            onClick={() => handleCancelBooking()}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
                             취소
@@ -476,7 +503,7 @@ export default function FarmerBookingsPage() {
                         </>
                       )}
                       {(booking.status === 'confirmed' || booking.status === 'CONFIRMED') && (
-                        <Button size="sm" onClick={() => handleCompleteBooking(booking.id)}>
+                        <Button size="sm" onClick={() => handleCompleteBooking()}>
                           완료 처리
                         </Button>
                       )}
