@@ -15,9 +15,19 @@ export function useTossPayments(user: ProfileUser) {
     if (typeof window === 'undefined') return
 
     const loadTossWidget = () => {
+      const getTossClientKey = () => {
+        const envKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY?.trim()
+        if (envKey) return envKey
+        const runtimeKey =
+          (window as { __ENV__?: Record<string, string>; NEXT_PUBLIC_TOSS_CLIENT_KEY?: string })
+            ?.__ENV__?.NEXT_PUBLIC_TOSS_CLIENT_KEY ||
+          (window as { NEXT_PUBLIC_TOSS_CLIENT_KEY?: string }).NEXT_PUBLIC_TOSS_CLIENT_KEY
+        return runtimeKey?.trim() || ''
+      }
+
       try {
         if (window.TossPayments) {
-          const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
+          const clientKey = getTossClientKey()
           if (!clientKey) {
             console.error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.')
             return
@@ -79,7 +89,7 @@ export function useTossPayments(user: ProfileUser) {
   // 예치금 충전 처리
   const handleDepositCharge = async (
     chargeAmount: string,
-    fetchDepositBalance: () => Promise<void>
+    fetchDepositBalance?: () => Promise<void>
   ) => {
     const amount = parseInt(chargeAmount.replace(/,/g, ''), 10)
 
@@ -154,6 +164,9 @@ export function useTossPayments(user: ProfileUser) {
       })
 
       // 결제 성공 시 successUrl로 이동하므로 여기서는 다이얼로그만 닫음
+      if (fetchDepositBalance) {
+        await fetchDepositBalance()
+      }
       return true
     } catch (error: unknown) {
       console.error('[Profile] 예치금 충전 실패:', error)

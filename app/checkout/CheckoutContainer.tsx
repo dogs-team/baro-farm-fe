@@ -86,10 +86,20 @@ export function CheckoutContainer() {
   // 토스페이먼츠 위젯 로드
   useEffect(() => {
     if (mounted && typeof window !== 'undefined') {
+      const getTossClientKey = () => {
+        const envKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY?.trim()
+        if (envKey) return envKey
+        const runtimeKey =
+          (window as { __ENV__?: Record<string, string>; NEXT_PUBLIC_TOSS_CLIENT_KEY?: string })
+            ?.__ENV__?.NEXT_PUBLIC_TOSS_CLIENT_KEY ||
+          (window as { NEXT_PUBLIC_TOSS_CLIENT_KEY?: string }).NEXT_PUBLIC_TOSS_CLIENT_KEY
+        return runtimeKey?.trim() || ''
+      }
+
       const loadTossWidget = () => {
         try {
           if (window.TossPayments) {
-            const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
+            const clientKey = getTossClientKey()
             if (!clientKey) {
               console.error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.')
               return
@@ -108,7 +118,7 @@ export function CheckoutContainer() {
             script.onload = () => {
               setTimeout(() => {
                 try {
-                  const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
+                  const clientKey = getTossClientKey()
                   if (!clientKey) {
                     console.error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.')
                     return
