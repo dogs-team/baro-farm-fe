@@ -47,6 +47,15 @@ DEPLOY_DIR="/home/${USER}/apps/FE"
 mkdir -p ${DEPLOY_DIR}
 cd ${DEPLOY_DIR}
 
+# .env 옵션 (있으면 --env-file .env 추가)
+COMPOSE_ENV_FILE=""
+if [ -f ".env" ]; then
+  COMPOSE_ENV_FILE="--env-file .env"
+  echo "ℹ️  Using env file: ${DEPLOY_DIR}/.env"
+else
+  echo "⚠️  .env not found in ${DEPLOY_DIR} (using default environment)"
+fi
+
 # Docker 로그인
 echo "🔐 Logging in to GitHub Container Registry..."
 echo "$GITHUB_TOKEN" | docker login ${REGISTRY} -u do-develop-space --password-stdin
@@ -63,7 +72,7 @@ fi
 
 # 기존 컨테이너 중지 및 제거
 echo "🛑 Stopping existing containers..."
-$DOCKER_COMPOSE down || true
+$DOCKER_COMPOSE ${COMPOSE_ENV_FILE} down || true
 
 # 오래된 이미지 정리 (선택사항)
 echo "🧹 Cleaning up old images..."
@@ -110,7 +119,7 @@ if [ -f docker-compose.yml ]; then
     fi
     
     # YAML 구문 검증 (docker-compose config로)
-    if $DOCKER_COMPOSE config > /dev/null 2>&1; then
+    if $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} config > /dev/null 2>&1; then
       echo "✅ docker-compose.yml updated and validated successfully"
       rm -f docker-compose.yml.bak
     else
@@ -124,9 +133,9 @@ fi
 # 컨테이너 시작
 echo "🚀 Starting containers..."
 if [ -n "$IMAGE_TO_USE" ]; then
-  $DOCKER_COMPOSE up -d
+  $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} up -d
 else
-  $DOCKER_COMPOSE up -d --build
+  $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} up -d --build
 fi
 
 # 헬스 체크
@@ -134,10 +143,10 @@ echo "🏥 Health check..."
 sleep 10
 
 # 컨테이너 상태 확인
-if $DOCKER_COMPOSE ps | grep -q "Up"; then
+if $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ps | grep -q "Up"; then
   echo "✅ Frontend deployed successfully!"
-  $DOCKER_COMPOSE ps
-  $DOCKER_COMPOSE logs --tail=20 frontend
+  $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ps
+  $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} logs --tail=20 frontend
   
   # 배포 이력 기록
   DEPLOYED_IMAGE=$(docker inspect ${SERVICE_NAME} --format='{{.Config.Image}}' 2>/dev/null || echo "unknown")
