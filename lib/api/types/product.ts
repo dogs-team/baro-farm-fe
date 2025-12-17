@@ -4,6 +4,7 @@
 export type ProductCategory = 'FRUIT' | 'VEGETABLE' | 'GRAIN' | 'NUT' | 'ROOT' | 'MUSHROOM' | 'ETC'
 export type ProductStatus = 'ON_SALE' | 'DISCOUNTED' | 'SOLD_OUT' | 'HIDDEN' | 'DELETED'
 
+// 백엔드에서 그대로 반환하는 Product DB
 export interface Product {
   id: string // UUID
   sellerId: string // UUID
@@ -16,16 +17,6 @@ export interface Product {
   imageUrls: string[]
   createdAt: string
   updatedAt: string
-  // Legacy fields for backward compatibility
-  name?: string
-  images?: string[]
-  category?: string
-  stock?: number
-  farmId?: number
-  farmName?: string
-  farmLocation?: string
-  rating?: number
-  reviewCount?: number
 }
 
 export interface ProductCreateRequest {

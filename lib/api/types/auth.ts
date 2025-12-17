@@ -6,9 +6,10 @@ export interface User {
   email: string
   name: string
   phone: string
-  role: 'BUYER' | 'SELLER' | 'ADMIN'
-  profileImage?: string
+  userType: 'BUYER' | 'SELLER' | 'ADMIN'
+  marketing_consent: boolean
   createdAt: string
+  updatedAt: string
 }
 
 // Request Types

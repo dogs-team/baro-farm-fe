@@ -15,12 +15,6 @@ export interface FarmUpdateRequestDto {
   phone?: string
 }
 
-export interface SellerApplyRequestDto {
-  storeName: string
-  // Additional fields may exist
-  [key: string]: unknown
-}
-
 export interface Farm {
   id: string // UUID (may be number in some cases)
   name: string

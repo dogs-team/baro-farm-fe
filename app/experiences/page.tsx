@@ -2,12 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { MapPin, Search, Filter, Users, Clock, X } from 'lucide-react'
-import Link from 'next/link'
-import Image from 'next/image'
+import { Search, Filter, X } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import {
   Select,
@@ -26,13 +22,15 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { experienceService } from '@/lib/api/services/experience'
+import { farmService } from '@/lib/api/services/farm'
 import type { Experience } from '@/lib/api/types'
+import { ExperienceCard, type ExperienceCardData } from '@/components/experience/experience-card'
 
 export default function ExperiencesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [sortBy, setSortBy] = useState('popular')
-  const [experiences, setExperiences] = useState<Experience[]>([])
+  const [experiences, setExperiences] = useState<ExperienceCardData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
@@ -65,7 +63,40 @@ export default function ExperiencesPage() {
         }
         const response = await experienceService.getExperiences(params)
         // response.content가 배열인지 확인
-        setExperiences(Array.isArray(response?.content) ? response.content : [])
+        const experienceData: Experience[] = Array.isArray(response?.content)
+          ? response.content
+          : []
+
+        // 각 체험의 농장 정보 가져오기
+        if (experienceData.length > 0) {
+          const experiencesWithFarmInfo: ExperienceCardData[] = await Promise.all(
+            experienceData.map(async (experience) => {
+              let farmName = ''
+              let farmLocation = ''
+              if (experience.farmId) {
+                try {
+                  const farmInfo = await farmService.getFarm(experience.farmId)
+                  farmName = farmInfo?.name || ''
+                  farmLocation = farmInfo?.address || ''
+                } catch (error) {
+                  console.warn(`농장 정보 로드 실패 (farmId: ${experience.farmId}):`, error)
+                }
+              }
+
+              return {
+                ...experience,
+                farmName,
+                farmLocation,
+                imageUrl: '/placeholder.svg', // TODO: API에서 이미지 정보 추가
+                rating: 0, // TODO: API에서 평점 정보 추가
+                reviewCount: 0, // TODO: API에서 리뷰 수 정보 추가
+              }
+            })
+          )
+          setExperiences(experiencesWithFarmInfo)
+        } else {
+          setExperiences([])
+        }
         // 페이지네이션 정보 저장
         const paginationData = {
           totalPages: response.totalPages || 0,
@@ -90,48 +121,36 @@ export default function ExperiencesPage() {
   }, [mounted, category, currentPage])
 
   // API 데이터를 표시 형식으로 변환
-  const displayExperiences = useMemo(() => {
-    if (!Array.isArray(experiences)) return []
-
-    return experiences.map((exp) => {
-      const id = (exp as any).experienceId || exp.id
-      const image =
-        (exp as any).imageUrl ||
-        (Array.isArray(exp.images) && exp.images[0]) ||
-        (Array.isArray(exp.imageUrls) && exp.imageUrls[0]) ||
-        '/placeholder.svg'
-      const durationText =
-        typeof exp.durationMinutes === 'number' && exp.durationMinutes > 0
-          ? `${exp.durationMinutes}분`
-          : exp.duration || '2시간'
-      const capacityText =
-        typeof exp.capacity === 'number' && exp.capacity > 0
-          ? `최대 ${exp.capacity}명`
-          : exp.maxParticipants
-            ? `최대 ${exp.maxParticipants}명`
-            : '정원 미정'
-      const price = exp.pricePerPerson ?? 0
-      const tag = exp.status === 'ON_SALE' ? '판매중' : '마감'
-
-      return {
-        id,
+  const displayExperiences: ExperienceCardData[] = useMemo(() => {
+    if (!Array.isArray(experiences)) {
+      return []
+    }
+    return experiences.map(
+      (exp): ExperienceCardData => ({
+        experienceId: exp.experienceId,
+        farmId: exp.farmId,
         title: exp.title,
-        farm: exp.farmName || '체험 농장',
-        location: (exp as any).farmLocation || exp.location || '',
-        price,
-        image,
-        duration: durationText,
-        capacity: capacityText,
+        description: exp.description,
+        pricePerPerson: exp.pricePerPerson,
+        capacity: exp.capacity,
+        durationMinutes: exp.durationMinutes,
+        availableStartDate: exp.availableStartDate,
+        availableEndDate: exp.availableEndDate,
+        status: exp.status,
+        createdAt: exp.createdAt,
+        updatedAt: exp.updatedAt,
+        // 농장 정보는 이미 로드되어 있음
+        farmName: exp.farmName || '',
+        farmLocation: exp.farmLocation || '',
+        imageUrl: exp.imageUrl || '/placeholder.svg',
         rating: exp.rating || 0,
-        reviews: exp.reviewCount || 0,
-        category: exp.category || '기타',
-        tag,
-      }
-    })
+        reviewCount: exp.reviewCount || 0,
+      })
+    )
   }, [experiences])
 
   // 클라이언트 사이드 검색 필터링 (서버 사이드 검색이 없을 경우)
-  const filteredExperiences = useMemo(() => {
+  const filteredExperiences: ExperienceCardData[] = useMemo(() => {
     let filtered = [...displayExperiences]
 
     // 검색 필터
@@ -140,39 +159,34 @@ export default function ExperiencesPage() {
       filtered = filtered.filter(
         (exp) =>
           exp.title.toLowerCase().includes(query) ||
-          exp.farm.toLowerCase().includes(query) ||
-          exp.location.toLowerCase().includes(query)
+          exp.farmName?.toLowerCase().includes(query) ||
+          exp.farmLocation?.toLowerCase().includes(query)
       )
-    }
-
-    // 카테고리 필터 (서버에서 이미 필터링되지만 클라이언트에서도 추가 필터링)
-    if (category !== 'all') {
-      filtered = filtered.filter((exp) => exp.category === category)
     }
 
     // 정렬
     switch (sortBy) {
       case 'popular':
-        filtered.sort((a, b) => b.reviews - a.reviews)
+        filtered.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0))
         break
       case 'latest':
-        filtered.sort((a, b) => b.id.localeCompare(a.id))
+        filtered.sort((a, b) => b.experienceId.localeCompare(a.experienceId))
         break
       case 'low-price':
-        filtered.sort((a, b) => a.price - b.price)
+        filtered.sort((a, b) => (a.pricePerPerson || 0) - (b.pricePerPerson || 0))
         break
       case 'high-price':
-        filtered.sort((a, b) => b.price - a.price)
+        filtered.sort((a, b) => (b.pricePerPerson || 0) - (a.pricePerPerson || 0))
         break
       case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating)
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0))
         break
       default:
         break
     }
 
     return filtered
-  }, [searchQuery, category, sortBy, displayExperiences])
+  }, [searchQuery, sortBy, displayExperiences])
 
   const hasActiveFilters = searchQuery.trim() || category !== 'all'
 
@@ -300,48 +314,11 @@ export default function ExperiencesPage() {
             <>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredExperiences.map((exp, index) => (
-                  <Card
-                    key={exp.id}
-                    className="overflow-hidden group hover:shadow-lg transition-shadow"
-                  >
-                    <Link href={`/experiences/${exp.id}`}>
-                      <div className="relative h-48 overflow-hidden bg-muted">
-                        <Image
-                          src={exp.image || '/placeholder.svg'}
-                          alt={exp.title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform"
-                          priority={index === 0}
-                        />
-                        <Badge className="absolute top-3 left-3">{exp.tag}</Badge>
-                      </div>
-                      <div className="p-5">
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                          <MapPin className="h-3 w-3" />
-                          <span>{exp.farm}</span>
-                          <span className="mx-1">•</span>
-                          <span>{exp.location}</span>
-                        </div>
-                        <h3 className="text-lg font-semibold mb-3">{exp.title}</h3>
-                        <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground mb-4">
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            <span>{exp.duration}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4" />
-                            <span>{exp.capacity}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="text-xl font-bold text-primary">
-                            {exp.price.toLocaleString()}원
-                          </div>
-                          <div className="text-sm text-muted-foreground">1인 기준</div>
-                        </div>
-                      </div>
-                    </Link>
-                  </Card>
+                  <ExperienceCard
+                    key={exp.experienceId}
+                    experience={exp}
+                    className={index === 0 ? 'priority-image' : ''}
+                  />
                 ))}
               </div>
 

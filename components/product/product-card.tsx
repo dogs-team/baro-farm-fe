@@ -1,6 +1,5 @@
 'use client'
 
-import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Star } from 'lucide-react'
 import Link from 'next/link'
@@ -10,8 +9,7 @@ import { cn } from '@/lib/utils'
 interface ProductCardProps {
   id: string | number
   name: string
-  farm: string
-  location: string
+  storeName: string
   price: number
   originalPrice?: number
   image: string
@@ -24,8 +22,7 @@ interface ProductCardProps {
 export function ProductCard({
   id,
   name,
-  farm,
-  location,
+  storeName,
   price,
   originalPrice,
   image,
@@ -82,9 +79,7 @@ export function ProductCard({
           {/* Farm Info */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2.5 font-medium">
             <MapPin className="h-3.5 w-3.5 text-primary" />
-            <span className="truncate max-w-[100px]">{farm}</span>
-            <span className="text-border">•</span>
-            <span className="truncate">{location}</span>
+            <span className="truncate max-w-[100px]">{storeName}</span>
           </div>
 
           {/* Product Name */}
