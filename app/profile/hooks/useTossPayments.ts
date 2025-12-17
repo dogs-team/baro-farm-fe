@@ -41,7 +41,7 @@ export function useTossPayments(user: ProfileUser) {
           )
           return runtimeKey.trim()
         }
-        return ''
+        return 'test_ck_ma60RZblrqReBBKpoZ7E8wzYWBn1'
       }
 
       try {
