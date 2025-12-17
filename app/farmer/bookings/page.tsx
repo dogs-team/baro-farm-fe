@@ -205,11 +205,18 @@ function FarmerBookingsPageContent() {
     }
 
     try {
+      const selectedExpTitle =
+        experiences.find(
+          (exp) =>
+            exp.experienceId === params.experienceId ||
+            (exp as { id?: string }).id === params.experienceId
+        )?.title || ''
+
       const response = await reservationService.getReservations(params)
       const content = Array.isArray(response?.content) ? response.content : []
       const mapped: BookingItem[] = content.map((booking: BookingApi) => ({
         id: booking.id,
-        experienceTitle: booking.experienceTitle || '체험 프로그램',
+        experienceTitle: booking.experienceTitle || selectedExpTitle || '체험 프로그램',
         date: booking.date || booking.reservedDate || '',
         time: booking.reservedTimeSlot || '',
         participants: booking.participants ?? booking.headCount ?? 0,
@@ -269,6 +276,8 @@ function FarmerBookingsPageContent() {
     switch (status) {
       case 'confirmed':
         return <Badge variant="default">확정</Badge>
+      case 'requested':
+        return <Badge variant="outline">요청</Badge>
       case 'pending':
         return <Badge variant="outline">대기중</Badge>
       case 'completed':
@@ -291,7 +300,7 @@ function FarmerBookingsPageContent() {
 
   // ReservationStatus는 대문자이지만, toLowerCase()로 소문자로 변환했으므로 소문자로 비교
   const upcomingBookings = filteredBookings.filter(
-    (b) => b.status === 'confirmed' || b.status === 'pending'
+    (b) => b.status === 'confirmed' || b.status === 'pending' || b.status === 'requested'
   )
   const completedBookings = filteredBookings.filter((b) => b.status === 'completed')
   const cancelledBookings = filteredBookings.filter((b) => b.status === 'cancelled')
@@ -406,6 +415,7 @@ function FarmerBookingsPageContent() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">전체</SelectItem>
+                  <SelectItem value="requested">요청</SelectItem>
                   <SelectItem value="pending">대기중</SelectItem>
                   <SelectItem value="confirmed">확정</SelectItem>
                   <SelectItem value="completed">완료</SelectItem>
