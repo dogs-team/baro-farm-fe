@@ -91,23 +91,43 @@ export default function ExperiencesPage() {
 
   // API 데이터를 표시 형식으로 변환
   const displayExperiences = useMemo(() => {
-    if (!Array.isArray(experiences)) {
-      return []
-    }
-    return experiences.map((exp) => ({
-      id: exp.id,
-      title: exp.title,
-      farm: exp.farmName || '',
-      location: exp.location || '',
-      price: exp.pricePerPerson || 0,
-      image: exp.imageUrl || '/placeholder.svg',
-      duration: `${exp.duration || 2}시간`,
-      capacity: `최대 ${exp.maxParticipants || 10}명`,
-      rating: exp.rating || 0,
-      reviews: exp.reviewCount || 0,
-      category: exp.category || '기타',
-      tag: exp.status === 'ON_SALE' ? '판매중' : '마감',
-    }))
+    if (!Array.isArray(experiences)) return []
+
+    return experiences.map((exp) => {
+      const id = (exp as any).experienceId || exp.id
+      const image =
+        (exp as any).imageUrl ||
+        (Array.isArray(exp.images) && exp.images[0]) ||
+        (Array.isArray(exp.imageUrls) && exp.imageUrls[0]) ||
+        '/placeholder.svg'
+      const durationText =
+        typeof exp.durationMinutes === 'number' && exp.durationMinutes > 0
+          ? `${exp.durationMinutes}분`
+          : exp.duration || '2시간'
+      const capacityText =
+        typeof exp.capacity === 'number' && exp.capacity > 0
+          ? `최대 ${exp.capacity}명`
+          : exp.maxParticipants
+            ? `최대 ${exp.maxParticipants}명`
+            : '정원 미정'
+      const price = exp.pricePerPerson ?? 0
+      const tag = exp.status === 'ON_SALE' ? '판매중' : '마감'
+
+      return {
+        id,
+        title: exp.title,
+        farm: exp.farmName || '체험 농장',
+        location: (exp as any).farmLocation || exp.location || '',
+        price,
+        image,
+        duration: durationText,
+        capacity: capacityText,
+        rating: exp.rating || 0,
+        reviews: exp.reviewCount || 0,
+        category: exp.category || '기타',
+        tag,
+      }
+    })
   }, [experiences])
 
   // 클라이언트 사이드 검색 필터링 (서버 사이드 검색이 없을 경우)

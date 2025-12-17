@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +19,6 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { Header } from '@/components/layout/header'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -28,82 +27,145 @@ import { ko } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
+import { useParams, useRouter } from 'next/navigation'
+import { experienceService, reservationService } from '@/lib/api/services/experience'
+import type { Experience } from '@/lib/api/types'
+import { getUserId } from '@/lib/api/client'
 
 export default function ExperienceDetailPage() {
   const router = useRouter()
+  const params = useParams()
   const { toast } = useToast()
   const [date, setDate] = useState<Date>()
   const [participants, setParticipants] = useState(2)
   const [selectedImage, setSelectedImage] = useState(0)
   const [paymentMethod, setPaymentMethod] = useState<'onsite'>('onsite') // 현장 결제만 가능
+  const [experience, setExperience] = useState<Experience | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('')
 
-  const experience = {
-    id: 1,
-    title: '딸기 수확 체험',
-    farm: '달콤농원',
-    farmId: 1,
-    location: '전북 완주',
-    price: 25000,
-    images: [
-      '/strawberry-picking-farm-experience.jpg',
-      '/strawberry-farm-greenhouse.jpg',
-      '/fresh-strawberries-basket.jpg',
-    ],
-    duration: '2시간',
-    capacity: '최대 10명',
-    minParticipants: 2,
-    maxParticipants: 10,
-    rating: 4.9,
-    reviews: 87,
-    category: '수확',
-    tag: '인기',
-    description:
-      '달콤농원에서 운영하는 딸기 수확 체험 프로그램입니다. 직접 딸기를 따보고, 수확한 딸기는 가져가실 수 있습니다. 가족 단위 방문객에게 특히 인기가 많습니다.',
-    includes: [
-      '딸기 수확 체험 (1kg 포장 가능)',
-      '농장 투어 및 딸기 재배 설명',
-      '딸기 시식',
-      '사진 촬영 서비스',
-    ],
-    schedule: ['오전 10:00 - 12:00', '오후 14:00 - 16:00'],
-    notes: [
-      '편한 복장과 신발을 착용해주세요',
-      '우천 시 실내 체험장에서 진행됩니다',
-      '최소 2명 이상 예약 가능합니다',
-      '3일 전까지 무료 취소 가능합니다',
-    ],
-  }
+  const experienceId = useMemo(() => {
+    const id = params?.id
+    if (!id || Array.isArray(id)) return null
+    return id
+  }, [params])
 
-  const reviews = [
-    {
-      id: 1,
-      author: '김**',
-      rating: 5,
-      date: '2024.12.05',
-      content: '아이들이 정말 좋아했어요! 딸기도 달고 신선해서 가족 모두 만족했습니다.',
-      helpful: 32,
-    },
-    {
-      id: 2,
-      author: '이**',
-      rating: 5,
-      date: '2024.11.30',
-      content: '농장 주인분이 친절하게 설명해주셔서 좋았어요. 딸기 수확 체험 강추합니다!',
-      helpful: 24,
-    },
-    {
-      id: 3,
-      author: '박**',
-      rating: 4,
-      date: '2024.11.25',
-      content: '재밌었고 딸기도 맛있었는데 시간이 조금 짧게 느껴졌어요.',
-      helpful: 15,
-    },
-  ]
+  useEffect(() => {
+    const fetchExperience = async () => {
+      if (!experienceId) return
+      setIsLoading(true)
+      try {
+        const data = await experienceService.getExperience(experienceId)
+        setExperience(data)
+      } catch (error) {
+        console.error('체험 상세 조회 실패:', error)
+        toast({
+          title: '체험 정보를 불러오지 못했습니다',
+          description: '다시 시도해주세요.',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchExperience()
+  }, [experienceId, toast])
 
-  const totalPrice = experience.price * participants
+  // 기본값/가드
+  const images = experience?.images?.length
+    ? experience.images
+    : experience?.imageUrls?.length
+      ? experience.imageUrls
+      : ['/placeholder.svg']
+  const pricePerPerson = experience?.pricePerPerson ?? 0
+  const minParticipants = experience?.capacity ? 1 : 1
+  const maxParticipants = experience?.capacity ?? 10
+  const durationText = experience?.durationMinutes ? `${experience.durationMinutes}분` : '미정'
+  const totalPrice = pricePerPerson * participants
+  const scheduleOptions = useMemo(() => {
+    const sched = (experience as any)?.schedule
+    if (Array.isArray(sched) && sched.length > 0) {
+      return sched.filter((s) => typeof s === 'string' && s.trim().length > 0) as string[]
+    }
+
+    const duration = experience?.durationMinutes || 0
+    const startStr = experience?.availableStartDate
+    const endStr = experience?.availableEndDate
+
+    // 시간대를 생성할 수 있는 경우: 시작/종료 시간 + durationMinutes
+    if (duration > 0 && startStr && endStr) {
+      try {
+        const start = new Date(startStr)
+        const end = new Date(endStr)
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+          throw new Error('invalid time range')
+        }
+
+        const slots: string[] = []
+        let cursor = start
+        let guard = 0
+        const maxSlots = 48 // 하루를 초과하지 않도록 안전 장치
+
+        while (cursor < end && guard < maxSlots) {
+          const next = new Date(cursor.getTime() + duration * 60 * 1000)
+          if (next > end) break
+          const label = `${format(cursor, 'HH:mm')} - ${format(next, 'HH:mm')}`
+          slots.push(label)
+          cursor = next
+          guard += 1
+        }
+
+        // 중복 제거
+        const uniqueSlots = Array.from(new Set(slots))
+        if (uniqueSlots.length > 0) return uniqueSlots
+      } catch {
+        // ignore parse error
+      }
+    }
+
+    // fallback: 시작/종료만 있는 경우 단일 슬롯
+    if (startStr && endStr) {
+      try {
+        const start = new Date(startStr)
+        const end = new Date(endStr)
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          const label = `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`
+          return [label]
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
+
+    // 최종 fallback
+    return ['기본 시간대']
+  }, [experience])
+
+  useEffect(() => {
+    if (scheduleOptions && scheduleOptions.length > 0) {
+      setSelectedTimeSlot(scheduleOptions[0])
+    }
+  }, [scheduleOptions])
 
   const handleBooking = async () => {
+    if (!experience) {
+      toast({
+        title: '체험 정보를 불러오지 못했습니다',
+        description: '다시 시도해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+    const experienceIdForRequest = (experience as any).experienceId || experience.id
+    if (!experienceIdForRequest) {
+      toast({
+        title: '체험 정보가 올바르지 않습니다',
+        description: '체험 ID를 확인할 수 없습니다. 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
     if (!date) {
       toast({
         title: '날짜를 선택해주세요',
@@ -112,19 +174,35 @@ export default function ExperienceDetailPage() {
       })
       return
     }
+    if (!selectedTimeSlot) {
+      toast({
+        title: '시간을 선택해주세요',
+        description: '체험 시간대를 선택한 후 예약해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const buyerId = getUserId()
+    if (!buyerId) {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '예약을 진행하려면 로그인해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     try {
-      // TODO: Implement booking logic with backend API
-      console.log('[v0] Booking experience:', {
-        experienceId: experience.id,
-        date,
-        participants,
+      setIsSubmitting(true)
+      await reservationService.createReservation({
+        experienceId: experienceIdForRequest,
+        buyerId,
+        reservedDate: format(date, 'yyyy-MM-dd'),
+        reservedTimeSlot: selectedTimeSlot,
+        headCount: participants,
         totalPrice,
-        paymentMethod: 'onsite', // 현장 결제
       })
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       toast({
         title: '예약이 완료되었습니다',
@@ -139,7 +217,25 @@ export default function ExperienceDetailPage() {
         description: error?.message || '예약 중 오류가 발생했습니다. 다시 시도해주세요.',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
+  }
+
+  if (!experienceId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">잘못된 체험 ID 입니다.</p>
+      </div>
+    )
+  }
+
+  if (isLoading || !experience) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">체험 정보를 불러오는 중...</p>
+      </div>
+    )
   }
 
   return (
@@ -155,7 +251,7 @@ export default function ExperienceDetailPage() {
             <div className="space-y-4">
               <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
                 <Image
-                  src={experience.images[selectedImage] || '/placeholder.svg'}
+                  src={images[selectedImage] || '/placeholder.svg'}
                   alt={experience.title}
                   fill
                   className="object-cover"
@@ -163,7 +259,7 @@ export default function ExperienceDetailPage() {
                 <Badge className="absolute top-4 left-4">{experience.tag}</Badge>
               </div>
               <div className="grid grid-cols-3 gap-4">
-                {experience.images.map((image, index) => (
+                {images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
@@ -189,9 +285,13 @@ export default function ExperienceDetailPage() {
                 className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-2"
               >
                 <MapPin className="h-3 w-3" />
-                <span>{experience.farm}</span>
-                <span className="mx-1">•</span>
-                <span>{experience.location}</span>
+                <span>{experience.farmName || '체험 농장'}</span>
+                {experience.farmLocation && (
+                  <>
+                    <span className="mx-1">•</span>
+                    <span>{experience.farmLocation}</span>
+                  </>
+                )}
               </Link>
               <h1 className="text-3xl font-bold mb-4">{experience.title}</h1>
               {/* 리뷰와 평점 숨김 처리 (나중에 추가될 예정) */}
@@ -207,12 +307,14 @@ export default function ExperienceDetailPage() {
                 <Card className="p-4 text-center">
                   <Clock className="h-5 w-5 mx-auto mb-2 text-primary" />
                   <div className="text-sm text-muted-foreground mb-1">소요 시간</div>
-                  <div className="font-semibold">{experience.duration}</div>
+                  <div className="font-semibold">{durationText}</div>
                 </Card>
                 <Card className="p-4 text-center">
                   <Users className="h-5 w-5 mx-auto mb-2 text-primary" />
                   <div className="text-sm text-muted-foreground mb-1">정원</div>
-                  <div className="font-semibold">{experience.capacity}</div>
+                  <div className="font-semibold">
+                    {experience.capacity ? `${experience.capacity}명` : '미정'}
+                  </div>
                 </Card>
                 <Card className="p-4 text-center">
                   <Calendar className="h-5 w-5 mx-auto mb-2 text-primary" />
@@ -225,13 +327,15 @@ export default function ExperienceDetailPage() {
             {/* Description */}
             <Card className="p-6">
               <h2 className="text-2xl font-bold mb-4">프로그램 소개</h2>
-              <p className="text-muted-foreground leading-relaxed mb-6">{experience.description}</p>
+              <p className="text-muted-foreground leading-relaxed mb-6">
+                {experience.description || '설명이 없습니다.'}
+              </p>
 
               <div className="space-y-6">
                 <div>
                   <h3 className="font-semibold mb-3">포함 사항</h3>
                   <ul className="space-y-2">
-                    {experience.includes.map((item, index) => (
+                    {(experience as any).includes?.map((item: string, index: number) => (
                       <li key={index} className="flex items-start gap-2">
                         <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-sm">{item}</span>
@@ -243,7 +347,7 @@ export default function ExperienceDetailPage() {
                 <div>
                   <h3 className="font-semibold mb-3">운영 시간</h3>
                   <div className="space-y-2">
-                    {experience.schedule.map((time, index) => (
+                    {(experience as any).schedule?.map((time: string, index: number) => (
                       <div key={index} className="flex items-center gap-2 text-sm">
                         <Clock className="h-4 w-4 text-primary" />
                         <span>{time}</span>
@@ -255,7 +359,7 @@ export default function ExperienceDetailPage() {
                 <div>
                   <h3 className="font-semibold mb-3">유의 사항</h3>
                   <ul className="space-y-2">
-                    {experience.notes.map((note, index) => (
+                    {(experience as any).notes?.map((note: string, index: number) => (
                       <li
                         key={index}
                         className="flex items-start gap-2 text-sm text-muted-foreground"
@@ -306,7 +410,7 @@ export default function ExperienceDetailPage() {
           <div className="lg:col-span-1">
             <Card className="p-6 sticky top-24">
               <div className="mb-6">
-                <div className="text-3xl font-bold mb-2">{experience.price.toLocaleString()}원</div>
+                <div className="text-3xl font-bold mb-2">{pricePerPerson.toLocaleString()}원</div>
                 <p className="text-sm text-muted-foreground">1인 기준 가격</p>
               </div>
 
@@ -328,11 +432,28 @@ export default function ExperienceDetailPage() {
                         mode="single"
                         selected={date}
                         onSelect={setDate}
-                        disabled={(date) => date < new Date()}
+                        disabled={(d) => d < new Date()}
                         initialFocus
                       />
                     </PopoverContent>
                   </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">체험 시간대</label>
+                  <RadioGroup
+                    value={selectedTimeSlot}
+                    onValueChange={(value) => setSelectedTimeSlot(value)}
+                  >
+                    {scheduleOptions.map((time) => (
+                      <div key={time} className="flex items-center space-x-2">
+                        <RadioGroupItem value={time} id={`time-${time}`} />
+                        <Label htmlFor={`time-${time}`} className="font-normal cursor-pointer">
+                          {time}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
                 </div>
 
                 <div className="space-y-2">
@@ -385,7 +506,7 @@ export default function ExperienceDetailPage() {
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      {experience.price.toLocaleString()}원 × {participants}명
+                      {pricePerPerson.toLocaleString()}원 × {participants}명
                     </span>
                     <span>{totalPrice.toLocaleString()}원</span>
                   </div>
@@ -395,8 +516,14 @@ export default function ExperienceDetailPage() {
                   </div>
                 </div>
 
-                <Button className="w-full" onClick={handleBooking} type="button" variant="default">
-                  예약하기
+                <Button
+                  className="w-full"
+                  onClick={handleBooking}
+                  type="button"
+                  variant="default"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? '예약 중...' : '예약하기'}
                 </Button>
 
                 <div className="flex gap-2">
