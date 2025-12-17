@@ -77,9 +77,11 @@ export function CartItem({ item, isUpdating, onUpdateQuantity, onRemove }: CartI
               href={`/products/${item.productId}`}
               className="flex-1 hover:opacity-80 transition-opacity"
             >
-              <h4 className="font-semibold text-lg mb-1 line-clamp-2">{displayName}</h4> 
+              <h4 className="font-semibold text-lg mb-1 line-clamp-2">{displayName}</h4>
               {item.optionInfoJson ? (
-                <p className="text-sm text-gray-500">선택한 옵션: {JSON.parse(item.optionInfoJson)}</p>
+                <p className="text-sm text-gray-500">
+                  선택한 옵션: {JSON.parse(item.optionInfoJson)}
+                </p>
               ) : (
                 <p className="text-sm text-gray-500">선택한 옵션: 없음</p>
               )}

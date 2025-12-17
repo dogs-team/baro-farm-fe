@@ -102,13 +102,13 @@ export default function CartPage() {
     clearCart()
     for (let index = 0; index < items.length; index++) {
       const item = items[index]
-      
+
       // 상품 정보 가져오기 (sellerId, farm 등)
       let productName = item.productName || '상품명'
       let productImage = item.productImage || '/placeholder.svg'
       let sellerId = ''
       let farm = '농장'
-      
+
       try {
         const { productService } = await import('@/lib/api/services/product')
         const product = await productService.getProduct(item.productId)
@@ -119,7 +119,7 @@ export default function CartPage() {
       } catch (error) {
         console.warn(`상품 ${item.productId} 정보 조회 실패, 기본값 사용:`, error)
       }
-      
+
       addItem({
         id: index + 1, // 고유한 숫자 ID 부여 (1부터 시작)
         productId: item.productId,
