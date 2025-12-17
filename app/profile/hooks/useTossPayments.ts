@@ -18,7 +18,7 @@ export function useTossPayments(user: ProfileUser) {
       try {
         if (window.TossPayments) {
           const clientKey =
-            process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_ma60RZblrqReBBKpoZ7E8wzYWBn1'
+            process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_eqRGgYO1r56Qy7PaPw7p8QnN2Eya'
           if (!clientKey) {
             console.error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.')
             return
