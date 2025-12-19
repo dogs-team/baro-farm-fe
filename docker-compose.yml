@@ -18,9 +18,22 @@ services:
       - NEXT_PUBLIC_API_GATEWAY_URL=${NEXT_PUBLIC_API_GATEWAY_URL:-http://3.34.14.73:8080}
       - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-${NEXT_PUBLIC_API_GATEWAY_URL:-http://3.34.14.73:8080}}
       # 결제 클라이언트 키 (배포 환경 값으로 교체)
-      - NEXT_PUBLIC_TOSS_CLIENT_KEY=${NEXT_PUBLIC_TOSS_CLIENT_KEY:-test_ck_eqRGgYO1r56Qy7PaPw7p8QnN2Eya}
+      - NEXT_PUBLIC_TOSS_CLIENT_KEY=${NEXT_PUBLIC_TOSS_CLIENT_KEY:-test_ck_ma60RZblrqReBBKpoZ7E8wzYWBn1}
       # 이미지 URL (Nginx가 서빙)
       - NEXT_PUBLIC_IMAGE_BASE_URL=/uploads
+
+    # ========================================
+    # 보안 설정 (SECURITY_INCIDENT_REPORT.md 참고)
+    # ========================================
+    # 읽기 전용 파일 시스템 (악성 파일 쓰기 방지)
+    read_only: true
+    # 임시 디렉토리만 쓰기 가능 (noexec, nosuid로 실행 방지)
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/tmp:noexec,nosuid,size=100m
+    # 네트워크 격리 (필요시 추가)
+    # networks:
+    #   - frontend-network
 
     # ========================================
     # S3 마운트 없음 (최종 결정)

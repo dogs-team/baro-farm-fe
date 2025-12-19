@@ -2,6 +2,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { validateUrl } from '../security'
+
 // ==========
 // 환경 변수 및 기본 URL
 // ==========
@@ -348,6 +350,18 @@ class ApiClient {
   private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { params, ...fetchOptions } = options
     const url = this.buildUrl(endpoint, params)
+
+    // 보안: URL 검증 (SECURITY_INCIDENT_REPORT.md)
+    if (!validateUrl(url)) {
+      const error = new Error(`보안 정책 위반: 허용되지 않은 URL입니다. URL: ${url}`) as ApiError
+      Object.assign(error, {
+        status: 403,
+        message: '보안 정책 위반: 허용되지 않은 URL입니다.',
+        code: 'SECURITY_VIOLATION',
+        details: `URL: ${url}`,
+      })
+      throw error
+    }
 
     const doFetch = async () => {
       const response = await fetch(url, {
