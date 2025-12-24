@@ -171,7 +171,7 @@ jobs:
   # ==================================================
   deploy:
     name: Deploy Frontend to AWS EC2
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, public]
     needs: docker-build # docker-build가 완료된 후 배포
     if: |
       github.event_name == 'push' && 
