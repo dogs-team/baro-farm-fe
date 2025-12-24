@@ -198,209 +198,96 @@ jobs:
 
       - name: Deploy to EC2
         env:
-          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          HOST: ${{ secrets.EC2_HOST }}
-          USER: ${{ secrets.EC2_USERNAME }}
+          USER: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
         timeout-minutes: 10 # 배포 타임아웃 설정
         run: |
-          echo "$PRIVATE_KEY" > private_key.pem
-          chmod 600 private_key.pem
-
-          # Self-hosted runner의 IP 주소 확인
-          echo "🔍 Detecting runner IP address..."
-          RUNNER_IP=$(curl -s https://api.ipify.org || echo "unknown")
-          echo "📍 Runner IP: ${RUNNER_IP}"
-          echo "⚠️  If SSH connection fails, add this IP to EC2 Security Group (port 22)"
-
-          # SSH 연결 옵션 (안정성 개선)
-          SSH_OPTS="-i private_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o ConnectTimeout=10 -o TCPKeepAlive=yes"
-
-          # SSH 연결 테스트 (재시도 로직)
-          echo "Testing SSH connection to ${USER}@${HOST}..."
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-          SSH_CONNECTED=false
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if ssh $SSH_OPTS -o ConnectTimeout=10 ${USER}@${HOST} "echo 'SSH connection successful'" 2>/dev/null; then
-              SSH_CONNECTED=true
-              break
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              echo "⚠️ SSH connection attempt $RETRY_COUNT failed, retrying in 5 seconds..."
-              sleep 5
-            fi
-          done
-
-          if [ "$SSH_CONNECTED" = false ]; then
-            echo "❌ Failed to connect to EC2 after $MAX_RETRIES attempts"
-            echo ""
-            echo "💡 Self-hosted runner troubleshooting:"
-            echo "   1. EC2 instance is running"
-            echo "   2. Security Group allows SSH (port 22) from runner IP: ${RUNNER_IP}"
-            echo "   3. Add runner IP to Security Group:"
-            echo "      - AWS Console → EC2 → Security Groups → Select your SG"
-            echo "      - Inbound rules → Edit → Add rule"
-            echo "      - Type: SSH, Port: 22, Source: ${RUNNER_IP}/32"
-            echo "   4. If runner IP is dynamic, consider:"
-            echo "      - Using a VPN or fixed IP"
-            echo "      - Opening to a wider IP range (less secure)"
-            echo "      - Using AWS Systems Manager Session Manager instead"
-            echo "   5. Test SSH manually: ssh -i private_key.pem ${USER}@${HOST}"
-            rm -f private_key.pem
-            exit 1
-          fi
-
-          echo "✅ SSH connection established"
-
-          # EC2에 배포 디렉토리 생성
-          ssh $SSH_OPTS ${USER}@${HOST} "mkdir -p /home/${USER}/apps/FE"
-
-          # EC2에 배포 스크립트 및 docker-compose 파일들 복사 (FE 폴더 안으로)
-          scp $SSH_OPTS \
-            ./scripts/deploy-frontend.sh ${USER}@${HOST}:/home/${USER}/apps/FE/
-
-          scp $SSH_OPTS \
-            ./docker-compose.yml ${USER}@${HOST}:/home/${USER}/apps/FE/
-
-          scp $SSH_OPTS \
-            ./Dockerfile ${USER}@${HOST}:/home/${USER}/apps/FE/
-
-          # 스크립트에 실행 권한 부여
-          ssh $SSH_OPTS ${USER}@${HOST} "chmod +x /home/${USER}/apps/FE/deploy-frontend.sh"
-
+          # Self-hosted runner에서 직접 배포 실행
+          echo "🚀 Starting deployment on self-hosted runner..."
+          echo "📍 Runner is already on the target server, no SSH needed"
+          
           # GHCR_PAT 또는 GITHUB_TOKEN 사용 (GHCR_PAT 우선)
           if [ -n "${{ secrets.GHCR_PAT }}" ]; then
             GHCR_TOKEN="${{ secrets.GHCR_PAT }}"
           else
             GHCR_TOKEN="${{ secrets.GITHUB_TOKEN }}"
           fi
-
-          # 브랜치명 기반 이미지 태그 결정
-          BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
-          IMAGE_TAG="${BRANCH_NAME}"
-
-          # 배포 스크립트를 백그라운드로 실행하고 로그 파일에 저장
-          echo "🚀 Starting deployment in background..."
-          DEPLOY_LOG="/home/${USER}/apps/FE/deploy-frontend-$(date +%Y%m%d-%H%M%S).log"
-
-          ssh $SSH_OPTS ${USER}@${HOST} \
-            "cd /home/${USER}/apps/FE && \
-             nohup bash -c 'USER=${USER} GITHUB_TOKEN=${GHCR_TOKEN} GITHUB_REF=${{ github.ref }} REGISTRY=${{ env.REGISTRY }} IMAGE_NAME=${{ env.IMAGE_NAME }} SERVICE_NAME=${{ env.SERVICE_NAME }} bash /home/${USER}/apps/FE/deploy-frontend.sh' > ${DEPLOY_LOG} 2>&1 & \
-             echo \$! > /tmp/deploy-frontend.pid"
-
-          echo "⏳ Deployment started in background. PID saved to /tmp/deploy-frontend.pid"
-          echo "📝 Log file: ${DEPLOY_LOG}"
-          echo "⏳ Waiting 10 seconds for initial deployment steps..."
-          sleep 10
-
-          # 배포 진행 상황 확인 (최대 5분 대기)
-          echo "📊 Monitoring deployment progress..."
-          MAX_WAIT=300  # 5분
-          ELAPSED=0
-          INTERVAL=10   # 10초마다 확인
-
-          while [ $ELAPSED -lt $MAX_WAIT ]; do
-            # 배포 프로세스가 실행 중인지 확인
-            if ssh $SSH_OPTS ${USER}@${HOST} "test -f /tmp/deploy-frontend.pid && ps -p \$(cat /tmp/deploy-frontend.pid) > /dev/null 2>&1"; then
-              # 로그의 마지막 몇 줄 확인
-              LAST_LOG=$(ssh $SSH_OPTS ${USER}@${HOST} "tail -n 3 ${DEPLOY_LOG} 2>/dev/null || echo 'Log file not ready yet'")
-              echo "[${ELAPSED}s] Deployment in progress... Last log: ${LAST_LOG}"
-              sleep $INTERVAL
-              ELAPSED=$((ELAPSED + INTERVAL))
-            else
-              # 프로세스가 종료됨 - 성공 또는 실패 확인
-              echo "✅ Deployment process completed. Checking final status..."
-              
-              # 전체 로그 가져오기
-              echo "📝 Fetching deployment log..."
-              DEPLOY_LOG_CONTENT=$(ssh $SSH_OPTS ${USER}@${HOST} "cat ${DEPLOY_LOG} 2>/dev/null || echo 'Log file not found'" 2>/dev/null || echo "Could not fetch log")
-              echo "$DEPLOY_LOG_CONTENT"
-              echo ""
-              
-              # 컨테이너 상태 확인
-              echo "🔍 Checking container status..."
-              CONTAINER_STATUS=$(ssh $SSH_OPTS ${USER}@${HOST} "docker ps -a | grep ${SERVICE_NAME} || echo 'No container found'" 2>/dev/null || echo "Could not check container status")
-              echo "$CONTAINER_STATUS"
-              echo ""
-              
-              # 컨테이너가 실행 중인지 확인
-              if ssh $SSH_OPTS ${USER}@${HOST} "docker ps | grep -q ${SERVICE_NAME}" 2>/dev/null; then
-                echo "✅ Container is running. Deployment appears successful!"
-                
-                # 헬스 체크 (Next.js가 응답하는지 확인)
-                echo "🏥 Performing health check..."
-                sleep 5
-                if ssh $SSH_OPTS ${USER}@${HOST} "curl -f http://localhost:3000 > /dev/null 2>&1"; then
-                  echo "✅ Health check passed! Frontend is responding."
-                else
-                  echo "⚠️ Health check failed, but container is running."
-                fi
-                
-                rm -f private_key.pem
-                exit 0
-              else
-                echo "⚠️ Container is not running. Deployment may have failed."
-                
-                # 컨테이너 로그 확인 (존재하는 경우)
-                if echo "$CONTAINER_STATUS" | grep -q "${SERVICE_NAME}"; then
-                  echo "🔍 Checking container logs..."
-                  ssh $SSH_OPTS ${USER}@${HOST} "docker logs ${SERVICE_NAME} --tail 50 2>&1 || echo 'Could not fetch container logs'" || echo "Could not fetch container logs"
-                fi
-                
-                echo ""
-                echo "📝 Full log location: ${DEPLOY_LOG}"
-                echo "💡 To check manually: ssh ${USER}@${HOST} 'cat ${DEPLOY_LOG}'"
-                rm -f private_key.pem
-                exit 1
-              fi
-            fi
-          done
-
-          # 타임아웃 발생
-          echo "⏱️ Deployment timeout after ${MAX_WAIT} seconds"
-          echo "📝 Fetching recent log entries..."
-          ssh $SSH_OPTS ${USER}@${HOST} "tail -n 50 ${DEPLOY_LOG} 2>/dev/null || echo 'Log file not found'" || echo "Could not fetch log"
-          echo ""
-          echo "🔍 Checking container status..."
-          ssh $SSH_OPTS ${USER}@${HOST} "docker ps -a | grep ${SERVICE_NAME} || echo 'No container found'" || echo "Could not check container status"
-          echo ""
-          echo "🔍 Checking recent container logs (if exists)..."
-          ssh $SSH_OPTS ${USER}@${HOST} "docker logs ${SERVICE_NAME} --tail 30 2>&1 || echo 'Container logs not available'" || echo "Could not fetch container logs"
-
+          
+          # 배포 디렉토리 설정
+          if [ -z "$USER" ]; then
+            USER=$(whoami)
+          fi
+          DEPLOY_DIR="/home/${USER}/apps/FE"
+          mkdir -p ${DEPLOY_DIR}
+          
+          # 배포 스크립트 및 필요한 파일들을 배포 디렉토리로 복사
+          echo "📦 Copying deployment files..."
+          cp ./scripts/deploy-frontend.sh ${DEPLOY_DIR}/
+          cp ./docker-compose.yml ${DEPLOY_DIR}/
+          cp ./Dockerfile ${DEPLOY_DIR}/
+          chmod +x ${DEPLOY_DIR}/deploy-frontend.sh
+          
+          # 배포 스크립트 실행
+          echo "🚀 Executing deployment script..."
+          cd ${DEPLOY_DIR}
+          
+          export GITHUB_TOKEN=${GHCR_TOKEN}
+          export GITHUB_REF="${{ github.ref }}"
+          export REGISTRY="${{ env.REGISTRY }}"
+          export IMAGE_NAME="${{ env.IMAGE_NAME }}"
+          export SERVICE_NAME="${{ env.SERVICE_NAME }}"
+          export USER=${USER}
+          
+          # 배포 스크립트 실행 (직접 실행, 백그라운드 아님)
+          bash ${DEPLOY_DIR}/deploy-frontend.sh
+          
+          # 배포 결과 확인
+          echo "🔍 Checking deployment status..."
+          sleep 5
+          
           # 컨테이너 상태 확인
-          if ssh $SSH_OPTS ${USER}@${HOST} "docker ps | grep -q ${SERVICE_NAME}"; then
-            echo "✅ Container is running despite timeout. Deployment may have succeeded."
-            rm -f private_key.pem
-            exit 0
+          if docker ps | grep -q ${SERVICE_NAME}; then
+            echo "✅ Container is running. Deployment successful!"
+            
+            # 헬스 체크 (Next.js가 응답하는지 확인)
+            echo "🏥 Performing health check..."
+            sleep 5
+            if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              echo "✅ Health check passed! Frontend is responding."
+            else
+              echo "⚠️ Health check failed, but container is running."
+            fi
           else
             echo "❌ Container is not running. Deployment may have failed."
-            echo "💡 Check full log manually: ssh ${USER}@${HOST} 'cat ${DEPLOY_LOG}'"
-            rm -f private_key.pem
+            echo "🔍 Checking container status..."
+            docker ps -a | grep ${SERVICE_NAME} || echo "No container found"
+            
+            # 컨테이너 로그 확인 (존재하는 경우)
+            if docker ps -a | grep -q ${SERVICE_NAME}; then
+              echo "🔍 Checking container logs..."
+              docker logs ${SERVICE_NAME} --tail 50 2>&1 || echo "Could not fetch container logs"
+            fi
             exit 1
           fi
 
       - name: Notify deployment status
         if: always()
         env:
-          HOST: ${{ secrets.EC2_HOST }}
-          USER: ${{ secrets.EC2_USERNAME }}
+          USER: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
         run: |
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ Deployment successful for frontend"
           else
             echo "❌ Deployment failed for frontend"
             echo ""
-            echo "💡 Troubleshooting steps:"
-            echo "   1. Check EC2 instance status: AWS Console → EC2 → Instances"
-            echo "   2. Verify Security Group allows SSH (port 22) from GitHub Actions IP ranges"
-            echo "   3. Check if instance is running: aws ec2 describe-instances --instance-ids <instance-id>"
-            echo "   4. Test SSH manually: ssh ${USER}@${HOST} 'echo test'"
-            echo "   5. Check deployment status: ssh ${USER}@${HOST} 'docker ps | grep barofarm-frontend'"
-            echo "   6. Check deployment logs: ssh ${USER}@${HOST} 'ls -lt /home/${USER}/apps/FE/deploy-frontend-*.log | head -1 | xargs cat'"
+            echo "💡 Self-hosted runner troubleshooting steps:"
+            echo "   1. Check if Docker is running: docker ps"
+            echo "   2. Check container status: docker ps -a | grep barofarm-frontend"
+            echo "   3. Check container logs: docker logs barofarm-frontend"
+            echo "   4. Check deployment directory: ls -la /home/${USER}/apps/FE/"
+            echo "   5. Verify GitHub Container Registry access: docker login ghcr.io"
+            echo "   6. Check runner logs for more details"
             echo ""
-            echo "📝 Note: If SSH connection timed out, the deployment script might not have run."
-            echo "   The container might still be running with the previous version."
+            echo "📝 Note: Since this is a self-hosted runner, check the runner machine directly."
           fi
 
   # ==================================================
