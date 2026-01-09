@@ -488,7 +488,7 @@ export const orderApi = new ApiClient(API_URLS.ORDER)
 export const paymentApi = orderApi // 결제/예치금은 Order 서비스 사용
 
 // Support 서비스 (검색, 리뷰, 체험, 정산, 배송 등)
-const supportApi = new ApiClient(API_URLS.SUPPORT)
+export const supportApi = new ApiClient(API_URLS.SUPPORT)
 export const searchApi = supportApi
 export const reviewApi = supportApi
 export const experienceApi = supportApi
@@ -499,3 +499,13 @@ export const settlementApi = supportApi
 export const productApi = new ApiClient(API_URLS.BUYER)
 export const farmApi = new ApiClient(API_URLS.SELLER)
 export const deliveryApi = new ApiClient(API_URLS.ORDER)
+
+// ==========
+// 타입 정의
+// ==========
+
+export interface ApiResponse<T = any> {
+  status: number
+  data: T
+  message?: string
+}
