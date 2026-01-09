@@ -177,7 +177,7 @@ jobs:
   # ==================================================
   deploy:
     name: Deploy Frontend to AWS EC2
-    runs-on: [self-hosted, public]
+    runs-on: ubuntu-latest
     needs: docker-build # docker-build가 완료된 후 배포
     if: |
       github.event_name == 'push' && 
@@ -196,82 +196,104 @@ jobs:
           echo "name=$BRANCH" >> $GITHUB_OUTPUT
           echo "Deploying from branch: $BRANCH"
 
-      - name: Deploy to EC2
+      - name: Deploy to EC2 via SSH
         env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          HOST: ${{ secrets.EC2_HOST }}
           USER: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
         timeout-minutes: 10 # 배포 타임아웃 설정
         run: |
-          # Self-hosted runner에서 직접 배포 실행
-          echo "🚀 Starting deployment on self-hosted runner..."
-          echo "📍 Runner is already on the target server, no SSH needed"
-
-          # GHCR_PAT 또는 GITHUB_TOKEN 사용 (GHCR_PAT 우선)
-          if [ -n "${{ secrets.GHCR_PAT }}" ]; then
-            GHCR_TOKEN="${{ secrets.GHCR_PAT }}"
-          else
-            GHCR_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-          fi
-
-          # 배포 디렉토리 설정
-          if [ -z "$USER" ]; then
-            USER=$(whoami)
-          fi
-          DEPLOY_DIR="/home/${USER}/apps/FE"
-          mkdir -p ${DEPLOY_DIR}
-
-          # 배포 스크립트 및 필요한 파일들을 배포 디렉토리로 복사
+          echo "🚀 Starting SSH deployment to EC2..."
+          
+          # SSH private key 설정
+          echo "$PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          # SSH 접속 테스트
+          echo "🔍 Testing SSH connection..."
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            ${USER}@${HOST} "echo 'SSH connection successful'" || {
+            echo "❌ SSH connection failed"
+            exit 1
+          }
+          
+          # 배포 디렉토리 생성
+          echo "📁 Creating deployment directory..."
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${USER}@${HOST} "mkdir -p /home/${USER}/apps/FE"
+          
+          # 배포 파일들 복사
           echo "📦 Copying deployment files..."
-          cp ./scripts/deploy-frontend.sh ${DEPLOY_DIR}/
-          cp ./docker-compose.yml ${DEPLOY_DIR}/
-          cp ./Dockerfile ${DEPLOY_DIR}/
-          chmod +x ${DEPLOY_DIR}/deploy-frontend.sh
-
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            ./scripts/deploy-frontend.sh ${USER}@${HOST}:/home/${USER}/apps/FE/
+          
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            ./docker-compose.yml ${USER}@${HOST}:/home/${USER}/apps/FE/
+          
+          scp -i private_key.pem -o StrictHostKeyChecking=no \
+            ./Dockerfile ${USER}@${HOST}:/home/${USER}/apps/FE/
+          
           # 배포 스크립트 실행
-          echo "🚀 Executing deployment script..."
-          cd ${DEPLOY_DIR}
-
-          export GITHUB_TOKEN=${GHCR_TOKEN}
-          export GITHUB_REF="${{ github.ref }}"
-          export REGISTRY="${{ env.REGISTRY }}"
-          export IMAGE_NAME="${{ env.IMAGE_NAME }}"
-          export SERVICE_NAME="${{ env.SERVICE_NAME }}"
-          export USER=${USER}
-
-          # 배포 스크립트 실행 (직접 실행, 백그라운드 아님)
-          bash ${DEPLOY_DIR}/deploy-frontend.sh
-
+          echo "🚀 Executing deployment script on EC2..."
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${USER}@${HOST} << EOF
+            set -e
+            cd /home/${USER}/apps/FE
+            chmod +x deploy-frontend.sh
+            
+            export GITHUB_TOKEN=${GHCR_TOKEN}
+            export GITHUB_REF="${{ github.ref }}"
+            export REGISTRY="${{ env.REGISTRY }}"
+            export IMAGE_NAME="${{ env.IMAGE_NAME }}"
+            export SERVICE_NAME="${{ env.SERVICE_NAME }}"
+            export USER=${USER}
+            
+            bash deploy-frontend.sh
+          EOF
+          
           # 배포 결과 확인
           echo "🔍 Checking deployment status..."
           sleep 5
-
+          
           # 컨테이너 상태 확인
-          if docker ps | grep -q ${SERVICE_NAME}; then
-            echo "✅ Container is running. Deployment successful!"
-            
-            # 헬스 체크 (Next.js가 응답하는지 확인)
-            echo "🏥 Performing health check..."
-            sleep 5
-            if curl -f http://localhost:3000 > /dev/null 2>&1; then
-              echo "✅ Health check passed! Frontend is responding."
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${USER}@${HOST} << EOF
+            if docker ps | grep -q "${{ env.SERVICE_NAME }}"; then
+              echo "✅ Container is running. Deployment successful!"
+              
+              # 헬스 체크
+              echo "🏥 Performing health check..."
+              sleep 5
+              if curl -f http://localhost:3000 > /dev/null 2>&1; then
+                echo "✅ Health check passed! Frontend is responding."
+              else
+                echo "⚠️ Health check failed, but container is running."
+              fi
             else
-              echo "⚠️ Health check failed, but container is running."
+              echo "❌ Container is not running. Deployment may have failed."
+              echo "🔍 Checking container status..."
+              docker ps -a | grep "${{ env.SERVICE_NAME }}" || echo "No container found"
+              
+              # 컨테이너 로그 확인
+              if docker ps -a | grep -q "${{ env.SERVICE_NAME }}"; then
+                echo "🔍 Checking container logs..."
+                docker logs "${{ env.SERVICE_NAME }}" --tail 50 2>&1 || echo "Could not fetch container logs"
+              fi
+              exit 1
             fi
-          else
-            echo "❌ Container is not running. Deployment may have failed."
-            echo "🔍 Checking container status..."
-            docker ps -a | grep ${SERVICE_NAME} || echo "No container found"
-            
-            # 컨테이너 로그 확인 (존재하는 경우)
-            if docker ps -a | grep -q ${SERVICE_NAME}; then
-              echo "🔍 Checking container logs..."
-              docker logs ${SERVICE_NAME} --tail 50 2>&1 || echo "Could not fetch container logs"
-            fi
-            exit 1
-          fi
+          EOF
+          
+          # Private key 정리
+          rm -f private_key.pem
+          
+          echo "✨ Deployment completed!"
 
       - name: Notify deployment status
         if: always()
         env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          HOST: ${{ secrets.EC2_HOST }}
           USER: ${{ secrets.EC2_USERNAME || 'ubuntu' }}
         run: |
           if [ "${{ job.status }}" == "success" ]; then
@@ -279,15 +301,15 @@ jobs:
           else
             echo "❌ Deployment failed for frontend"
             echo ""
-            echo "💡 Self-hosted runner troubleshooting steps:"
-            echo "   1. Check if Docker is running: docker ps"
-            echo "   2. Check container status: docker ps -a | grep barofarm-frontend"
-            echo "   3. Check container logs: docker logs barofarm-frontend"
-            echo "   4. Check deployment directory: ls -la /home/${USER}/apps/FE/"
-            echo "   5. Verify GitHub Container Registry access: docker login ghcr.io"
-            echo "   6. Check runner logs for more details"
-            echo ""
-            echo "📝 Note: Since this is a self-hosted runner, check the runner machine directly."
+            echo "💡 SSH deployment troubleshooting steps:"
+            echo "   1. Verify SSH key: Check if EC2_SSH_KEY secret is correct"
+            echo "   2. Check EC2 host: Verify EC2_HOST secret is correct"
+            echo "   3. Check SSH access: Try manual SSH connection"
+            echo "   4. Check EC2 security group: Ensure SSH port (22) is open"
+            echo "   5. On EC2, check Docker: ssh ${USER}@${HOST} 'docker ps'"
+            echo "   6. Check deployment directory: ssh ${USER}@${HOST} 'ls -la /home/${USER}/apps/FE/'"
+            echo "   7. Verify GitHub Container Registry access on EC2"
+            echo "   8. Check container logs: ssh ${USER}@${HOST} 'docker logs barofarm-frontend'"
           fi
 
   # ==================================================
