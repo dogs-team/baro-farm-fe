@@ -24,11 +24,13 @@ services:
       - NEXT_PUBLIC_IMAGE_BASE_URL=/uploads
 
     # 로그 수집용 S3 마운트 (프론트는 읽기 전용 + 로그 디렉토리만 쓰기 허용)
+    #   호스트에서 확인: id ubuntu (일반적으로 uid 1000)
     #   sudo mkdir -p /mnt/s3/logs/events
-    #   sudo chown -R 1001:1001 /mnt/s3/logs/events  # nextjs 사용자(uid 1001)로 소유자 변경
-    #   sudo chmod -R 755 /mnt/s3/logs/events
     volumes:
       - /mnt/s3/logs/events:/mnt/s3/logs/events:rw
+    # S3 마운트에서 쓰기 권한 문제 해결: 호스트 ubuntu 사용자(uid 1000)로 실행
+    # Dockerfile의 USER nextjs 설정을 오버라이드
+    user: '1000:1000'  # ubuntu 사용자 (호스트에서 'id ubuntu'로 확인 가능)
 
     # ========================================
     # 보안 설정 (SECURITY_INCIDENT_REPORT.md 참고)
