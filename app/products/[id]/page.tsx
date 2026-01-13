@@ -21,6 +21,7 @@ import { reviewService } from '@/lib/api/services/review'
 import type { Product, Review } from '@/lib/api/types'
 import type { SellerInfoData } from '@/lib/api/types/seller'
 import { cartService } from '@/lib/api/services/cart'
+import { useProductDetailTracking } from '@/hooks/use-product-detail-tracking'
 
 export default function ProductDetailPage() {
   const router = useRouter()
@@ -39,6 +40,12 @@ export default function ProductDetailPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // 상품 상세 페이지 체류 시간 트래킹
+  useProductDetailTracking({
+    productId,
+    productName: product?.productName,
+  })
 
   // 상품 데이터 로드 (상품 + 농장 + 리뷰 정보)
   useEffect(() => {

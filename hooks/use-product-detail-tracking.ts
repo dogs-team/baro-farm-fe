@@ -46,10 +46,24 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
       console.warn('[Tracking] gtag view_start error', error)
     }
 
-    // 2) 커스텀 API로 전송 (백엔드 준비되면 사용)
+    // 2) 커스텀 API로 전송
     try {
+      console.log('[Tracking] product_detail_view_start', pageViewPayload)
       if (navigator.sendBeacon) {
         navigator.sendBeacon('/api/log-product-view', JSON.stringify(pageViewPayload))
+      } else {
+        fetch('/api/log-product-view', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pageViewPayload),
+          keepalive: true,
+        })
+          .then((res) => {
+            console.log('[Tracking] log-product-view response', res.status)
+          })
+          .catch((err) => {
+            console.warn('[Tracking] log-product-view fetch error', err)
+          })
       }
     } catch (error) {
       console.warn('[Tracking] sendBeacon view_start error', error)
@@ -88,10 +102,10 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
 
       // 커스텀 API
       try {
+        console.log('[Tracking] product_detail_dwell_time', dwellPayload)
         if (navigator.sendBeacon) {
           navigator.sendBeacon('/api/log-product-dwell', JSON.stringify(dwellPayload))
         } else {
-          // sendBeacon이 없으면 fetch로 fallback (필수는 아님)
           fetch('/api/log-product-dwell', {
             method: 'POST',
             headers: {
@@ -99,9 +113,13 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
             },
             body: JSON.stringify(dwellPayload),
             keepalive: true,
-          }).catch(() => {
-            // 네트워크 에러는 조용히 무시
           })
+            .then((res) => {
+              console.log('[Tracking] log-product-dwell response', res.status)
+            })
+            .catch((err) => {
+              console.warn('[Tracking] log-product-dwell fetch error', err)
+            })
         }
       } catch (error) {
         console.warn('[Tracking] dwell_time send error', error)
