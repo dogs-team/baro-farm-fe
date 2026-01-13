@@ -205,11 +205,11 @@ jobs:
         timeout-minutes: 10 # 배포 타임아웃 설정
         run: |
           echo "🚀 Starting SSH deployment to EC2..."
-          
+
           # SSH private key 설정
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
-          
+
           # SSH 접속 테스트
           echo "🔍 Testing SSH connection..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
@@ -217,23 +217,23 @@ jobs:
             echo "❌ SSH connection failed"
             exit 1
           }
-          
+
           # 배포 디렉토리 생성
           echo "📁 Creating deployment directory..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             ${USER}@${HOST} "mkdir -p /home/${USER}/apps/FE"
-          
+
           # 배포 파일들 복사
           echo "📦 Copying deployment files..."
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             ./scripts/deploy-frontend.sh ${USER}@${HOST}:/home/${USER}/apps/FE/
-          
+
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             ./docker-compose.yml ${USER}@${HOST}:/home/${USER}/apps/FE/
-          
+
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             ./Dockerfile ${USER}@${HOST}:/home/${USER}/apps/FE/
-          
+
           # 배포 스크립트 실행
           echo "🚀 Executing deployment script on EC2..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
@@ -251,11 +251,11 @@ jobs:
             
             bash deploy-frontend.sh
           EOF
-          
+
           # 배포 결과 확인
           echo "🔍 Checking deployment status..."
           sleep 5
-          
+
           # 컨테이너 상태 확인
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             ${USER}@${HOST} << EOF
@@ -283,10 +283,10 @@ jobs:
               exit 1
             fi
           EOF
-          
+
           # Private key 정리
           rm -f private_key.pem
-          
+
           echo "✨ Deployment completed!"
 
       - name: Notify deployment status
