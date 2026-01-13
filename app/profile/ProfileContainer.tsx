@@ -21,10 +21,8 @@ export function ProfileContainer() {
   const { toast } = useToast()
   const { logout } = useLogout()
   const { user, isLoadingUser, mounted, setUser } = useProfileUser()
-  const { orders, isLoadingOrders, orderCount, reviewCount, isLoadingReviews } = useProfileOrders(
-    user.userId,
-    mounted
-  )
+  const { orders, isLoadingOrders, orderCount, buyerCount, reviewCount, isLoadingReviews } =
+    useProfileOrders(user.userId, mounted)
   const { depositBalance, isLoadingDeposit, fetchDepositBalance } = useProfileDeposit(mounted)
   const { isCharging, handleDepositCharge } = useTossPayments(user)
 
@@ -219,6 +217,7 @@ export function ProfileContainer() {
     orders,
     isLoadingOrders,
     orderCount,
+    buyerCount,
     reviewCount,
     isLoadingReviews,
 

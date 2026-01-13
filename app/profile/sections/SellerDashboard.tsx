@@ -146,15 +146,6 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
   // 판매자일 때는 실제 판매자 대시보드 표시
   return (
     <div className="space-y-4">
-      <Card className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <p className="text-sm text-muted-foreground">판매자 대시보드로 이동</p>
-          <p className="text-base font-semibold">농가 운영 현황을 한눈에 보기</p>
-        </div>
-        <Button asChild>
-          <Link href="/farmer/dashboard">농가 대시보드로 가기</Link>
-        </Button>
-      </Card>
       {/* Main Layout: Profile + Stats */}
       <div className="grid gap-6 lg:grid-cols-3 items-start">
         {/* Profile Header - Left Side */}
@@ -211,7 +202,9 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
               </div>
               <div className="flex-1">
                 <div className="text-sm font-medium">구매자 수</div>
-                <div className="text-2xl font-bold">0</div>
+                <div className="text-2xl font-bold">
+                  {state.isLoadingOrders ? '...' : state.buyerCount}
+                </div>
               </div>
             </div>
           </Card>

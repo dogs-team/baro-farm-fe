@@ -1,5 +1,6 @@
 import { experienceApi } from '../client'
 import { s3UploadService } from './s3-upload'
+import { processImage, isImageFile } from '@/lib/utils/image-processor'
 
 export interface UploadResponse {
   success: boolean
@@ -52,8 +53,26 @@ export const uploadService = {
     }
 
     // 백엔드 프록시 방식 (레거시 지원)
+    // 이미지 파일인 경우 전처리
+    let processedFile = file
+    if (isImageFile(file)) {
+      try {
+        const result = await processImage(file, {
+          maxSizeMB: 2, // WebP 형식이므로 2MB로 설정해도 실제로는 대부분 1MB 이하
+          maxWidthOrHeight: 1920, // 1920px는 대부분의 화면에서 충분한 해상도
+          quality: 0.85, // 0.8보다 높은 품질로 설정 (WebP 효율성 고려)
+          convertToWebP: true,
+          useWebWorker: true,
+        })
+        processedFile = result.file
+      } catch (error) {
+        console.warn('이미지 처리 실패, 원본 파일 사용:', error)
+        // 처리 실패 시 원본 파일 사용
+      }
+    }
+
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', processedFile)
     if (type) {
       formData.append('type', type)
     }
@@ -95,8 +114,30 @@ export const uploadService = {
     }
 
     // 백엔드 프록시 방식 (레거시 지원)
+    // 이미지 파일들 전처리
+    const processedFiles = await Promise.all(
+      files.map(async (file) => {
+        if (isImageFile(file)) {
+          try {
+            const result = await processImage(file, {
+              maxSizeMB: 2, // WebP 형식이므로 2MB로 설정해도 실제로는 대부분 1MB 이하
+              maxWidthOrHeight: 1920, // 1920px는 대부분의 화면에서 충분한 해상도
+              quality: 0.85, // 0.8보다 높은 품질로 설정 (WebP 효율성 고려)
+              convertToWebP: true,
+              useWebWorker: true,
+            })
+            return result.file
+          } catch (error) {
+            console.warn('이미지 처리 실패, 원본 파일 사용:', error)
+            return file
+          }
+        }
+        return file
+      })
+    )
+
     const formData = new FormData()
-    files.forEach((file) => {
+    processedFiles.forEach((file) => {
       formData.append('files', file)
     })
     if (type) {

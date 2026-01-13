@@ -32,7 +32,9 @@ import { productService } from '@/lib/api/services/product'
 import { authService } from '@/lib/api/services/auth'
 import { getUserRole } from '@/lib/api/client'
 import { useToast } from '@/hooks/use-toast'
+import { uploadService } from '@/lib/api/services/upload'
 import type { ProductCategory, ProductStatus } from '@/lib/api/types'
+import { ImageIcon, X } from 'lucide-react'
 
 const CATEGORY_OPTIONS: { value: ProductCategory; label: string }[] = [
   { value: 'FRUIT', label: '과일' },
@@ -64,6 +66,9 @@ export default function NewProductPage() {
     stockQuantity: '',
     productStatus: 'ON_SALE' as ProductStatus,
   })
+  const [images, setImages] = useState<File[]>([])
+  const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [isUploadingImages, setIsUploadingImages] = useState(false)
 
   // 마운트 확인 및 userRole 확인
   useEffect(() => {
@@ -135,6 +140,29 @@ export default function NewProductPage() {
 
     setIsSubmitting(true)
     try {
+      // 이미지 업로드 (있는 경우) - uploadService가 자동으로 압축 처리
+      let uploadedImageUrls: string[] = []
+      if (images.length > 0) {
+        setIsUploadingImages(true)
+        try {
+          const uploadResults = await uploadService.uploadMultipleFiles(images, 'product')
+          uploadedImageUrls = uploadResults.files.map((f) => f.url)
+          setImageUrls(uploadedImageUrls)
+        } catch (error) {
+          console.error('이미지 업로드 실패:', error)
+          toast({
+            title: '이미지 업로드 실패',
+            description: '이미지 업로드 중 오류가 발생했습니다. 다시 시도해주세요.',
+            variant: 'destructive',
+          })
+          setIsUploadingImages(false)
+          setIsSubmitting(false)
+          return
+        } finally {
+          setIsUploadingImages(false)
+        }
+      }
+
       await productService.createProduct({
         productName: formData.productName.trim(),
         description: formData.description.trim() || undefined,
@@ -142,6 +170,7 @@ export default function NewProductPage() {
         price,
         stockQuantity,
         productStatus: formData.productStatus,
+        imageUrls: uploadedImageUrls.length > 0 ? uploadedImageUrls : undefined,
       })
 
       toast({
@@ -337,13 +366,81 @@ export default function NewProductPage() {
               </Select>
             </div>
 
-            {/* 이미지 업로드 (향후 구현) */}
+            {/* 이미지 업로드 */}
             <div className="space-y-2">
-              <Label>상품 이미지</Label>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  이미지 업로드 기능은 곧 추가될 예정입니다.
-                </p>
+              <Label>상품 이미지 (선택사항, 최대 10개)</Label>
+              <div className="space-y-4">
+                {/* 이미지 미리보기 */}
+                {(images.length > 0 || imageUrls.length > 0) && (
+                  <div className="grid grid-cols-4 gap-4">
+                    {imageUrls.map((url, index) => (
+                      <div
+                        key={`url-${index}`}
+                        className="relative aspect-square rounded-lg overflow-hidden border"
+                      >
+                        <img
+                          src={url}
+                          alt={`상품 이미지 ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                    {images.map((image, index) => (
+                      <div
+                        key={`file-${index}`}
+                        className="relative aspect-square rounded-lg overflow-hidden border"
+                      >
+                        <img
+                          src={URL.createObjectURL(image)}
+                          alt={`미리보기 ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImages((prev) => prev.filter((_, i) => i !== index))
+                          }}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs hover:bg-destructive/90"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 이미지 업로드 버튼 */}
+                {images.length + imageUrls.length < 10 && (
+                  <label className="block">
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors">
+                      <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-1">
+                        이미지를 클릭하거나 드래그하여 업로드
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        이미지는 자동으로 압축되어 WebP 형식으로 변환됩니다
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        if (files.length + images.length + imageUrls.length > 10) {
+                          toast({
+                            title: '이미지 개수 초과',
+                            description: '최대 10개의 이미지만 업로드할 수 있습니다.',
+                            variant: 'destructive',
+                          })
+                          return
+                        }
+                        setImages((prev) => [...prev, ...files])
+                      }}
+                    />
+                  </label>
+                )}
               </div>
             </div>
 
@@ -352,9 +449,13 @@ export default function NewProductPage() {
               <Button type="button" variant="outline" asChild>
                 <Link href="/farmer/products">취소</Link>
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || isUploadingImages}>
                 <Save className="h-4 w-4 mr-2" />
-                {isSubmitting ? '등록 중...' : '상품 등록'}
+                {isUploadingImages
+                  ? '이미지 업로드 중...'
+                  : isSubmitting
+                    ? '등록 중...'
+                    : '상품 등록'}
               </Button>
             </div>
           </form>

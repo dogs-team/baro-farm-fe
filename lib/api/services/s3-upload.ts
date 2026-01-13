@@ -1,10 +1,13 @@
 import { experienceApi } from '../client'
+import { processImage, isImageFile } from '@/lib/utils/image-processor'
 
 /**
  * Presigned URL 방식 S3 업로드
  *
  * 프론트엔드에서는 AWS SDK를 직접 사용하지 않고,
  * 백엔드에서 받은 Presigned URL로 fetch를 통해 직접 업로드합니다.
+ *
+ * 이미지 파일은 자동으로 WebP 형식으로 변환되고 압축됩니다.
  */
 
 export interface PresignedUrlResponse {
@@ -80,23 +83,44 @@ export const s3UploadService = {
    * @returns 업로드된 파일 정보
    */
   async uploadFile(file: File, type?: string): Promise<S3UploadResponse> {
-    // 1. Presigned URL 요청
+    // 1. 이미지 파일인 경우 전처리 (압축, WebP 변환)
+    let processedFile = file
+    if (isImageFile(file)) {
+      try {
+        const result = await processImage(file, {
+          maxSizeMB: 2, // WebP 형식이므로 2MB로 설정해도 실제로는 대부분 1MB 이하
+          maxWidthOrHeight: 1920, // 1920px는 대부분의 화면에서 충분한 해상도
+          quality: 0.85, // 0.8보다 높은 품질로 설정 (WebP 효율성 고려)
+          convertToWebP: true,
+          useWebWorker: true,
+        })
+        processedFile = result.file
+        console.log(
+          `이미지 처리 완료: ${((result.compressionRatio / 100) * 100).toFixed(1)}% 압축, ${result.format} 형식`
+        )
+      } catch (error) {
+        console.warn('이미지 처리 실패, 원본 파일 사용:', error)
+        // 처리 실패 시 원본 파일 사용
+      }
+    }
+
+    // 2. Presigned URL 요청
     const presignedResponse = await this.getPresignedUrl({
-      fileName: file.name,
-      contentType: file.type,
+      fileName: processedFile.name,
+      contentType: processedFile.type,
       type,
     })
 
-    // 2. S3에 직접 업로드
-    await this.uploadToS3(file, presignedResponse.presignedUrl, file.type)
+    // 3. S3에 직접 업로드
+    await this.uploadToS3(processedFile, presignedResponse.presignedUrl, processedFile.type)
 
-    // 3. 응답 반환
+    // 4. 응답 반환
     return {
       success: true,
-      fileName: file.name,
+      fileName: processedFile.name,
       url: presignedResponse.url,
-      size: file.size,
-      type: file.type,
+      size: processedFile.size,
+      type: processedFile.type,
       fileKey: presignedResponse.fileKey,
     }
   },
@@ -121,8 +145,8 @@ export const s3UploadService = {
     }>
     count: number
   }> {
+    // 각 파일을 uploadFile로 전달 (이미지 처리는 uploadFile 내부에서 수행)
     const uploadPromises = files.map((file) => this.uploadFile(file, type))
-
     const results = await Promise.all(uploadPromises)
 
     return {

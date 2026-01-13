@@ -41,4 +41,5 @@ export {
   deliveryService,
   notificationService,
   sellerService,
+  chatbotService,
 } from './services'

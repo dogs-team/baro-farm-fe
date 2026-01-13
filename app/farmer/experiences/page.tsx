@@ -51,7 +51,9 @@ import { Settings, LogOut } from 'lucide-react'
 import { FarmerNav } from '../components/farmer-nav'
 import { farmService } from '@/lib/api/services/farm'
 import { experienceService } from '@/lib/api/services/experience'
+import { uploadService } from '@/lib/api/services/upload'
 import type { Farm, Experience } from '@/lib/api/types'
+import { ImageIcon, X } from 'lucide-react'
 
 interface ExperienceListItem {
   id: string
@@ -87,6 +89,8 @@ export default function FarmerExperiencesPage() {
     maxParticipants: '',
     category: '',
   })
+  const [newExperienceImage, setNewExperienceImage] = useState<File | null>(null)
+  const [isUploadingNewImage, setIsUploadingNewImage] = useState(false)
 
   const [editExperience, setEditExperience] = useState({
     title: '',
@@ -107,6 +111,27 @@ export default function FarmerExperiencesPage() {
     }
 
     try {
+      // 체험 이미지 업로드 (있는 경우) - uploadService가 자동으로 압축 처리
+      let uploadedImageUrl: string | null = null
+      if (newExperienceImage) {
+        setIsUploadingNewImage(true)
+        try {
+          const uploadResult = await uploadService.uploadFile(newExperienceImage, 'experience')
+          uploadedImageUrl = uploadResult.url
+        } catch (error) {
+          console.error('이미지 업로드 실패:', error)
+          toast({
+            title: '이미지 업로드 실패',
+            description: '이미지 업로드 중 오류가 발생했습니다. 다시 시도해주세요.',
+            variant: 'destructive',
+          })
+          setIsUploadingNewImage(false)
+          return
+        } finally {
+          setIsUploadingNewImage(false)
+        }
+      }
+
       const price = Number(newExperience.price) || 0
       const durationMinutes = Number(newExperience.duration) || 60
       const capacity = Number(newExperience.maxParticipants) || 0
@@ -118,6 +143,7 @@ export default function FarmerExperiencesPage() {
         pricePerPerson: price,
         capacity,
         durationMinutes,
+        imageUrl: uploadedImageUrl || undefined,
       } as any)
 
       toast({
@@ -133,6 +159,7 @@ export default function FarmerExperiencesPage() {
         maxParticipants: '',
         category: '',
       })
+      setNewExperienceImage(null)
 
       if (selectedFarmId) {
         await fetchExperiencesByFarm(selectedFarmId)
@@ -273,7 +300,7 @@ export default function FarmerExperiencesPage() {
         durationMinutes: exp.durationMinutes,
         capacity: exp.capacity,
         status: exp.status === 'ON_SALE' ? 'active' : exp.status === 'CLOSED' ? 'closed' : 'paused',
-        category: exp.category,
+        category: (exp as any).category || undefined,
       }))
       setExperiences(mapped)
     } catch (error) {
@@ -486,12 +513,60 @@ export default function FarmerExperiencesPage() {
                           </Select>
                         </div>
                       </div>
+                      {/* 체험 이미지 업로드 */}
+                      <div className="space-y-2">
+                        <Label>체험 이미지 (선택사항)</Label>
+                        <div className="space-y-2">
+                          {newExperienceImage && (
+                            <div className="relative aspect-video rounded-lg overflow-hidden border">
+                              <img
+                                src={URL.createObjectURL(newExperienceImage)}
+                                alt="체험 이미지 미리보기"
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setNewExperienceImage(null)}
+                                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs hover:bg-destructive/90"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )}
+                          {!newExperienceImage && (
+                            <label className="block">
+                              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
+                                <ImageIcon className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground">
+                                  이미지를 클릭하여 업로드
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  이미지는 자동으로 압축되어 WebP 형식으로 변환됩니다
+                                </p>
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) {
+                                    setNewExperienceImage(file)
+                                  }
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                         취소
                       </Button>
-                      <Button onClick={handleCreateExperience}>등록하기</Button>
+                      <Button onClick={handleCreateExperience} disabled={isUploadingNewImage}>
+                        {isUploadingNewImage ? '이미지 업로드 중...' : '등록하기'}
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>

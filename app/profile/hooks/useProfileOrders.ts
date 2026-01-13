@@ -8,6 +8,7 @@ export function useProfileOrders(userId: string, mounted: boolean) {
   const [orders, setOrders] = useState<OrderDetailInfo[]>([])
   const [isLoadingOrders, setIsLoadingOrders] = useState(false)
   const [orderCount, setOrderCount] = useState(0)
+  const [buyerCount, setBuyerCount] = useState(0)
 
   // 리뷰 개수 상태
   const [reviewCount, setReviewCount] = useState(0)
@@ -20,13 +21,20 @@ export function useProfileOrders(userId: string, mounted: boolean) {
 
       setIsLoadingOrders(true)
       try {
-        const response = await orderService.getOrders({ page: 0, size: 10 })
-        setOrders(response.content || [])
+        // 판매자용 주문 조회 (전체 주문 조회)
+        const response = await orderService.getOrders({ page: 0, size: 1000 })
+        const orderList = response.content || []
+        setOrders(orderList)
         setOrderCount(response.totalElements || 0)
+
+        // 구매자 수 계산 (이메일 기준으로 고유 구매자 수 계산)
+        const uniqueBuyers = new Set(orderList.map((order) => order.email).filter((email) => email))
+        setBuyerCount(uniqueBuyers.size)
       } catch (error) {
         console.error('주문 내역 조회 실패:', error)
         setOrders([])
         setOrderCount(0)
+        setBuyerCount(0)
       } finally {
         setIsLoadingOrders(false)
       }
@@ -59,6 +67,7 @@ export function useProfileOrders(userId: string, mounted: boolean) {
     orders,
     isLoadingOrders,
     orderCount,
+    buyerCount,
     reviewCount,
     isLoadingReviews,
   }

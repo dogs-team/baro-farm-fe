@@ -31,7 +31,9 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { FarmerNav } from '../components/farmer-nav'
 import { farmService } from '@/lib/api/services/farm'
+import { uploadService } from '@/lib/api/services/upload'
 import type { Farm } from '@/lib/api/types'
+import { X } from 'lucide-react'
 
 interface FarmFormData {
   id?: string
@@ -68,6 +70,9 @@ export default function FarmManagementPage() {
     parkingAvailable: true,
     facilities: [],
   })
+  const [farmImage, setFarmImage] = useState<File | null>(null)
+  const [farmImageUrl, setFarmImageUrl] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -136,6 +141,29 @@ export default function FarmManagementPage() {
 
     setIsSaving(true)
     try {
+      // 농장 이미지 업로드 (있는 경우) - uploadService가 자동으로 압축 처리
+      let uploadedImageUrl: string | null = null
+      if (farmImage) {
+        setIsUploadingImage(true)
+        try {
+          const uploadResult = await uploadService.uploadFile(farmImage, 'farm')
+          uploadedImageUrl = uploadResult.url
+          setFarmImageUrl(uploadedImageUrl)
+        } catch (error) {
+          console.error('이미지 업로드 실패:', error)
+          toast({
+            title: '이미지 업로드 실패',
+            description: '이미지 업로드 중 오류가 발생했습니다. 다시 시도해주세요.',
+            variant: 'destructive',
+          })
+          setIsUploadingImage(false)
+          setIsSaving(false)
+          return
+        } finally {
+          setIsUploadingImage(false)
+        }
+      }
+
       if (isNewFarm || !selectedFarmId || selectedFarmId === 'new') {
         // 농장 신규 등록
         const created = await farmService.createFarm({
@@ -255,9 +283,15 @@ export default function FarmManagementPage() {
                 <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
                   취소
                 </Button>
-                <Button onClick={handleSave} disabled={isSaving}>
+                <Button onClick={handleSave} disabled={isSaving || isUploadingImage}>
                   <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? '저장 중...' : isNewFarm ? '등록하기' : '저장하기'}
+                  {isUploadingImage
+                    ? '이미지 업로드 중...'
+                    : isSaving
+                      ? '저장 중...'
+                      : isNewFarm
+                        ? '등록하기'
+                        : '저장하기'}
                 </Button>
               </>
             )}
@@ -399,19 +433,69 @@ export default function FarmManagementPage() {
             <Card className="p-6">
               <h2 className="text-xl font-bold mb-4">농장 이미지</h2>
               <div className="space-y-4">
-                <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
-                  <Image
-                    src="/sunny-farm-with-greenhouse.jpg"
-                    alt="농장 메인 이미지"
-                    fill
-                    className="object-cover"
-                  />
+                <div className="relative aspect-video rounded-lg overflow-hidden bg-muted border">
+                  {farmImageUrl || farmImage ? (
+                    <>
+                      <img
+                        src={
+                          farmImageUrl ||
+                          (farmImage
+                            ? URL.createObjectURL(farmImage)
+                            : '/sunny-farm-with-greenhouse.jpg')
+                        }
+                        alt="농장 메인 이미지"
+                        className="w-full h-full object-cover"
+                      />
+                      {isEditing && farmImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFarmImage(null)
+                            if (farmImageUrl) {
+                              setFarmImageUrl(null)
+                            }
+                          }}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs hover:bg-destructive/90"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      <ImageIcon className="h-12 w-12" />
+                    </div>
+                  )}
                 </div>
                 {isEditing && (
-                  <Button variant="outline" className="w-full">
-                    <ImageIcon className="h-4 w-4 mr-2" />
-                    이미지 변경
-                  </Button>
+                  <label className="block">
+                    <Button variant="outline" className="w-full" asChild>
+                      <span>
+                        <ImageIcon className="h-4 w-4 mr-2" />
+                        {farmImage || farmImageUrl ? '이미지 변경' : '이미지 업로드'}
+                      </span>
+                    </Button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setFarmImage(file)
+                          // 기존 URL이 있으면 초기화 (새 이미지로 교체)
+                          if (farmImageUrl) {
+                            setFarmImageUrl(null)
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+                {isEditing && (farmImage || farmImageUrl) && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    이미지는 자동으로 압축되어 WebP 형식으로 변환됩니다
+                  </p>
                 )}
               </div>
             </Card>

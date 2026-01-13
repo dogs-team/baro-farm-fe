@@ -1,7 +1,7 @@
 // =====================
 // Order Types
 // =====================
-export type OrderStatus = 'PENDING' | 'PAID' | 'CANCELED'
+export type OrderStatus = 'PENDING' | 'PAID' | 'PREPARING' | 'SHIPPED' | 'CANCELED' | 'COMPLETED'
 
 export interface OrderItemRequest {
   productId: string // UUID
@@ -46,13 +46,16 @@ export interface OrderCancelInfo {
 
 // Legacy types for backward compatibility
 export interface OrderItem {
-  id?: number
+  id?: number | string // UUID 문자열 또는 숫자
   productId: number | string
+  sellerId?: string // UUID
   productName?: string
   productImage?: string
-  price: number
+  price?: number // Legacy field
+  unitPrice?: number // 실제 API 필드
   quantity: number
-  subtotal?: number
+  subtotal?: number // Legacy field
+  totalPrice?: number // 실제 API 필드
 }
 
 export interface Order extends OrderDetailInfo {

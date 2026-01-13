@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Package } from 'lucide-react'
+import { ArrowLeft, Package, Truck, Home, X, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/header'
@@ -39,13 +39,47 @@ export default function ProfileOrdersPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return <Badge variant="outline">배송 준비</Badge>
+        return (
+          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+            <Package className="h-3 w-3 mr-1" />
+            주문 대기
+          </Badge>
+        )
       case 'PAID':
-        return <Badge variant="default">배송 중</Badge>
-      case 'DELIVERED':
-        return <Badge variant="secondary">배송 완료</Badge>
+        return (
+          <Badge variant="default" className="bg-blue-50 text-blue-700 border-blue-200">
+            <CreditCard className="h-3 w-3 mr-1" />
+            결제 완료
+          </Badge>
+        )
+      case 'PREPARING':
+        return (
+          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+            <Package className="h-3 w-3 mr-1" />
+            배송 준비
+          </Badge>
+        )
+      case 'SHIPPED':
+        return (
+          <Badge variant="default" className="bg-blue-600">
+            <Truck className="h-3 w-3 mr-1" />
+            배송 중
+          </Badge>
+        )
+      case 'COMPLETED':
+        return (
+          <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
+            <Home className="h-3 w-3 mr-1" />
+            배송 완료
+          </Badge>
+        )
       case 'CANCELED':
-        return <Badge variant="destructive">취소됨</Badge>
+        return (
+          <Badge variant="destructive">
+            <X className="h-3 w-3 mr-1" />
+            주문 취소
+          </Badge>
+        )
       default:
         return <Badge>{status}</Badge>
     }

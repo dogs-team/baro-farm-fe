@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Package, Star, Wallet, Heart } from 'lucide-react'
+import { Package, Star, Wallet, Heart, Truck, Home, X, CreditCard } from 'lucide-react'
 import { ProfileInfoSection } from './ProfileInfoSection'
 import { DepositChargeDialog } from '../dialogs/DepositChargeDialog'
 import type { ProfileState, ProfileActions, RecentOrder } from '../types'
@@ -29,9 +29,12 @@ export function BuyerDashboard({ state, actions }: BuyerDashboardProps) {
 
     // 주문 상태를 한글로 변환
     const statusMap: Record<string, string> = {
-      PENDING: '배송 준비',
-      PAID: '배송 중',
-      CANCELED: '취소됨',
+      PENDING: '주문 대기',
+      PAID: '결제 완료',
+      PREPARING: '배송 준비',
+      SHIPPED: '배송 중',
+      COMPLETED: '배송 완료',
+      CANCELED: '주문 취소',
     }
     const status = statusMap[order.status] || order.status
 
@@ -49,14 +52,48 @@ export function BuyerDashboard({ state, actions }: BuyerDashboardProps) {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case '배송 완료':
-        return <Badge variant="secondary">배송 완료</Badge>
-      case '배송 중':
-        return <Badge variant="default">배송 중</Badge>
+      case '주문 대기':
+        return (
+          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+            <Package className="h-3 w-3 mr-1" />
+            주문 대기
+          </Badge>
+        )
+      case '결제 완료':
+        return (
+          <Badge variant="default" className="bg-blue-50 text-blue-700 border-blue-200">
+            <CreditCard className="h-3 w-3 mr-1" />
+            결제 완료
+          </Badge>
+        )
       case '배송 준비':
-        return <Badge variant="outline">배송 준비</Badge>
-      case '취소됨':
-        return <Badge variant="destructive">취소됨</Badge>
+        return (
+          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+            <Package className="h-3 w-3 mr-1" />
+            배송 준비
+          </Badge>
+        )
+      case '배송 중':
+        return (
+          <Badge variant="default" className="bg-blue-600">
+            <Truck className="h-3 w-3 mr-1" />
+            배송 중
+          </Badge>
+        )
+      case '배송 완료':
+        return (
+          <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
+            <Home className="h-3 w-3 mr-1" />
+            배송 완료
+          </Badge>
+        )
+      case '주문 취소':
+        return (
+          <Badge variant="destructive">
+            <X className="h-3 w-3 mr-1" />
+            주문 취소
+          </Badge>
+        )
       default:
         return <Badge>{status}</Badge>
     }

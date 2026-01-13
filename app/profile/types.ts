@@ -48,6 +48,7 @@ export interface ProfileState {
   orders: OrderDetailInfo[]
   isLoadingOrders: boolean
   orderCount: number
+  buyerCount: number
 
   // Reviews state
   reviewCount: number
