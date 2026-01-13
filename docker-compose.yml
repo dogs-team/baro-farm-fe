@@ -30,7 +30,7 @@ services:
       - /mnt/s3/logs/events:/mnt/s3/logs/events:rw
     # S3 마운트에서 쓰기 권한 문제 해결: 호스트 ubuntu 사용자(uid 1000)로 실행
     # Dockerfile의 USER nextjs 설정을 오버라이드
-    user: '1000:1000'  # ubuntu 사용자 (호스트에서 'id ubuntu'로 확인 가능)
+    user: '1000:1000' # ubuntu 사용자 (호스트에서 'id ubuntu'로 확인 가능)
 
     # ========================================
     # 보안 설정 (SECURITY_INCIDENT_REPORT.md 참고)
