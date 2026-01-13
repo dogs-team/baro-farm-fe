@@ -40,6 +40,14 @@ export function ProductCard({
   const handleClick = () => {
     if (typeof window === 'undefined') return
 
+    console.log('[Tracking] card click', {
+      id,
+      name,
+      storeName,
+      price,
+      path: window.location.pathname,
+    })
+
     const payload = {
       type: 'product_detail_click',
       productId: String(id),
