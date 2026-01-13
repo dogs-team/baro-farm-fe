@@ -37,6 +37,52 @@ export function ProductCard({
       ? Math.round(((originalPrice - price) / originalPrice) * 100)
       : 0
 
+  const handleClick = () => {
+    if (typeof window === 'undefined') return
+
+    const payload = {
+      type: 'product_detail_click',
+      productId: String(id),
+      productName: name,
+      storeName,
+      price,
+      timestamp: Date.now(),
+      path: window.location.pathname,
+    }
+
+    // GA 이벤트 (선택 사항)
+    try {
+      ;(window as any).gtag?.('event', 'product_detail_click', {
+        event_category: 'engagement',
+        event_label: String(id),
+        product_name: name,
+        store_name: storeName,
+        price,
+        page_path: window.location.pathname,
+      })
+    } catch (error) {
+      console.warn('[Tracking] gtag click error', error)
+    }
+
+    // 서버 API → S3 로그 적재
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/log-product-click', JSON.stringify(payload))
+      } else {
+        fetch('/api/log-product-click', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch(() => {})
+      }
+    } catch (error) {
+      console.warn('[Tracking] click send error', error)
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -44,7 +90,7 @@ export function ProductCard({
         className
       )}
     >
-      <Link href={`/products/${id}`} className="block h-full flex flex-col">
+      <Link href={`/products/${id}`} className="block h-full flex flex-col" onClick={handleClick}>
         <div className="relative aspect-square overflow-hidden bg-muted">
           <Image
             src={image || '/placeholder.svg'}
