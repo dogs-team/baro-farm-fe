@@ -60,34 +60,39 @@ export function ProductCard({
 
     // GA 이벤트 (선택 사항)
     try {
-      ;(window as any).gtag?.('event', 'product_detail_click', {
-        event_category: 'engagement',
-        event_label: String(id),
-        product_name: name,
-        store_name: storeName,
-        price,
-        page_path: window.location.pathname,
-      })
+      if (typeof window !== 'undefined' && 'gtag' in window) {
+        const gtag = (window as { gtag?: (...args: unknown[]) => void }).gtag
+        gtag?.('event', 'product_detail_click', {
+          event_category: 'engagement',
+          event_label: String(id),
+          product_name: name,
+          store_name: storeName,
+          price,
+          page_path: window.location.pathname,
+        })
+      }
     } catch (error) {
       console.warn('[Tracking] gtag click error', error)
     }
 
-    // 서버 API → S3 로그 적재
+    // 서버 API → S3 로그 적재 (디버그를 위해 fetch로 고정)
     try {
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/log-product-click', JSON.stringify(payload))
-      } else {
-        fetch('/api/log-product-click', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          keepalive: true,
-        }).catch(() => {})
-      }
+      fetch('/api/log-product-click', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      })
+        .then((res) => {
+          console.log('[Tracking] log-product-click response', res.status)
+        })
+        .catch((err) => {
+          console.warn('[Tracking] log-product-click fetch error', err)
+        })
     } catch (error) {
-      console.warn('[Tracking] click send error', error)
+      console.warn('[Tracking] click send error (outer)', error)
     }
   }
 
