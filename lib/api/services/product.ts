@@ -1,4 +1,4 @@
-import { productApi } from '../client'
+import { productApi, aiApi } from '../client'
 import type {
   Product,
   ProductListParams,
@@ -40,5 +40,19 @@ export const productService = {
   // 상품 삭제
   async deleteProduct(id: string): Promise<void> {
     return productApi.delete<void>(`/api/v1/products/${id}`)
+  },
+
+  // 실시간 랭킹 상품 조회
+  async getRankingProducts(params?: { limit?: number }): Promise<Product[]> {
+    try {
+      const response = await aiApi.get<{ data: Product[] }>('/api/v1/ranking/products/top', {
+        params: { limit: params?.limit || 3 },
+      })
+      return response.data || []
+    } catch (error) {
+      console.error('랭킹 상품 조회 실패:', error)
+      // 에러 발생 시 빈 배열 반환
+      return []
+    }
   },
 }
