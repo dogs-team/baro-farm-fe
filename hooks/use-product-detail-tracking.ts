@@ -16,58 +16,100 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
   const { productId, productName } = options
   const startTimeRef = useRef<number | null>(null)
   const sentRef = useRef(false)
+  const viewStartSentRef = useRef(false)
+  // 최신 productName을 ref로 저장하여 클로저 문제 해결
+  const productNameRef = useRef<string>('')
 
+  // productName이 업데이트되면 ref에 저장
   useEffect(() => {
-    if (!productId) {
+    if (productName) {
+      productNameRef.current = productName
+    }
+  }, [productName])
+
+  // view_start는 productName이 로드된 후에만 전송 (한 번만)
+  useEffect(() => {
+    if (!productId || !productName || viewStartSentRef.current) {
       return
     }
 
+    viewStartSentRef.current = true
     const now = Date.now()
     startTimeRef.current = now
-    sentRef.current = false
 
     const pageViewPayload = {
       type: 'product_detail_view_start',
       productId: String(productId),
-      productName: productName ?? '',
+      productName: productName,
       timestamp: now,
       path: window.location.pathname,
     }
 
     // 1) Google Analytics gtag 이벤트 (선택 사항)
     try {
-      ;(window as any).gtag?.('event', 'product_detail_view_start', {
-        event_category: 'engagement',
-        event_label: String(productId),
-        product_name: productName ?? '',
-        page_path: window.location.pathname,
-      })
+      if (typeof window !== 'undefined' && 'gtag' in window) {
+        const gtag = (window as { gtag?: (...args: unknown[]) => void }).gtag
+        gtag?.('event', 'product_detail_view_start', {
+          event_category: 'engagement',
+          event_label: String(productId),
+          product_name: productName,
+          page_path: window.location.pathname,
+        })
+      }
     } catch (error) {
       console.warn('[Tracking] gtag view_start error', error)
     }
 
     // 2) 커스텀 API로 전송
     try {
-      console.log('[Tracking] product_detail_view_start', pageViewPayload)
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/log-product-view', JSON.stringify(pageViewPayload))
-      } else {
-        fetch('/api/log-product-view', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(pageViewPayload),
-          keepalive: true,
+      console.log('[Tracking] Sending product_detail_view_start to API...', pageViewPayload)
+      fetch('/api/log-product-view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pageViewPayload),
+        keepalive: true,
+      })
+        .then(async (res) => {
+          const text = await res.text()
+          console.log('[Tracking] log-product-view response', {
+            status: res.status,
+            statusText: res.statusText,
+            body: text,
+            ok: res.ok,
+          })
+          if (!res.ok) {
+            console.error('[Tracking] API returned error:', {
+              status: res.status,
+              body: text,
+            })
+          }
         })
-          .then((res) => {
-            console.log('[Tracking] log-product-view response', res.status)
+        .catch((err) => {
+          console.error('[Tracking] log-product-view fetch error', {
+            error: err,
+            message: err?.message,
+            stack: err?.stack,
           })
-          .catch((err) => {
-            console.warn('[Tracking] log-product-view fetch error', err)
-          })
-      }
+        })
     } catch (error) {
-      console.warn('[Tracking] sendBeacon view_start error', error)
+      console.error('[Tracking] view_start error (outer)', {
+        error,
+        message: (error as Error)?.message,
+      })
     }
+  }, [productId, productName])
+
+  // 체류 시간 측정 (페이지 이탈 시)
+  useEffect(() => {
+    if (!productId) {
+      return
+    }
+
+    // 시작 시간이 없으면 설정
+    if (startTimeRef.current === null) {
+      startTimeRef.current = Date.now()
+    }
+    sentRef.current = false
 
     const sendDwellTime = (reason: string) => {
       if (sentRef.current || startTimeRef.current == null) return
@@ -76,10 +118,13 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
       const endTime = Date.now()
       const dwellTimeMs = endTime - startTimeRef.current
 
+      // ref에서 최신 productName 가져오기
+      const currentProductName = productNameRef.current || productName || ''
+
       const dwellPayload = {
         type: 'product_detail_dwell_time',
         productId: String(productId),
-        productName: productName ?? '',
+        productName: currentProductName,
         dwellTimeMs,
         startTime: startTimeRef.current,
         endTime,
@@ -89,13 +134,16 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
 
       // GA 이벤트
       try {
-        ;(window as any).gtag?.('event', 'product_detail_dwell_time', {
-          event_category: 'engagement',
-          event_label: String(productId),
-          product_name: productName ?? '',
-          dwell_time_ms: dwellTimeMs,
-          page_path: window.location.pathname,
-        })
+        if (typeof window !== 'undefined' && 'gtag' in window) {
+          const gtag = (window as { gtag?: (...args: unknown[]) => void }).gtag
+          gtag?.('event', 'product_detail_dwell_time', {
+            event_category: 'engagement',
+            event_label: String(productId),
+            product_name: currentProductName,
+            dwell_time_ms: dwellTimeMs,
+            page_path: window.location.pathname,
+          })
+        }
       } catch (error) {
         console.warn('[Tracking] gtag dwell_time error', error)
       }
