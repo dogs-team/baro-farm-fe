@@ -99,17 +99,17 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
     }
   }, [productId, productName])
 
-  // 체류 시간 측정 (페이지 이탈 시)
+  // 체류 시간 측정 (페이지 이탈 시) - productId만 의존성으로 사용
   useEffect(() => {
     if (!productId) {
       return
     }
 
-    // 시작 시간이 없으면 설정
+    // 시작 시간이 없으면 설정 (한 번만)
     if (startTimeRef.current === null) {
       startTimeRef.current = Date.now()
     }
-    sentRef.current = false
+    // sentRef는 리셋하지 않음 (이미 전송했으면 다시 전송 안 함)
 
     const sendDwellTime = (reason: string) => {
       if (sentRef.current || startTimeRef.current == null) return
@@ -212,8 +212,12 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
       window.removeEventListener('beforeunload', handleBeforeUnload)
       window.removeEventListener('pagehide', handlePageHide)
 
-      // 라우트 변경 등으로 컴포넌트가 언마운트될 때도 체류 시간 전송
-      sendDwellTime('unmount')
+      // 라우트 변경 등으로 컴포넌트가 언마운트될 때만 체류 시간 전송
+      // (productName 업데이트로 인한 cleanup은 제외)
+      if (sentRef.current === false) {
+        sendDwellTime('unmount')
+      }
     }
-  }, [productId, productName])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]) // productName은 의존성에서 제외 (ref로 최신 값 참조)
 }
