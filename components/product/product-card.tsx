@@ -75,8 +75,9 @@ export function ProductCard({
       console.warn('[Tracking] gtag click error', error)
     }
 
-    // 서버 API → S3 로그 적재 (디버그를 위해 fetch로 고정)
+    // 서버 API → S3 로그 적재
     try {
+      console.log('[Tracking] Sending click event to API...', payload)
       fetch('/api/log-product-click', {
         method: 'POST',
         headers: {
@@ -85,14 +86,33 @@ export function ProductCard({
         body: JSON.stringify(payload),
         keepalive: true,
       })
-        .then((res) => {
-          console.log('[Tracking] log-product-click response', res.status)
+        .then(async (res) => {
+          const text = await res.text()
+          console.log('[Tracking] log-product-click response', {
+            status: res.status,
+            statusText: res.statusText,
+            body: text,
+            ok: res.ok,
+          })
+          if (!res.ok) {
+            console.error('[Tracking] API returned error:', {
+              status: res.status,
+              body: text,
+            })
+          }
         })
         .catch((err) => {
-          console.warn('[Tracking] log-product-click fetch error', err)
+          console.error('[Tracking] log-product-click fetch error', {
+            error: err,
+            message: err?.message,
+            stack: err?.stack,
+          })
         })
     } catch (error) {
-      console.warn('[Tracking] click send error (outer)', error)
+      console.error('[Tracking] click send error (outer)', {
+        error,
+        message: (error as Error)?.message,
+      })
     }
   }
 

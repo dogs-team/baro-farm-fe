@@ -3,9 +3,25 @@ import { writeEventLog } from '@/lib/utils/event-logger'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null)
+    console.log('[API] /api/log-product-view called')
+    const body = await req.json().catch((err: unknown) => {
+      console.error('[API] /api/log-product-view JSON parse error', err)
+      return null
+    })
+
+    if (!body) {
+      console.warn('[API] /api/log-product-view: empty body')
+      return NextResponse.json({ ok: false, error: 'Empty body' }, { status: 400 })
+    }
 
     const { productId, productName, timestamp, path } = body || {}
+
+    console.log('[API] /api/log-product-view payload', {
+      productId,
+      productName,
+      timestamp,
+      path,
+    })
 
     await writeEventLog('product_detail_view_start', {
       productId,

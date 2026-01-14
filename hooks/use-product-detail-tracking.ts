@@ -102,27 +102,42 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
 
       // 커스텀 API
       try {
-        console.log('[Tracking] product_detail_dwell_time', dwellPayload)
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon('/api/log-product-dwell', JSON.stringify(dwellPayload))
-        } else {
-          fetch('/api/log-product-dwell', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dwellPayload),
-            keepalive: true,
+        console.log('[Tracking] Sending product_detail_dwell_time to API...', dwellPayload)
+        fetch('/api/log-product-dwell', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(dwellPayload),
+          keepalive: true,
+        })
+          .then(async (res) => {
+            const text = await res.text()
+            console.log('[Tracking] log-product-dwell response', {
+              status: res.status,
+              statusText: res.statusText,
+              body: text,
+              ok: res.ok,
+            })
+            if (!res.ok) {
+              console.error('[Tracking] API returned error:', {
+                status: res.status,
+                body: text,
+              })
+            }
           })
-            .then((res) => {
-              console.log('[Tracking] log-product-dwell response', res.status)
+          .catch((err) => {
+            console.error('[Tracking] log-product-dwell fetch error', {
+              error: err,
+              message: err?.message,
+              stack: err?.stack,
             })
-            .catch((err) => {
-              console.warn('[Tracking] log-product-dwell fetch error', err)
-            })
-        }
+          })
       } catch (error) {
-        console.warn('[Tracking] dwell_time send error', error)
+        console.error('[Tracking] dwell_time send error (outer)', {
+          error,
+          message: (error as Error)?.message,
+        })
       }
     }
 
