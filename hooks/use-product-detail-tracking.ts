@@ -37,66 +37,67 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
     const now = Date.now()
     startTimeRef.current = now
 
-    const pageViewPayload = {
-      type: 'product_detail_view_start',
-      productId: String(productId),
-      productName: productName,
-      timestamp: now,
-      path: window.location.pathname,
-    }
+    // view_start API 호출 주석처리
+    // const pageViewPayload = {
+    //   type: 'product_detail_view_start',
+    //   productId: String(productId),
+    //   productName: productName,
+    //   timestamp: now,
+    //   path: window.location.pathname,
+    // }
 
     // 1) Google Analytics gtag 이벤트 (선택 사항)
-    try {
-      if (typeof window !== 'undefined' && 'gtag' in window) {
-        const gtag = (window as { gtag?: (...args: unknown[]) => void }).gtag
-        gtag?.('event', 'product_detail_view_start', {
-          event_category: 'engagement',
-          event_label: String(productId),
-          product_name: productName,
-          page_path: window.location.pathname,
-        })
-      }
-    } catch (error) {
-      console.warn('[Tracking] gtag view_start error', error)
-    }
+    // try {
+    //   if (typeof window !== 'undefined' && 'gtag' in window) {
+    //     const gtag = (window as { gtag?: (...args: unknown[]) => void }).gtag
+    //     gtag?.('event', 'product_detail_view_start', {
+    //       event_category: 'engagement',
+    //       event_label: String(productId),
+    //       product_name: productName,
+    //       page_path: window.location.pathname,
+    //     })
+    //   }
+    // } catch (error) {
+    //   console.warn('[Tracking] gtag view_start error', error)
+    // }
 
-    // 2) 커스텀 API로 전송
-    try {
-      console.log('[Tracking] Sending product_detail_view_start to API...', pageViewPayload)
-      fetch('/api/log-product-view', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pageViewPayload),
-        keepalive: true,
-      })
-        .then(async (res) => {
-          const text = await res.text()
-          console.log('[Tracking] log-product-view response', {
-            status: res.status,
-            statusText: res.statusText,
-            body: text,
-            ok: res.ok,
-          })
-          if (!res.ok) {
-            console.error('[Tracking] API returned error:', {
-              status: res.status,
-              body: text,
-            })
-          }
-        })
-        .catch((err) => {
-          console.error('[Tracking] log-product-view fetch error', {
-            error: err,
-            message: err?.message,
-            stack: err?.stack,
-          })
-        })
-    } catch (error) {
-      console.error('[Tracking] view_start error (outer)', {
-        error,
-        message: (error as Error)?.message,
-      })
-    }
+    // 2) 커스텀 API로 전송 (주석처리)
+    // try {
+    //   console.log('[Tracking] Sending product_detail_view_start to API...', pageViewPayload)
+    //   fetch('/api/log-product-view', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(pageViewPayload),
+    //     keepalive: true,
+    //   })
+    //     .then(async (res) => {
+    //       const text = await res.text()
+    //       console.log('[Tracking] log-product-view response', {
+    //         status: res.status,
+    //         statusText: res.statusText,
+    //         body: text,
+    //         ok: res.ok,
+    //       })
+    //       if (!res.ok) {
+    //         console.error('[Tracking] API returned error:', {
+    //           status: res.status,
+    //           body: text,
+    //         })
+    //       }
+    //     })
+    //     .catch((err) => {
+    //       console.error('[Tracking] log-product-view fetch error', {
+    //         error: err,
+    //         message: err?.message,
+    //         stack: err?.stack,
+    //       })
+    //     })
+    // } catch (error) {
+    //   console.error('[Tracking] view_start error (outer)', {
+    //     error,
+    //     message: (error as Error)?.message,
+    //   })
+    // }
   }, [productId, productName])
 
   // 체류 시간 측정 (페이지 이탈 시) - productId만 의존성으로 사용

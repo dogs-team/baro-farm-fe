@@ -11,14 +11,15 @@ function ensureLogDir() {
 
 /**
  * S3 마운트 경로(/mnt/s3/logs/events)에 JSON Lines 형식으로 로그 적재
- * 파일 이름: {eventType}-YYYY-MM-DD.log
- * 예: product-click-2026-01-13.log, product-dwell-2026-01-13.log
+ * 파일 이름: {eventType}-YYYY-MM-DD-HH.log (1시간 단위)
+ * 예: product_detail_click-2026-01-13-14.log, product_detail_dwell_time-2026-01-13-14.log
  */
 export async function writeEventLog(eventType: string, data: Record<string, unknown>) {
   const now = new Date()
   const dateStr = now.toISOString().slice(0, 10) // YYYY-MM-DD
-  // 이벤트 타입별로 파일 분리
-  const filePath = path.join(LOG_BASE_DIR, `${eventType}-${dateStr}.log`)
+  const hourStr = String(now.getUTCHours()).padStart(2, '0') // HH (00-23)
+  // 이벤트 타입별로 파일 분리, 1시간 단위로 파일명 변경
+  const filePath = path.join(LOG_BASE_DIR, `${eventType}-${dateStr}-${hourStr}.log`)
 
   try {
     ensureLogDir()
