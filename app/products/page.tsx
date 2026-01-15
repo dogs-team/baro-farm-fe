@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Filter, X, Search } from 'lucide-react'
 import { ProductCard } from '@/components/product/product-card'
+import { ProductRanking } from '@/components/product/product-ranking'
 import { SearchBox } from '@/components/search'
 import { Header } from '@/components/layout/header'
 import {
@@ -15,7 +16,6 @@ import {
 } from '@/components/ui/select'
 import { productService } from '@/lib/api/services/product'
 import { sellerService } from '@/lib/api/services/seller'
-import type { Product } from '@/lib/api/types'
 import {
   Pagination,
   PaginationContent,
@@ -38,13 +38,28 @@ const categoryMap: Record<string, string> = {
   ETC: '기타',
 } as const
 
+interface DisplayProduct {
+  id: string | number
+  name: string
+  storeName: string
+  price: number
+  originalPrice?: number
+  image: string
+  rating: number
+  reviews: number
+  tag?: string
+  category: string
+  rank?: number
+}
+
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [sortBy, setSortBy] = useState('popular')
-  const [products, setProducts] = useState<Product[]>([])
-  const [displayProducts, setDisplayProducts] = useState<any[]>([])
+  const [displayProducts, setDisplayProducts] = useState<DisplayProduct[]>([])
+  const [rankingProducts, setRankingProducts] = useState<(DisplayProduct & { rank: number })[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isRankingLoading, setIsRankingLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
   const [paginationInfo, setPaginationInfo] = useState<{
@@ -59,6 +74,69 @@ export default function ProductsPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // 실시간 랭킹 상품 로드 (주석처리)
+  // useEffect(() => {
+  //   const fetchRankingProducts = async () => {
+  //     if (!mounted) return
+  //     // 필터나 검색이 있으면 랭킹을 표시하지 않음
+  //     if (category !== 'all' || searchQuery.trim() || currentPage !== 0) {
+  //       setRankingProducts([])
+  //       return
+  //     }
+
+  //     setIsRankingLoading(true)
+  //     try {
+  //       const rankingList = await productService.getRankingProducts({ limit: 3 })
+
+  //       // 각 상품의 판매자 정보를 가져와서 displayProducts 형식으로 변환
+  //       const rankingWithSellerInfo = await Promise.all(
+  //         rankingList.map(async (product, index) => {
+  //           const productName = product.productName
+  //           const defaultImage = getProductImage(productName, product.id)
+
+  //           let storeName = '판매자 정보 없음'
+  //           if (product.sellerId) {
+  //             try {
+  //               const sellerInfo = await sellerService.getSellerInfo(product.sellerId)
+  //               storeName = sellerInfo?.storeName || '판매자 정보 없음'
+  //             } catch (error) {
+  //               console.warn('판매자 정보 로드 실패:', error)
+  //             }
+  //           }
+
+  //           return {
+  //             id: product.id,
+  //             name: productName,
+  //             storeName,
+  //             price: product.price,
+  //             originalPrice:
+  //               product.productStatus === 'DISCOUNTED' ? product.price * 1.2 : product.price,
+  //             image: product.imageUrls?.[0] || defaultImage,
+  //             rating: 0, // TODO: 리뷰 API 연결 시 실제 평점 사용
+  //             reviews: 0, // TODO: 리뷰 API 연결 시 실제 리뷰 수 사용
+  //             tag:
+  //               product.productStatus === 'DISCOUNTED'
+  //                 ? '할인'
+  //                 : product.productStatus === 'ON_SALE'
+  //                   ? '판매중'
+  //                   : '베스트',
+  //             category: categoryMap[product.productCategory] || '기타',
+  //             rank: index + 1, // 랭킹 정보 추가
+  //           } as DisplayProduct & { rank: number }
+  //         })
+  //       )
+  //       setRankingProducts(rankingWithSellerInfo as (DisplayProduct & { rank: number })[])
+  //     } catch (error) {
+  //       console.error('랭킹 상품 조회 실패:', error)
+  //       setRankingProducts([])
+  //     } finally {
+  //       setIsRankingLoading(false)
+  //     }
+  //   }
+
+  //   fetchRankingProducts()
+  // }, [mounted, category, searchQuery, currentPage])
 
   // 상품 목록 로드
   useEffect(() => {
@@ -80,7 +158,6 @@ export default function ProductsPage() {
         const response = await productService.getProducts(params)
         // response.content가 배열인지 확인하고, 없으면 빈 배열로 설정
         const productList = Array.isArray(response?.content) ? response.content : []
-        setProducts(productList)
 
         // 각 상품의 판매자 정보를 가져와서 displayProducts 생성
         const productsWithSellerInfo = await Promise.all(
@@ -134,7 +211,7 @@ export default function ProductsPage() {
       } catch (error) {
         console.error('상품 조회 실패:', error)
         // 에러 발생 시 빈 배열로 설정
-        setProducts([])
+        setDisplayProducts([])
         setPaginationInfo(null)
       } finally {
         setIsLoading(false)
@@ -260,6 +337,11 @@ export default function ProductsPage() {
           </div>
         </div>
       </section>
+
+      {/* 실시간 랭킹 섹션 - 필터/검색이 없을 때만 표시 */}
+      {category === 'all' && !searchQuery.trim() && currentPage === 0 && (
+        <ProductRanking products={rankingProducts} isLoading={isRankingLoading} />
+      )}
 
       {/* Products Grid */}
       <section className="py-12">

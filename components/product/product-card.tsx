@@ -5,6 +5,7 @@ import { MapPin, Star } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import { getUserId } from '@/lib/api/client'
 
 interface ProductCardProps {
   id: string | number
@@ -40,13 +41,7 @@ export function ProductCard({
   const handleClick = () => {
     if (typeof window === 'undefined') return
 
-    console.log('[Tracking] card click', {
-      id,
-      name,
-      storeName,
-      price,
-      path: window.location.pathname,
-    })
+    const userId = getUserId()
 
     const payload = {
       type: 'product_detail_click',
@@ -56,6 +51,7 @@ export function ProductCard({
       price,
       timestamp: Date.now(),
       path: window.location.pathname,
+      userId: userId || null,
     }
 
     // GA 이벤트 (선택 사항)

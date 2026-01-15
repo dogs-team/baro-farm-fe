@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 최소한의 검증
-    const { productId, productName, storeName, price, timestamp, path } = body || {}
+    const { productId, productName, storeName, price, timestamp, path, userId } = body || {}
 
     console.log('[API] /api/log-product-click payload', {
       productId,
@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       price,
       timestamp,
       path,
+      userId: userId || null,
       receivedAt: Date.now(),
       userAgent: req.headers.get('user-agent'),
       ip:

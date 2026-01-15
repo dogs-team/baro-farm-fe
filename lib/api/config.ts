@@ -14,16 +14,25 @@ export const SERVICE_PREFIX = {
   SELLER: '/seller-service',
   ORDER: '/order-service',
   SUPPORT: '/support-service',
+  AI: '/ai-service',
+  PAYMENT: '/payment-service',
 } as const
 
 export const API_URLS = {
   // Auth Module
   AUTH: `${GATEWAY_BASE}${SERVICE_PREFIX.AUTH}`,
 
-  // Buyer Module (buyer, cart, product → buyer-service로 라우팅)
-  BUYER: `${GATEWAY_BASE}${SERVICE_PREFIX.BUYER}`,
+  // AI Module
+  AI: `${GATEWAY_BASE}${SERVICE_PREFIX.AI}`,
   CART: `${GATEWAY_BASE}${SERVICE_PREFIX.BUYER}`,
+  SEARCH: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
+  RANKING: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
+  RECOMMENDATION: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
+
+  // Buyer Module (buyer, inventory, product → buyer-service로 라우팅)
+  BUYER: `${GATEWAY_BASE}${SERVICE_PREFIX.BUYER}`,
   PRODUCT: `${GATEWAY_BASE}${SERVICE_PREFIX.BUYER}`,
+  INVENTORY: `${GATEWAY_BASE}${SERVICE_PREFIX.BUYER}`,
 
   // Seller Module (seller, farm → seller-service로 라우팅)
   SELLER: `${GATEWAY_BASE}${SERVICE_PREFIX.SELLER}`,
@@ -32,14 +41,16 @@ export const API_URLS = {
   // Order Module (order, payment → order-service로 라우팅)
   ORDER: `${GATEWAY_BASE}${SERVICE_PREFIX.ORDER}`,
   PAYMENT: `${GATEWAY_BASE}${SERVICE_PREFIX.ORDER}`,
+  // Payment Module (payment → payment-service로 라우팅)
+  // PAYMENT: `${GATEWAY_BASE}${SERVICE_PREFIX.PAYMENT}`,
 
-  // Support Module (settlement, delivery, notification, experience, search, review → support-service로 라우팅)
-  SETTLEMENT: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
+  // Support Module (delivery, notification, experience, search, review, deposit → support-service로 라우팅)
+  // SETTLEMENT: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`, // 모듈 분리로 인한 주석 처리
   DELIVERY: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
   NOTIFICATION: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
   EXPERIENCE: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
-  SEARCH: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
   REVIEW: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
+  DEPOSIT: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
 } as const
 
 export type ServiceName = keyof typeof API_URLS

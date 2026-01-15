@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { getUserId } from '@/lib/api/client'
 
 interface UseProductDetailTrackingOptions {
   productId: string | number | undefined
@@ -121,6 +122,7 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
 
       // ref에서 최신 productName 가져오기
       const currentProductName = productNameRef.current || productName || ''
+      const userId = getUserId()
 
       const dwellPayload = {
         type: 'product_detail_dwell_time',
@@ -131,6 +133,7 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
         endTime,
         reason, // 'visibilitychange' | 'beforeunload' | 'pagehide' | 'unmount'
         path: window.location.pathname,
+        userId: userId || null,
       }
 
       // GA 이벤트

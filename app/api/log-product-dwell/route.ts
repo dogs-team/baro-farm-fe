@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Empty body' }, { status: 400 })
     }
 
-    const { productId, productName, dwellTimeMs, startTime, endTime, reason, path } = body || {}
+    const { productId, productName, dwellTimeMs, startTime, endTime, reason, path, userId } =
+      body || {}
 
     console.log('[API] /api/log-product-dwell payload', {
       productId,
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
       endTime,
       reason,
       path,
+      userId: userId || null,
       receivedAt: Date.now(),
       userAgent: req.headers.get('user-agent'),
       ip:
