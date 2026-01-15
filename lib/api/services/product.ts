@@ -42,17 +42,25 @@ export const productService = {
     return productApi.delete<void>(`/api/v1/products/${id}`)
   },
 
-  // 실시간 랭킹 상품 조회
-  async getRankingProducts(params?: { limit?: number }): Promise<Product[]> {
-    try {
-      const response = await aiApi.get<{ data: Product[] }>('/api/v1/ranking/products/top', {
-        params: { limit: params?.limit || 3 },
-      })
-      return response.data || []
-    } catch (error) {
-      console.error('랭킹 상품 조회 실패:', error)
-      // 에러 발생 시 빈 배열 반환
-      return []
-    }
-  },
+  // 실시간 랭킹 상품 조회 (주석처리)
+  // async getRankingProducts(params?: { limit?: number }): Promise<Product[]> {
+  //   try {
+  //     // AI 서비스 랭킹 API 호출
+  //     // Gateway 기준 경로: /ranking/products/top
+  //     // 응답 형태는 [Product] 또는 { data: Product[] } 둘 다 대응
+  //     const response = await aiApi.get<Product[] | { data: Product[] }>(
+  //       '/ranking/products/top',
+  //       {
+  //         params: { limit: params?.limit || 3 },
+  //       }
+  //     )
+
+  //     const data = Array.isArray(response) ? response : response?.data
+  //     return data ?? []
+  //   } catch (error) {
+  //     console.error('랭킹 상품 조회 실패:', error)
+  //     // 에러 발생 시 빈 배열 반환
+  //     return []
+  //   }
+  // },
 }

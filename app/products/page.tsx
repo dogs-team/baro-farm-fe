@@ -75,68 +75,68 @@ export default function ProductsPage() {
     setMounted(true)
   }, [])
 
-  // 실시간 랭킹 상품 로드 (필터/검색이 없을 때만)
-  useEffect(() => {
-    const fetchRankingProducts = async () => {
-      if (!mounted) return
-      // 필터나 검색이 있으면 랭킹을 표시하지 않음
-      if (category !== 'all' || searchQuery.trim() || currentPage !== 0) {
-        setRankingProducts([])
-        return
-      }
+  // 실시간 랭킹 상품 로드 (주석처리)
+  // useEffect(() => {
+  //   const fetchRankingProducts = async () => {
+  //     if (!mounted) return
+  //     // 필터나 검색이 있으면 랭킹을 표시하지 않음
+  //     if (category !== 'all' || searchQuery.trim() || currentPage !== 0) {
+  //       setRankingProducts([])
+  //       return
+  //     }
 
-      setIsRankingLoading(true)
-      try {
-        const rankingList = await productService.getRankingProducts({ limit: 3 })
+  //     setIsRankingLoading(true)
+  //     try {
+  //       const rankingList = await productService.getRankingProducts({ limit: 3 })
 
-        // 각 상품의 판매자 정보를 가져와서 displayProducts 형식으로 변환
-        const rankingWithSellerInfo = await Promise.all(
-          rankingList.map(async (product, index) => {
-            const productName = product.productName
-            const defaultImage = getProductImage(productName, product.id)
+  //       // 각 상품의 판매자 정보를 가져와서 displayProducts 형식으로 변환
+  //       const rankingWithSellerInfo = await Promise.all(
+  //         rankingList.map(async (product, index) => {
+  //           const productName = product.productName
+  //           const defaultImage = getProductImage(productName, product.id)
 
-            let storeName = '판매자 정보 없음'
-            if (product.sellerId) {
-              try {
-                const sellerInfo = await sellerService.getSellerInfo(product.sellerId)
-                storeName = sellerInfo?.storeName || '판매자 정보 없음'
-              } catch (error) {
-                console.warn('판매자 정보 로드 실패:', error)
-              }
-            }
+  //           let storeName = '판매자 정보 없음'
+  //           if (product.sellerId) {
+  //             try {
+  //               const sellerInfo = await sellerService.getSellerInfo(product.sellerId)
+  //               storeName = sellerInfo?.storeName || '판매자 정보 없음'
+  //             } catch (error) {
+  //               console.warn('판매자 정보 로드 실패:', error)
+  //             }
+  //           }
 
-            return {
-              id: product.id,
-              name: productName,
-              storeName,
-              price: product.price,
-              originalPrice:
-                product.productStatus === 'DISCOUNTED' ? product.price * 1.2 : product.price,
-              image: product.imageUrls?.[0] || defaultImage,
-              rating: 0, // TODO: 리뷰 API 연결 시 실제 평점 사용
-              reviews: 0, // TODO: 리뷰 API 연결 시 실제 리뷰 수 사용
-              tag:
-                product.productStatus === 'DISCOUNTED'
-                  ? '할인'
-                  : product.productStatus === 'ON_SALE'
-                    ? '판매중'
-                    : '베스트',
-              category: categoryMap[product.productCategory] || '기타',
-              rank: index + 1, // 랭킹 정보 추가
-            } as DisplayProduct & { rank: number }
-          })
-        )
-        setRankingProducts(rankingWithSellerInfo as (DisplayProduct & { rank: number })[])
-      } catch (error) {
-        console.error('랭킹 상품 조회 실패:', error)
-        setRankingProducts([])
-      } finally {
-        setIsRankingLoading(false)
-      }
-    }
+  //           return {
+  //             id: product.id,
+  //             name: productName,
+  //             storeName,
+  //             price: product.price,
+  //             originalPrice:
+  //               product.productStatus === 'DISCOUNTED' ? product.price * 1.2 : product.price,
+  //             image: product.imageUrls?.[0] || defaultImage,
+  //             rating: 0, // TODO: 리뷰 API 연결 시 실제 평점 사용
+  //             reviews: 0, // TODO: 리뷰 API 연결 시 실제 리뷰 수 사용
+  //             tag:
+  //               product.productStatus === 'DISCOUNTED'
+  //                 ? '할인'
+  //                 : product.productStatus === 'ON_SALE'
+  //                   ? '판매중'
+  //                   : '베스트',
+  //             category: categoryMap[product.productCategory] || '기타',
+  //             rank: index + 1, // 랭킹 정보 추가
+  //           } as DisplayProduct & { rank: number }
+  //         })
+  //       )
+  //       setRankingProducts(rankingWithSellerInfo as (DisplayProduct & { rank: number })[])
+  //     } catch (error) {
+  //       console.error('랭킹 상품 조회 실패:', error)
+  //       setRankingProducts([])
+  //     } finally {
+  //       setIsRankingLoading(false)
+  //     }
+  //   }
 
-    fetchRankingProducts()
-  }, [mounted, category, searchQuery, currentPage])
+  //   fetchRankingProducts()
+  // }, [mounted, category, searchQuery, currentPage])
 
   // 상품 목록 로드
   useEffect(() => {
