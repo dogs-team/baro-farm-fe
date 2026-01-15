@@ -17,89 +17,15 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
   const { productId, productName } = options
   const startTimeRef = useRef<number | null>(null)
   const sentRef = useRef(false)
-  const viewStartSentRef = useRef(false)
-  // 최신 productName을 ref로 저장하여 클로저 문제 해결
   const productNameRef = useRef<string>('')
+  const isInitialMountRef = useRef(true)
 
-  // productName이 업데이트되면 ref에 저장
+  // productName을 ref로 저장 (의존성 문제 해결)
   useEffect(() => {
     if (productName) {
       productNameRef.current = productName
     }
   }, [productName])
-
-  // view_start는 productName이 로드된 후에만 전송 (한 번만)
-  useEffect(() => {
-    if (!productId || !productName || viewStartSentRef.current) {
-      return
-    }
-
-    viewStartSentRef.current = true
-    const now = Date.now()
-    startTimeRef.current = now
-
-    // view_start API 호출 주석처리
-    // const pageViewPayload = {
-    //   type: 'product_detail_view_start',
-    //   productId: String(productId),
-    //   productName: productName,
-    //   timestamp: now,
-    //   path: window.location.pathname,
-    // }
-
-    // 1) Google Analytics gtag 이벤트 (선택 사항)
-    // try {
-    //   if (typeof window !== 'undefined' && 'gtag' in window) {
-    //     const gtag = (window as { gtag?: (...args: unknown[]) => void }).gtag
-    //     gtag?.('event', 'product_detail_view_start', {
-    //       event_category: 'engagement',
-    //       event_label: String(productId),
-    //       product_name: productName,
-    //       page_path: window.location.pathname,
-    //     })
-    //   }
-    // } catch (error) {
-    //   console.warn('[Tracking] gtag view_start error', error)
-    // }
-
-    // 2) 커스텀 API로 전송 (주석처리)
-    // try {
-    //   console.log('[Tracking] Sending product_detail_view_start to API...', pageViewPayload)
-    //   fetch('/api/log-product-view', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(pageViewPayload),
-    //     keepalive: true,
-    //   })
-    //     .then(async (res) => {
-    //       const text = await res.text()
-    //       console.log('[Tracking] log-product-view response', {
-    //         status: res.status,
-    //         statusText: res.statusText,
-    //         body: text,
-    //         ok: res.ok,
-    //       })
-    //       if (!res.ok) {
-    //         console.error('[Tracking] API returned error:', {
-    //           status: res.status,
-    //           body: text,
-    //         })
-    //       }
-    //     })
-    //     .catch((err) => {
-    //       console.error('[Tracking] log-product-view fetch error', {
-    //         error: err,
-    //         message: err?.message,
-    //         stack: err?.stack,
-    //       })
-    //     })
-    // } catch (error) {
-    //   console.error('[Tracking] view_start error (outer)', {
-    //     error,
-    //     message: (error as Error)?.message,
-    //   })
-    // }
-  }, [productId, productName])
 
   // 체류 시간 측정 (페이지 이탈 시) - productId만 의존성으로 사용
   useEffect(() => {
@@ -107,11 +33,15 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
       return
     }
 
-    // 시작 시간이 없으면 설정 (한 번만)
-    if (startTimeRef.current === null) {
-      startTimeRef.current = Date.now()
+    // 첫 마운트가 아니고, 이미 시작 시간이 설정되어 있으면 cleanup만 실행하지 않음
+    if (!isInitialMountRef.current && startTimeRef.current !== null) {
+      return
     }
-    // sentRef는 리셋하지 않음 (이미 전송했으면 다시 전송 안 함)
+
+    isInitialMountRef.current = false
+    const now = Date.now()
+    startTimeRef.current = now
+    sentRef.current = false
 
     const sendDwellTime = (reason: string) => {
       if (sentRef.current || startTimeRef.current == null) return
@@ -120,9 +50,14 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
       const endTime = Date.now()
       const dwellTimeMs = endTime - startTimeRef.current
 
-      // ref에서 최신 productName 가져오기
-      const currentProductName = productNameRef.current || productName || ''
+      // 최소 체류 시간 체크 (1초 미만이면 전송 안 함 - 진입 직후 이탈 방지)
+      if (dwellTimeMs < 1000 && reason === 'unmount') {
+        console.log('[Tracking] 체류 시간이 너무 짧아서 전송하지 않음:', dwellTimeMs, 'ms')
+        return
+      }
+
       const userId = getUserId()
+      const currentProductName = productNameRef.current || productName || ''
 
       const dwellPayload = {
         type: 'product_detail_dwell_time',
