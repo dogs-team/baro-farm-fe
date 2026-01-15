@@ -5,7 +5,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null)
 
-    const { productId, productName, dwellTimeMs, startTime, endTime, reason, path } = body || {}
+    const { productId, productName, dwellTimeMs, startTime, endTime, reason, path, userId } =
+      body || {}
 
     await writeEventLog('product_detail_dwell_time', {
       productId,
@@ -15,6 +16,7 @@ export async function POST(req: NextRequest) {
       endTime,
       reason,
       path,
+      userId: userId || null,
       receivedAt: Date.now(),
       userAgent: req.headers.get('user-agent'),
       ip:

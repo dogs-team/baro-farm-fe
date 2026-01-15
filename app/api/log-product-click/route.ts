@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null)
 
     // 최소한의 검증
-    const { productId, productName, storeName, price, timestamp, path } = body || {}
+    const { productId, productName, storeName, price, timestamp, path, userId } = body || {}
 
     // S3 마운트 경로에 로그 적재
     await writeEventLog('product_detail_click', {
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       price,
       timestamp,
       path,
+      userId: userId || null,
       receivedAt: Date.now(),
       userAgent: req.headers.get('user-agent'),
       ip:
