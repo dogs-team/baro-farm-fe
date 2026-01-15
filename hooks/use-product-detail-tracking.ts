@@ -17,12 +17,27 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
   const { productId, productName } = options
   const startTimeRef = useRef<number | null>(null)
   const sentRef = useRef(false)
+  const productNameRef = useRef<string>('')
+  const isInitialMountRef = useRef(true)
+
+  // productName을 ref로 저장 (의존성 문제 해결)
+  useEffect(() => {
+    if (productName) {
+      productNameRef.current = productName
+    }
+  }, [productName])
 
   useEffect(() => {
     if (!productId) {
       return
     }
 
+    // 첫 마운트가 아니고, 이미 시작 시간이 설정되어 있으면 cleanup만 실행하지 않음
+    if (!isInitialMountRef.current && startTimeRef.current !== null) {
+      return
+    }
+
+    isInitialMountRef.current = false
     const now = Date.now()
     startTimeRef.current = now
     sentRef.current = false
@@ -63,12 +78,19 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
       const endTime = Date.now()
       const dwellTimeMs = endTime - startTimeRef.current
 
+      // 최소 체류 시간 체크 (1초 미만이면 전송 안 함 - 진입 직후 이탈 방지)
+      if (dwellTimeMs < 1000 && reason === 'unmount') {
+        console.log('[Tracking] 체류 시간이 너무 짧아서 전송하지 않음:', dwellTimeMs, 'ms')
+        return
+      }
+
       const userId = getUserId()
+      const currentProductName = productNameRef.current || productName || ''
 
       const dwellPayload = {
         type: 'product_detail_dwell_time',
         productId: String(productId),
-        productName: productName ?? '',
+        productName: currentProductName,
         dwellTimeMs,
         startTime: startTimeRef.current,
         endTime,
@@ -135,8 +157,12 @@ export function useProductDetailTracking(options: UseProductDetailTrackingOption
       window.removeEventListener('beforeunload', handleBeforeUnload)
       window.removeEventListener('pagehide', handlePageHide)
 
-      // 라우트 변경 등으로 컴포넌트가 언마운트될 때도 체류 시간 전송
-      sendDwellTime('unmount')
+      // 라우트 변경 등으로 컴포넌트가 언마운트될 때만 체류 시간 전송
+      // (productName 업데이트로 인한 cleanup은 제외)
+      if (sentRef.current === false) {
+        sendDwellTime('unmount')
+      }
     }
-  }, [productId, productName])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]) // productName은 의존성에서 제외 (ref로 최신 값 참조)
 }
