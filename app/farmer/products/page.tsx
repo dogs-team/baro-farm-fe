@@ -16,6 +16,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { FarmerNav } from '../components/farmer-nav'
 import { productService } from '@/lib/api/services/product'
@@ -30,6 +40,8 @@ export default function FarmerProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -113,6 +125,37 @@ export default function FarmerProductsPage() {
         return 'destructive'
       default:
         return 'outline'
+    }
+  }
+
+  // 상품 삭제 핸들러
+  const handleDeleteProduct = async () => {
+    if (!deleteProductId) return
+
+    setIsDeleting(true)
+    try {
+      await productService.deleteProduct(deleteProductId)
+
+      // 목록에서 삭제된 상품 제거
+      setProducts((prev) => prev.filter((p) => p.id !== deleteProductId))
+
+      toast({
+        title: '삭제 완료',
+        description: '상품이 성공적으로 삭제되었습니다.',
+      })
+
+      setDeleteProductId(null)
+    } catch (error: unknown) {
+      console.error('상품 삭제 실패:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : '상품 삭제 중 오류가 발생했습니다.'
+      toast({
+        title: '삭제 실패',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -269,13 +312,7 @@ export default function FarmerProductsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          // TODO: 삭제 API 연동
-                          toast({
-                            title: '삭제 기능',
-                            description: '상품 삭제 기능은 곧 추가될 예정입니다.',
-                          })
-                        }}
+                        onClick={() => setDeleteProductId(product.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -287,6 +324,31 @@ export default function FarmerProductsPage() {
           </div>
         )}
       </div>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <AlertDialog
+        open={deleteProductId !== null}
+        onOpenChange={(open) => !open && setDeleteProductId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>상품 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말로 이 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProduct}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? '삭제 중...' : '삭제'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
