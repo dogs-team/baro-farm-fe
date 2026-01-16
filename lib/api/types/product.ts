@@ -17,6 +17,7 @@ export interface Product {
   imageUrls: string[]
   createdAt: string
   updatedAt: string
+  reviewCount?: number // 리뷰 개수 (옵셔널)
 }
 
 export interface ProductCreateRequest {

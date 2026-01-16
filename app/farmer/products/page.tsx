@@ -333,16 +333,14 @@ export default function FarmerProductsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>상품 삭제</AlertDialogTitle>
-            <AlertDialogDescription>
-              정말로 이 상품을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-            </AlertDialogDescription>
+            <AlertDialogDescription>정말로 이 상품을 삭제하시겠습니까?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteProduct}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {isDeleting ? '삭제 중...' : '삭제'}
             </AlertDialogAction>
