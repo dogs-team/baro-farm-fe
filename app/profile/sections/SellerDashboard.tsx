@@ -18,6 +18,9 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { ProfileInfoSection } from './ProfileInfoSection'
+// Off 시간 주문 요약 기능 (SSE + TTS)는 현재 비활성화 상태입니다.
+// 다시 활성화할 때 아래 주석을 해제하세요.
+// import { SellerSummaryButton } from '@/components/seller/seller-summary-button'
 import type { ProfileState, ProfileActions } from '../types'
 
 interface SellerDashboardProps {
@@ -228,6 +231,25 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
           </Card>
         </div>
       </div>
+
+      {/*
+      ===============================
+      Off 시간 주문 요약 (비활성화)
+      - SSE 스트리밍 + TTS 기반 기능
+      - 재활성화하려면 이 블록의 주석을 해제하고
+        상단의 SellerSummaryButton import 주석도 해제하세요.
+
+      <Card className="p-4">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold mb-2">Off 시간 주문 요약</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            어제 Off 시간 동안 발생한 주문에 대한 AI 요약을 확인하세요.
+          </p>
+          {state.user.userId && <SellerSummaryButton sellerId={state.user.userId} />}
+        </div>
+      </Card>
+      ===============================
+      */}
 
       {/* 정산 상세 정보 */}
       <Card className="p-4">

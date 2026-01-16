@@ -5,6 +5,7 @@ import { Leaf, Sprout, Heart, TrendingDown, MapPin, Star } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ChatbotWidget } from '@/components/chatbot'
+import { Header } from '@/components/layout/header'
 
 export default function HomePage() {
   const featuredProducts = [
@@ -94,50 +95,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Sprout className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">바로팜</span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/products"
-              className="text-sm font-medium hover:text-primary transition-colors"
-            >
-              농산물 장터
-            </Link>
-            <Link
-              href="/experiences"
-              className="text-sm font-medium hover:text-primary transition-colors"
-            >
-              농장 체험
-            </Link>
-            <Link
-              href="/farms"
-              className="text-sm font-medium hover:text-primary transition-colors"
-            >
-              농장 찾기
-            </Link>
-            <Link
-              href="/about"
-              className="text-sm font-medium hover:text-primary transition-colors"
-            >
-              소개
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">로그인</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/signup">시작하기</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero Section */}
       <section className="relative py-20 md:py-32 overflow-hidden">

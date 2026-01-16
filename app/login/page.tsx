@@ -33,13 +33,6 @@ export default function LoginPage() {
         password,
       })
 
-      toast({
-        title: '로그인 성공',
-        description: '환영합니다!',
-      })
-
-      router.push('/')
-
       // 더미 사용자 정보를 localStorage에 저장 (농가 등록 페이지에서 사용)
       if (typeof window !== 'undefined') {
         const dummyUser = {
@@ -51,6 +44,11 @@ export default function LoginPage() {
           createdAt: new Date().toISOString(),
         }
         localStorage.setItem('dummyUser', JSON.stringify(dummyUser))
+      }
+
+      // 로그인 상태 변경 이벤트 발생 (헤더 등에서 상태 업데이트)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('authStateChanged'))
       }
 
       toast({
@@ -153,6 +151,8 @@ export default function LoginPage() {
                       createdAt: new Date().toISOString(),
                     }
                     localStorage.setItem('dummyUser', JSON.stringify(dummyUser))
+                    // 로그인 상태 변경 이벤트 발생 (헤더 등에서 상태 업데이트)
+                    window.dispatchEvent(new Event('authStateChanged'))
                   }
 
                   toast({
