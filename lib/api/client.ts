@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { validateUrl } from '../security'
+import { getOrCreateSessionKey } from '../utils/session'
 
 // ==========
 // 환경 변수 및 기본 URL
@@ -275,11 +276,25 @@ class ApiClient {
     // Authorization 헤더
     // [8] cookie 인증이므로 Authorization 헤더 미사용
 
-    // 주문/예치금 등에서 사용하는 X-User-Id 헤더
-    // [9] X-User-Id 헤더는 사용하지 않음
+    // X-User-Id 헤더 (로그인 사용자)
+    if (typeof window !== 'undefined') {
+      const userId = getUserId()
+      if (userId) {
+        headers['X-User-Id'] = userId
+      } else {
+        // 비로그인 사용자: X-Session-Key 헤더 추가
+        const sessionKey = getOrCreateSessionKey()
+        if (sessionKey) {
+          headers['X-Session-Key'] = sessionKey
+        }
+      }
 
-    // 상품 등록 등에서 사용하는 X-User-Role 헤더
-    // [10] X-User-Role 헤더는 사용하지 않음
+      // X-User-Role 헤더 (관리자/판매자 전용 API)
+      const userRole = getUserRole()
+      if (userRole) {
+        headers['X-User-Role'] = userRole
+      }
+    }
 
     return {
       ...headers,

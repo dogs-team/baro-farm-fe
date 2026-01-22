@@ -4,6 +4,7 @@ import type {
   ProductListParams,
   ProductCreateRequest,
   ProductUpdateRequest,
+  ProductDetailInfo,
   PaginatedResponse,
 } from '../types'
 
@@ -20,21 +21,57 @@ export const productService = {
     return response.data
   },
 
-  // 상품 생성
-  async createProduct(data: ProductCreateRequest): Promise<Product> {
-    return productApi.post<Product>('/api/v1/products', data)
+  // 상품 생성 (multipart/form-data)
+  async createProduct(data: ProductCreateRequest, images?: File[]): Promise<ProductDetailInfo> {
+    const formData = new FormData()
+
+    // JSON 데이터를 문자열로 변환하여 추가
+    formData.append('data', JSON.stringify(data))
+
+    // 이미지 파일 추가 (0개 이상)
+    if (images && images.length > 0) {
+      images.forEach((file) => {
+        formData.append('images', file)
+      })
+    }
+
+    const response = await productApi.post<{ data: ProductDetailInfo }>(
+      '/api/v1/products',
+      formData
+    )
+    return response.data
   },
 
   // 상품 상세 조회
-  async getProduct(id: string): Promise<Product> {
-    const response = await productApi.get<{ data: Product }>(`/api/v1/products/${id}`)
+  async getProduct(id: string): Promise<ProductDetailInfo> {
+    const response = await productApi.get<{ data: ProductDetailInfo }>(`/api/v1/products/${id}`)
     // API 응답이 { status, data: { ... }, message } 형태이므로 data 필드 추출
     return response.data
   },
 
-  // 상품 수정
-  async updateProduct(id: string, data: ProductUpdateRequest): Promise<Product> {
-    return productApi.patch<Product>(`/api/v1/products/${id}`, data)
+  // 상품 수정 (multipart/form-data)
+  async updateProduct(
+    id: string,
+    data: ProductUpdateRequest,
+    images?: File[]
+  ): Promise<ProductDetailInfo> {
+    const formData = new FormData()
+
+    // JSON 데이터를 문자열로 변환하여 추가
+    formData.append('data', JSON.stringify(data))
+
+    // imageUpdateMode가 REPLACE일 때만 이미지 파일 추가
+    if (data.imageUpdateMode === 'REPLACE' && images && images.length > 0) {
+      images.forEach((file) => {
+        formData.append('images', file)
+      })
+    }
+
+    const response = await productApi.patch<{ data: ProductDetailInfo }>(
+      `/api/v1/products/${id}`,
+      formData
+    )
+    return response.data
   },
 
   // 상품 삭제
