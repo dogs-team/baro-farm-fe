@@ -1,5 +1,4 @@
 import { useRouter } from 'next/navigation'
-import { setAccessToken } from '@/lib/api/client'
 import { authService } from '@/lib/api/services/auth'
 import { useCartStore } from '@/lib/cart-store'
 import { useToast } from '@/hooks/use-toast'
@@ -21,10 +20,8 @@ export function useLogout() {
       }
 
       // 로컬 스토리지 정리
-      setAccessToken(null)
       if (typeof window !== 'undefined') {
         localStorage.removeItem('dummyUser')
-        localStorage.removeItem('accessToken')
       }
 
       // 장바구니 비우기 (에러가 나도 계속 진행)

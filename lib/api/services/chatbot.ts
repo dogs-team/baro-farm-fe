@@ -43,13 +43,11 @@ export const chatbotService = {
     // TODO: 서버 API 엔드포인트로 변경 필요
     const url = `${process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://3.34.14.73:8080'}/support-service/api/v1/chatbot/chat/stream`
 
-    const token = typeof window !== 'undefined' ? window.localStorage.getItem('accessToken') : null
-
     const response = await fetch(url, {
       method: 'POST',
+      credentials: 'include', // [1] cookie 기반 인증
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(request),
     })

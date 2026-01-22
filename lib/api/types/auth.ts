@@ -65,26 +65,39 @@ export interface LogoutRequest {
   refreshToken?: string
 }
 
+export interface WithdrawRequest {
+  reason?: 'USER_WITHDRAW'
+}
+
 // Response Types
 export interface LoginResult {
   userId: string // UUID
   email: string
-  accessToken: string
-  refreshToken: string
 }
 
 export interface SignUpResult {
   userId: string // UUID
   email: string
-  accessToken: string
-  refreshToken: string
 }
 
 export interface TokenResult {
   userId: string // UUID
   email: string
-  accessToken: string
-  refreshToken: string
+}
+
+export interface OAuthStateResponse {
+  state: string
+}
+
+export interface OAuthCallbackRequest {
+  provider: 'kakao'
+  code: string
+  state: string
+}
+
+export interface OAuthCallbackResult {
+  userId: string // UUID
+  email: string
 }
 
 export interface MeResponse {

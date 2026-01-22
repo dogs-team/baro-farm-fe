@@ -31,6 +31,8 @@ export function ProfileContainer() {
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false)
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
   const [isDepositChargeDialogOpen, setIsDepositChargeDialogOpen] = useState(false)
+  const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false)
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null)
   const [chargeAmount, setChargeAmount] = useState<string>('')
   const [sellerApplication, setSellerApplication] = useState<SellerApplyRequestDto>({
@@ -95,11 +97,12 @@ export function ProfileContainer() {
           setMonthlySettlement(data.payoutAmount || 0)
           console.log(`지난 달 정산 금액 설정: ${data.payoutAmount || 0}`)
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const apiError = error as { status?: number }
         console.error('정산금액 조회 실패:', error)
 
         // 404 에러인 경우 정산 데이터가 없음으로 처리
-        if (error.status === 404) {
+        if (apiError.status === 404) {
           setSettlementData(null)
           setSettlementMonth(null)
           setMonthlySettlement(0)
@@ -127,8 +130,9 @@ export function ProfileContainer() {
         const response = await farmService.getFarms({ page: 0, size: 1 })
         const content = Array.isArray(response?.content) ? response.content : []
         setHasFarm(content.length > 0)
-      } catch (error: any) {
-        if (error?.status === 404) {
+      } catch (error: unknown) {
+        const apiError = error as { status?: number }
+        if (apiError?.status === 404) {
           // 농장이 없는 경우 (정상 케이스)
           setHasFarm(false)
         } else {
@@ -195,6 +199,47 @@ export function ProfileContainer() {
     }
   }
 
+  const handleWithdraw = async () => {
+    setIsWithdrawing(true)
+
+    try {
+      // [1] account withdraw request (cookie-based)
+      await authService.withdraw({ reason: 'USER_WITHDRAW' })
+
+      toast({
+        title: '회원 탈퇴 완료',
+        description: '계정이 정상적으로 탈퇴 처리되었습니다.',
+      })
+
+      setIsWithdrawDialogOpen(false)
+
+      // [2] reuse logout flow to clear local state and redirect
+      await logout({ redirectTo: '/login' })
+    } catch (error: unknown) {
+      const apiError = error as { status?: number; message?: string }
+      if (apiError?.status === 401) {
+        toast({
+          title: '로그인이 필요합니다',
+          description: '로그인이 만료되었습니다. 다시 로그인해주세요.',
+          variant: 'destructive',
+        })
+        await logout({ redirectTo: '/login' })
+        return
+      }
+
+      console.error('회원 탈퇴 실패:', error)
+      const errorMessage =
+        (error as { message?: string })?.message || '요청 처리 중 오류가 발생했습니다.'
+      toast({
+        title: '회원 탈퇴 완료',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsWithdrawing(false)
+    }
+  }
+
   const handleDepositChargeClick = async () => {
     const success = await handleDepositCharge(chargeAmount, fetchDepositBalance)
     if (success) {
@@ -240,9 +285,11 @@ export function ProfileContainer() {
     isSellerDialogOpen,
     isAddressDialogOpen,
     isDepositChargeDialogOpen,
+    isWithdrawDialogOpen,
     editingAddressId,
     chargeAmount,
     isCharging,
+    isWithdrawing,
     sellerApplication,
   }
 
@@ -251,12 +298,14 @@ export function ProfileContainer() {
     setIsSellerDialogOpen,
     setIsAddressDialogOpen,
     setIsDepositChargeDialogOpen,
+    setIsWithdrawDialogOpen,
     setEditingAddressId,
     setChargeAmount,
     setSellerApplication,
     handleSellerApplication,
     handleDepositChargeClick,
     handleLogout,
+    handleWithdraw,
   }
 
   return <ProfileView state={profileState} actions={profileActions} />

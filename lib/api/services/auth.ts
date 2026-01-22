@@ -1,5 +1,5 @@
 // lib/api/services/auth.ts
-import { authApi, setAccessToken, setRefreshToken, setAuthTokens, setUserRole } from '../client'
+import { authApi, setAuthTokens, setUserRole } from '../client'
 import type {
   LoginRequest,
   LoginResult,
@@ -7,14 +7,16 @@ import type {
   SignUpResult,
   FarmerSignupRequest,
   MeResponse,
-  TokenResult,
   SendCodeRequest,
   VerifyCodeRequest,
-  RefreshTokenRequest,
   PasswordResetRequest,
   PasswordResetConfirmRequest,
   PasswordChangeRequest,
   LogoutRequest,
+  WithdrawRequest,
+  OAuthStateResponse,
+  OAuthCallbackRequest,
+  OAuthCallbackResult,
 } from '../types'
 
 // 스웨거 표출 순서 동일
@@ -23,73 +25,77 @@ export const authService = {
   // 일반 로그인
   async login(data: LoginRequest): Promise<LoginResult> {
     const response = await authApi.post<LoginResult>('/api/v1/auth/login', data)
-    // accessToken, refreshToken, userId 모두 localStorage에 저장
-    setAuthTokens({
-      accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
-      userId: response.userId,
-    })
+    // [1] HttpOnly cookie 기반이므로 userId만 로컬 캐시
+    setAuthTokens({ userId: response.userId })
     return response
   },
 
   // 농가 로그인
   async farmerLogin(data: LoginRequest): Promise<LoginResult> {
     const response = await authApi.post<LoginResult>('/api/v1/auth/login', data)
-    // accessToken, refreshToken, userId 모두 localStorage에 저장
-    setAuthTokens({
-      accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
-      userId: response.userId,
-    })
+    // [2] farmer login도 cookie 기반
+    setAuthTokens({ userId: response.userId })
     return response
   },
 
   // 일반 회원가입
   async signup(data: SignupRequest): Promise<SignUpResult> {
     const response = await authApi.post<SignUpResult>('/api/v1/auth/signup', data)
-    // accessToken, refreshToken, userId 모두 localStorage에 저장
-    setAuthTokens({
-      accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
-      userId: response.userId,
-    })
+    // [3] 회원가입 직후 userId만 캐시
+    setAuthTokens({ userId: response.userId })
     return response
   },
 
   // 농가 회원가입
   async farmerSignup(data: FarmerSignupRequest): Promise<SignUpResult> {
     const response = await authApi.post<SignUpResult>('/api/v1/auth/signup', data)
-    // accessToken, refreshToken, userId 모두 localStorage에 저장
-    setAuthTokens({
-      accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
-      userId: response.userId,
+    // [4] farmer signup도 cookie 기반
+    setAuthTokens({ userId: response.userId })
+    return response
+  },
+
+  // OAuth state 발급
+  // OAuth state
+  // OAuth state
+  async requestOauthState(): Promise<OAuthStateResponse> {
+    // [5] credentials: 'include' is applied by ApiClient
+    return authApi.post<OAuthStateResponse>('/api/v1/auth/oauth/state')
+  },
+
+  // OAuth callback
+  async oauthCallback(data: OAuthCallbackRequest): Promise<OAuthCallbackResult> {
+    // [6] backend callback expects query params (GET)
+    const response = await authApi.get<OAuthCallbackResult>('/api/v1/auth/oauth/callback', {
+      params: {
+        provider: data.provider,
+        code: data.code,
+        state: data.state,
+      },
     })
+    // [7] cookie is set by backend; cache only userId
+    setAuthTokens({ userId: response.userId })
     return response
   },
 
-  // 토큰 갱신
-  async refreshToken(refreshToken: string): Promise<TokenResult> {
-    const response = await authApi.post<TokenResult>('/api/v1/auth/refresh', {
-      refreshToken,
-    } as RefreshTokenRequest)
-    // 토큰 갱신 시 accessToken만 업데이트 (refreshToken과 userId는 유지)
-    setAccessToken(response.accessToken)
-    // refreshToken도 업데이트되는 경우를 대비
-    if (response.refreshToken) {
-      setRefreshToken(response.refreshToken)
-    }
-    return response
+  // Withdraw account
+  async withdraw(data?: WithdrawRequest): Promise<void> {
+    // [8] cookie-based auth; server expires cookies
+    await authApi.post('/api/v1/auth/me/withdraw', data || {})
   },
 
-  // 로그아웃
+  // Refresh token
+  async refreshToken(): Promise<void> {
+    // [9] cookie-based refresh (empty body)
+    await authApi.post('/api/v1/auth/refresh')
+  },
+
+  // Logout
   async logout(data?: LogoutRequest): Promise<void> {
     await authApi.post('/api/v1/auth/logout', data || {})
-    // 모든 토큰과 사용자 정보 삭제
+    // [10] cookie is cleared by backend; remove local cache only
     setAuthTokens(null)
   },
 
-  // 현재 사용자 정보 조회
   async getCurrentUser(): Promise<MeResponse> {
     const response = await authApi.get<{ data: MeResponse } | MeResponse>('/api/v1/auth/me')
     // API 응답이 { status, data: { ... }, message } 형태이면 data 필드 추출

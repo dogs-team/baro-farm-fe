@@ -7,9 +7,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 // TODO: 알림 기능 추가 예정
 // import { NotificationIcon } from '@/components/notification'
-import { getAccessToken } from '@/lib/api/client'
+import { authService } from '@/lib/api/services/auth'
+import { getUserRole } from '@/lib/api/client'
 import { useCartStore } from '@/lib/cart-store'
-import { useToast } from '@/hooks/use-toast'
 import { useLogout } from '@/hooks/useLogout'
 import { SearchBox } from '@/components/search/search-box'
 
@@ -21,7 +21,7 @@ export function Header({ showCart = false }: HeaderProps) {
   const router = useRouter()
   const { logout } = useLogout()
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
-  const [mounted, setMounted] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const cartItemsCount = useCartStore((state) => state.items.length)
 
   const handleSearch = (query: string) => {
@@ -29,13 +29,26 @@ export function Header({ showCart = false }: HeaderProps) {
   }
 
   useEffect(() => {
-    setMounted(true)
-
     // 로그인 상태 확인
     const checkAuth = () => {
-      const token = getAccessToken()
-      const dummyUser = localStorage.getItem('dummyUser')
-      setIsLoggedIn(!!(token || dummyUser))
+      void (async () => {
+        const dummyUser = localStorage.getItem('dummyUser')
+        if (dummyUser) {
+          setIsLoggedIn(true)
+          setUserRole(getUserRole())
+          return
+        }
+
+        try {
+          // [1] cookie 기반 인증 확인 (auth/me)
+          const currentUser = await authService.getCurrentUser()
+          setIsLoggedIn(true)
+          setUserRole(currentUser.role || getUserRole())
+        } catch {
+          setIsLoggedIn(false)
+          setUserRole(null)
+        }
+      })()
     }
 
     checkAuth()
@@ -54,6 +67,7 @@ export function Header({ showCart = false }: HeaderProps) {
   const handleLogout = async () => {
     await logout({ redirectTo: '/' })
     setIsLoggedIn(false)
+    setUserRole(null)
   }
 
   return (
@@ -91,6 +105,15 @@ export function Header({ showCart = false }: HeaderProps) {
             농장 찾기
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
           </Link> */}
+          {userRole === 'ADMIN' && (
+            <Link
+              href="/admin/users"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
+            >
+              {'\uAD00\uB9AC\uC790'}
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
+            </Link>
+          )}
         </nav>
 
         <div className="flex-1 max-w-md mx-6 hidden md:block">

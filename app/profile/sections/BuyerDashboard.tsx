@@ -104,7 +104,13 @@ export function BuyerDashboard({ state, actions }: BuyerDashboardProps) {
       {/* Main Layout: Profile + Stats */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Profile Header - Left Side */}
-        <ProfileInfoSection user={state.user} />
+        <ProfileInfoSection
+          user={state.user}
+          isWithdrawDialogOpen={state.isWithdrawDialogOpen}
+          onWithdrawDialogOpenChange={actions.setIsWithdrawDialogOpen}
+          isWithdrawing={state.isWithdrawing}
+          onWithdraw={actions.handleWithdraw}
+        />
 
         {/* Middle Column: 주문 내역, 작성한 리뷰 */}
         <div className="space-y-4">

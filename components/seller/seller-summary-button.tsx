@@ -7,10 +7,9 @@ import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { FileText, X, Loader2, Volume2, VolumeX } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { getAccessToken } from '@/lib/api/client'
 
 interface SummaryData {
-  statistics?: any
+  statistics?: Record<string, unknown>
   summary?: string
   insights?: string
   recommendations?: string
@@ -118,7 +117,6 @@ export function SellerSummaryButton({ sellerId }: SellerSummaryButtonProps) {
       // 게이트웨이 URL 구성
       const gatewayUrl =
         process.env.NEXT_PUBLIC_API_GATEWAY_URL?.replace(/\/$/, '') || 'http://3.34.14.73:8080'
-      const token = getAccessToken()
 
       // 어제 날짜 계산 (YYYY-MM-DD 형식)
       const yesterday = new Date()
@@ -131,8 +129,8 @@ export function SellerSummaryButton({ sellerId }: SellerSummaryButtonProps) {
       const url = `${gatewayUrl}/api/v1/seller-summary/${sellerId}/stream?date=${dateStr}`
 
       const response = await fetch(url, {
+        credentials: 'include', // [1] cookie 기반 인증
         headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           Accept: 'text/event-stream',
         },
       })
@@ -254,13 +252,14 @@ export function SellerSummaryButton({ sellerId }: SellerSummaryButtonProps) {
       }
 
       readStream()
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : '연결 실패'
       console.error('SSE 연결 오류:', err)
-      setError(err.message || '연결 실패')
+      setError(errorMessage)
       setLoading(false)
       toast({
         title: '오류 발생',
-        description: err.message || '요약 요청 중 오류가 발생했습니다.',
+        description: errorMessage || '요약 요청 중 오류가 발생했습니다.',
         variant: 'destructive',
       })
     }

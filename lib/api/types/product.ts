@@ -23,7 +23,7 @@ export interface Product {
 export interface ProductCreateRequest {
   productName: string
   description?: string
-  productCategory: ProductCategory
+  categoryId: string
   price: number
   stockQuantity: number
   productStatus?: ProductStatus

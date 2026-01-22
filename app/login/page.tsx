@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { authService } from '@/lib/api/services/auth'
 import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
-import { setAccessToken } from '@/lib/api/client'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -21,6 +20,39 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isOauthLoading, setIsOauthLoading] = useState(false)
+
+  const handleKakaoLogin = async () => {
+    setIsOauthLoading(true)
+
+    try {
+      const clientId = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID
+      if (!clientId) {
+        throw new Error('Kakao client id is missing')
+      }
+
+      // [1] state 발급 -> 카카오 authorize로 리다이렉트
+      const { state } = await authService.requestOauthState()
+      const redirectUri = `${window.location.origin}/oauth/kakao/callback`
+      const authorizeUrl = new URL('https://kauth.kakao.com/oauth/authorize')
+
+      authorizeUrl.searchParams.set('client_id', clientId)
+      authorizeUrl.searchParams.set('redirect_uri', redirectUri)
+      authorizeUrl.searchParams.set('response_type', 'code')
+      authorizeUrl.searchParams.set('state', state)
+
+      window.location.href = authorizeUrl.toString()
+    } catch (error: unknown) {
+      console.error('Kakao login error:', error)
+      toast({
+        title: getErrorTitle(error),
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsOauthLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,7 +60,7 @@ export default function LoginPage() {
 
     try {
       // 실제 API 호출
-      const response = await authService.login({
+      await authService.login({
         email,
         password,
       })
@@ -57,11 +89,16 @@ export default function LoginPage() {
       })
 
       router.push('/')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error)
 
       // 401 에러는 특별 처리
-      if (error?.status === 401) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'status' in error &&
+        (error as { status: number }).status === 401
+      ) {
         toast({
           title: '로그인 실패',
           description: '이메일 또는 비밀번호가 올바르지 않습니다.',
@@ -138,9 +175,6 @@ export default function LoginPage() {
                   setEmail('user@example.com')
                   setPassword('password')
                   // 자동으로 로그인 처리
-                  const dummyToken = 'dummy-access-token-' + Date.now()
-                  setAccessToken(dummyToken)
-
                   if (typeof window !== 'undefined') {
                     const dummyUser = {
                       id: 1,
@@ -179,6 +213,18 @@ export default function LoginPage() {
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">또는</span>
               </div>
+            </div>
+
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleKakaoLogin}
+                disabled={isOauthLoading}
+              >
+                {isOauthLoading ? '카카오 로그인 중...' : '카카오로 로그인'}
+              </Button>
             </div>
 
             <div className="mt-6 text-center text-sm">

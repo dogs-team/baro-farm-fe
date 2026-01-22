@@ -1,4 +1,5 @@
 // lib/api/client.ts
+/* eslint-disable no-irregular-whitespace */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -49,44 +50,34 @@ export const API_URLS = {
 // 토큰/유저 관리 (localStorage)
 // ==========
 
-const ACCESS_TOKEN_KEY = 'accessToken'
-const REFRESH_TOKEN_KEY = 'refreshToken'
 const USER_ID_KEY = 'userId'
 const USER_ROLE_KEY = 'userRole'
 
 export type StoredTokens = {
-  accessToken: string
-  refreshToken?: string
   userId?: string
   userRole?: string
 }
 
-export const setAccessToken = (token: string | null) => {
-  if (typeof window === 'undefined') return
-  if (!token) {
-    window.localStorage.removeItem(ACCESS_TOKEN_KEY)
-    return
-  }
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, token)
+export const setAccessToken = (_token: string | null) => {
+  // [1] HttpOnly cookie 기반 인증이라 localStorage에 토큰을 저장하지 않습니다.
+  void _token
+  // [1] HttpOnly cookie로만 토큰을 사용하므로 localStorage에 저장하지 않음
 }
 
 export const getAccessToken = (): string | null => {
-  if (typeof window === 'undefined') return null
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY)
+  // [2] HttpOnly cookie는 JS에서 읽을 수 없으므로 항상 null
+  return null
 }
 
-export const setRefreshToken = (token: string | null) => {
-  if (typeof window === 'undefined') return
-  if (!token) {
-    window.localStorage.removeItem(REFRESH_TOKEN_KEY)
-    return
-  }
-  window.localStorage.setItem(REFRESH_TOKEN_KEY, token)
+export const setRefreshToken = (_token: string | null) => {
+  // [3] refresh token도 HttpOnly cookie로만 관리합니다.
+  void _token
+  // [3] refresh token 역시 HttpOnly cookie로만 사용
 }
 
 export const getRefreshToken = (): string | null => {
-  if (typeof window === 'undefined') return null
-  return window.localStorage.getItem(REFRESH_TOKEN_KEY)
+  // [4] HttpOnly cookie는 JS에서 읽을 수 없으므로 항상 null
+  return null
 }
 
 export const setUserId = (userId: string | null) => {
@@ -135,19 +126,19 @@ export const getUserRole = (): string | null => {
 
 export const setAuthTokens = (tokens: StoredTokens | null) => {
   if (!tokens) {
-    setAccessToken(null)
-    setRefreshToken(null)
+    // [5] 쿠키 기반 인증이라 토큰은 서버에서 관리하고, 로컬 캐시는 정리합니다.
+
+    // [5] ?? í°??cookie?¸ë¡??¨ì§€?ë¯€ë¡? ?? í° ?¬ì£¼ ?•ë¦¬??ìƒëžµ
     setUserId(null)
     setUserRole(null)
     return
   }
 
-  setAccessToken(tokens.accessToken)
-  if (tokens.refreshToken) {
-    setRefreshToken(tokens.refreshToken)
-  }
   if (tokens.userId) {
     setUserId(tokens.userId)
+  }
+  if (tokens.userRole) {
+    setUserRole(tokens.userRole)
   }
 }
 
@@ -167,8 +158,8 @@ export interface ApiError extends Error {
 // ==========
 
 const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
-  const refreshToken = getRefreshToken()
-  if (!refreshToken) {
+  const _refreshToken = getRefreshToken()
+  if (_refreshToken !== null && !_refreshToken) {
     console.log('[ApiClient] refreshToken이 없습니다.')
     return false
   }
@@ -179,10 +170,7 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refreshToken }),
+      credentials: 'include', // [6] refresh_token은 HttpOnly cookie로 전송
     })
 
     if (!response.ok) {
@@ -191,6 +179,10 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
       return false
     }
 
+    // [7] cookie 기반 refresh는 응답 body 없이도 성공 처리
+    return true
+
+    /* [12] cookie 기반 refresh는 응답 body를 사용하지 않음
     const responseData = (await response.json()) as
       | {
           userId: string
@@ -233,6 +225,7 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
 
     console.log('[ApiClient] accessToken 재발급 성공 및 저장 완료.')
     return true
+  */
   } catch (error) {
     console.error('[ApiClient] refresh token failed:', error)
     setAuthTokens(null)
@@ -280,22 +273,13 @@ class ApiClient {
     }
 
     // Authorization 헤더
-    const token = getAccessToken()
-    if (token) {
-      headers.Authorization = `Bearer ${token}`
-    }
+    // [8] cookie 인증이므로 Authorization 헤더 미사용
 
     // 주문/예치금 등에서 사용하는 X-User-Id 헤더
-    const userId = getUserId()
-    if (userId) {
-      headers['X-User-Id'] = userId
-    }
+    // [9] X-User-Id 헤더는 사용하지 않음
 
     // 상품 등록 등에서 사용하는 X-User-Role 헤더
-    const userRole = getUserRole()
-    if (userRole) {
-      headers['X-User-Role'] = userRole
-    }
+    // [10] X-User-Role 헤더는 사용하지 않음
 
     return {
       ...headers,
@@ -371,6 +355,7 @@ class ApiClient {
     const doFetch = async () => {
       const response = await fetch(url, {
         ...fetchOptions,
+        credentials: fetchOptions.credentials ?? 'include', // [11] 모든 인증 요청은 cookie 포함
         headers: this.buildHeaders(fetchOptions),
       })
 

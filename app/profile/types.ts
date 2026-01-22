@@ -36,6 +36,7 @@ export interface ProfileActions {
   handleSellerApplication: () => Promise<void>
   handleDepositChargeClick: () => Promise<void>
   handleLogout: () => Promise<void>
+  handleWithdraw: () => Promise<void>
 }
 
 export interface ProfileState {
@@ -73,8 +74,10 @@ export interface ProfileState {
   isSellerDialogOpen: boolean
   isAddressDialogOpen: boolean
   isDepositChargeDialogOpen: boolean
+  isWithdrawDialogOpen: boolean
   editingAddressId: number | null
   chargeAmount: string
   isCharging: boolean
+  isWithdrawing: boolean
   sellerApplication: SellerApplyRequestDto
 }

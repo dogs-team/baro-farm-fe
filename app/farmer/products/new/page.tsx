@@ -29,22 +29,14 @@ import { Settings, LogOut } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { FarmerNav } from '../../components/farmer-nav'
 import { productService } from '@/lib/api/services/product'
+import { categoryService } from '@/lib/api/services/category'
 import { authService } from '@/lib/api/services/auth'
 import { getUserRole } from '@/lib/api/client'
 import { useToast } from '@/hooks/use-toast'
 import { uploadService } from '@/lib/api/services/upload'
-import type { ProductCategory, ProductStatus } from '@/lib/api/types'
+import type { ProductStatus } from '@/lib/api/types'
+import type { CategoryListItem } from '@/lib/api/types/category'
 import { ImageIcon, X } from 'lucide-react'
-
-const CATEGORY_OPTIONS: { value: ProductCategory; label: string }[] = [
-  { value: 'FRUIT', label: '과일' },
-  { value: 'VEGETABLE', label: '채소' },
-  { value: 'GRAIN', label: '곡물' },
-  { value: 'NUT', label: '견과' },
-  { value: 'ROOT', label: '뿌리' },
-  { value: 'MUSHROOM', label: '버섯' },
-  { value: 'ETC', label: '기타' },
-]
 
 const STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
   { value: 'ON_SALE', label: '판매중' },
@@ -52,6 +44,8 @@ const STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
   { value: 'SOLD_OUT', label: '품절' },
   { value: 'HIDDEN', label: '숨김' },
 ]
+
+const PRODUCT_CATEGORY_PARENT_ID = '1f428190-f4ff-11f0-a138-82c74923ca5d'
 
 export default function NewProductPage() {
   const router = useRouter()
@@ -61,12 +55,14 @@ export default function NewProductPage() {
   const [formData, setFormData] = useState({
     productName: '',
     description: '',
-    productCategory: '' as ProductCategory | '',
+    categoryId: '',
     price: '',
     stockQuantity: '',
     productStatus: 'ON_SALE' as ProductStatus,
   })
   const [images, setImages] = useState<File[]>([])
+  const [categories, setCategories] = useState<CategoryListItem[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false)
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [isUploadingImages, setIsUploadingImages] = useState(false)
 
@@ -74,6 +70,29 @@ export default function NewProductPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    const fetchCategories = async () => {
+      setIsLoadingCategories(true)
+      try {
+        const data = await categoryService.getCategories(PRODUCT_CATEGORY_PARENT_ID)
+        setCategories(data)
+      } catch (error) {
+        console.error('\uCE74\uD14C\uACE0\uB9AC \uC870\uD68C \uC2E4\uD328:', error)
+        toast({
+          title: '카테고리 조회 실패',
+          description: '카테고리 목록을 불러오지 못했습니다.',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsLoadingCategories(false)
+      }
+    }
+
+    fetchCategories()
+  }, [mounted, toast])
 
   // userRole이 없으면 auth/me를 호출해서 가져오기
   useEffect(() => {
@@ -109,7 +128,7 @@ export default function NewProductPage() {
       return
     }
 
-    if (!formData.productCategory) {
+    if (!formData.categoryId.trim()) {
       toast({
         title: '입력 오류',
         description: '카테고리를 선택해주세요.',
@@ -166,7 +185,7 @@ export default function NewProductPage() {
       await productService.createProduct({
         productName: formData.productName.trim(),
         description: formData.description.trim() || undefined,
-        productCategory: formData.productCategory,
+        categoryId: formData.categoryId.trim(),
         price,
         stockQuantity,
         productStatus: formData.productStatus,
@@ -285,27 +304,37 @@ export default function NewProductPage() {
               />
             </div>
 
-            {/* 카테고리 */}
+            {/* Category */}
             <div className="space-y-2">
-              <Label htmlFor="category">
-                카테고리 <span className="text-destructive">*</span>
+              <Label htmlFor="categoryId">
+                {'\uCE74\uD14C\uACE0\uB9AC'} <span className="text-destructive">*</span>
               </Label>
               <Select
-                value={formData.productCategory}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, productCategory: value as ProductCategory })
-                }
+                value={formData.categoryId}
+                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
                 required
               >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="카테고리를 선택하세요" />
+                <SelectTrigger id="categoryId">
+                  <SelectValue
+                    placeholder={'\uCE74\uD14C\uACE0\uB9AC\uB97C \uC120\uD0DD\uD558\uC138\uC694'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  {isLoadingCategories ? (
+                    <SelectItem value="loading" disabled>
+                      {'\uB85C\uB529 \uC911...'}
                     </SelectItem>
-                  ))}
+                  ) : categories.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      {'\uCE74\uD14C\uACE0\uB9AC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4'}
+                    </SelectItem>
+                  ) : (
+                    categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name || category.code || category.id}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
