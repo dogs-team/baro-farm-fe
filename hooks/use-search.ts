@@ -3,6 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { debounce } from '@/lib/utils/search'
 import { searchService } from '@/lib/api/services/search'
+import type {
+  UnifiedAutoCompleteResponse,
+  ProductAutoItem,
+  ExperienceAutoItem,
+} from '@/lib/api/types'
 
 export interface UseSearchOptions {
   /** 검색어 최소 길이 */
@@ -13,11 +18,14 @@ export interface UseSearchOptions {
   enableSuggestions?: boolean
   /** 인기 검색어 활성화 여부 */
   enablePopularKeywords?: boolean
+  /** 자동완성 타입: 'unified' | 'product' | 'experience' */
+  autocompleteType?: 'unified' | 'product' | 'experience'
 }
 
 export interface SearchSuggestion {
   keyword: string
-  type?: 'product' | 'experience' | 'farm' | 'keyword'
+  type?: 'product' | 'experience' | 'keyword'
+  id?: string
   count?: number
 }
 
@@ -27,10 +35,11 @@ export function useSearch(options: UseSearchOptions = {}) {
     debounceDelay = 300,
     enableSuggestions = true,
     enablePopularKeywords = true,
+    autocompleteType = 'unified',
   } = options
 
   const [query, setQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([])
   const [popularKeywords, setPopularKeywords] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -48,7 +57,7 @@ export function useSearch(options: UseSearchOptions = {}) {
   // 검색어 자동완성
   const fetchSuggestions = useCallback(
     async (searchQuery: string) => {
-      if (!enableSuggestions || searchQuery.length < 2) {
+      if (!enableSuggestions || searchQuery.length < minLength) {
         setSuggestions([])
         return
       }
@@ -63,14 +72,41 @@ export function useSearch(options: UseSearchOptions = {}) {
       setError(null)
 
       try {
-        // 통합 자동완성 API 사용
-        const response = await searchService.getAutocomplete(searchQuery)
-        // 통합 자동완성 결과를 문자열 배열로 변환
-        const allSuggestions: string[] = [
-          ...response.products.map((p) => p.productName),
-          ...response.farms.map((f) => f.farmName),
-          ...response.experiences.map((e) => e.title),
-        ]
+        let allSuggestions: SearchSuggestion[] = []
+
+        if (autocompleteType === 'unified') {
+          // 통합 자동완성 API 사용
+          const response = await searchService.unifiedAutocomplete({ q: searchQuery })
+          allSuggestions = [
+            ...response.products.map((p) => ({
+              keyword: p.productName,
+              type: 'product' as const,
+              id: p.productId,
+            })),
+            ...response.experiences.map((e) => ({
+              keyword: e.experienceName,
+              type: 'experience' as const,
+              id: e.experienceId,
+            })),
+          ]
+        } else if (autocompleteType === 'product') {
+          // 상품 자동완성 API 사용
+          const response = await searchService.productAutocomplete({ query: searchQuery })
+          allSuggestions = response.map((p) => ({
+            keyword: p.productName,
+            type: 'product' as const,
+            id: p.productId,
+          }))
+        } else if (autocompleteType === 'experience') {
+          // 체험 자동완성 API 사용
+          const response = await searchService.experienceAutocomplete({ query: searchQuery })
+          allSuggestions = response.map((e) => ({
+            keyword: e.experienceName,
+            type: 'experience' as const,
+            id: e.experienceId,
+          }))
+        }
+
         setSuggestions(allSuggestions)
       } catch (err) {
         if (err instanceof Error && err.name !== 'AbortError') {
@@ -82,7 +118,7 @@ export function useSearch(options: UseSearchOptions = {}) {
         setIsLoading(false)
       }
     },
-    [enableSuggestions]
+    [enableSuggestions, minLength, autocompleteType]
   )
 
   // 디바운스된 자동완성 함수
@@ -112,8 +148,12 @@ export function useSearch(options: UseSearchOptions = {}) {
   }, [])
 
   // 검색어 선택 (자동완성에서)
-  const selectSuggestion = useCallback((suggestion: string) => {
-    setQuery(suggestion)
+  const selectSuggestion = useCallback((suggestion: SearchSuggestion | string) => {
+    if (typeof suggestion === 'string') {
+      setQuery(suggestion)
+    } else {
+      setQuery(suggestion.keyword)
+    }
     setSuggestions([])
   }, [])
 

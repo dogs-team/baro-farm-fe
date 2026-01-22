@@ -258,7 +258,16 @@ class ApiClient {
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value === undefined || value === null) return
-        url.searchParams.append(key, String(value))
+        // 배열인 경우 각 요소를 별도의 쿼리 파라미터로 추가
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (item !== undefined && item !== null) {
+              url.searchParams.append(key, String(item))
+            }
+          })
+        } else {
+          url.searchParams.append(key, String(value))
+        }
       })
     }
     return url.toString()
@@ -493,8 +502,10 @@ export const orderApi = new ApiClient(API_URLS.ORDER)
 export const paymentApi = orderApi // 결제/예치금은 Order 서비스 사용
 export const aiApi = new ApiClient(API_URLS.AI)
 
-// Support 서비스 (검색, 리뷰, 체험, 정산, 배송 등)
+// Support 서비스 (리뷰, 체험, 정산, 배송 등)
 export const supportApi = new ApiClient(API_URLS.SUPPORT)
+// 검색 API는 AI 서비스를 사용합니다 (STEP_01_SEARCH_MODULE.md 참고)
+// searchApi는 하위 호환성을 위해 유지하지만, searchService는 aiApi를 직접 사용합니다
 export const searchApi = supportApi
 export const reviewApi = supportApi
 export const experienceApi = supportApi
