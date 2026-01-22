@@ -13,6 +13,8 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { authService } from '@/lib/api/services/auth'
 import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
+import { setAccessToken, getSessionKey, setSessionKey } from '@/lib/api/client'
+import { cartService } from '@/lib/api/services/cart'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -20,39 +22,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [isOauthLoading, setIsOauthLoading] = useState(false)
-
-  const handleKakaoLogin = async () => {
-    setIsOauthLoading(true)
-
-    try {
-      const clientId = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID
-      if (!clientId) {
-        throw new Error('Kakao client id is missing')
-      }
-
-      // [1] state 발급 -> 카카오 authorize로 리다이렉트
-      const { state } = await authService.requestOauthState()
-      const redirectUri = `${window.location.origin}/oauth/kakao/callback`
-      const authorizeUrl = new URL('https://kauth.kakao.com/oauth/authorize')
-
-      authorizeUrl.searchParams.set('client_id', clientId)
-      authorizeUrl.searchParams.set('redirect_uri', redirectUri)
-      authorizeUrl.searchParams.set('response_type', 'code')
-      authorizeUrl.searchParams.set('state', state)
-
-      window.location.href = authorizeUrl.toString()
-    } catch (error: unknown) {
-      console.error('Kakao login error:', error)
-      toast({
-        title: getErrorTitle(error),
-        description: getErrorMessage(error),
-        variant: 'destructive',
-      })
-    } finally {
-      setIsOauthLoading(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,10 +29,31 @@ export default function LoginPage() {
 
     try {
       // 실제 API 호출
-      await authService.login({
+      const response = await authService.login({
         email,
         password,
       })
+
+      toast({
+        title: '로그인 성공',
+        description: '환영합니다!',
+      })
+
+      // 0. 장바구니 병합 (비로그인 장바구니 -> 로그인 장바구니)
+      const guestSessionKey = getSessionKey()
+      if (guestSessionKey) {
+        try {
+          await cartService.mergeCart()
+          // 병합 성공 후 세션 키 삭제 (더 이상 필요 없음)
+          setSessionKey(null)
+          console.log('장바구니 병합 완료')
+        } catch (error) {
+          console.error('장바구니 병합 실패:', error)
+          // 병합 실패해도 로그인은 성공 처리 (사용자 경험 우선)
+        }
+      }
+
+      router.push('/')
 
       // 더미 사용자 정보를 localStorage에 저장 (농가 등록 페이지에서 사용)
       if (typeof window !== 'undefined') {
@@ -78,27 +68,17 @@ export default function LoginPage() {
         localStorage.setItem('dummyUser', JSON.stringify(dummyUser))
       }
 
-      // 로그인 상태 변경 이벤트 발생 (헤더 등에서 상태 업데이트)
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('authStateChanged'))
-      }
-
       toast({
         title: '로그인 성공',
         description: '환영합니다!',
       })
 
       router.push('/')
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Login error:', error)
 
       // 401 에러는 특별 처리
-      if (
-        error &&
-        typeof error === 'object' &&
-        'status' in error &&
-        (error as { status: number }).status === 401
-      ) {
+      if (error?.status === 401) {
         toast({
           title: '로그인 실패',
           description: '이메일 또는 비밀번호가 올바르지 않습니다.',
@@ -175,6 +155,9 @@ export default function LoginPage() {
                   setEmail('user@example.com')
                   setPassword('password')
                   // 자동으로 로그인 처리
+                  const dummyToken = 'dummy-access-token-' + Date.now()
+                  setAccessToken(dummyToken)
+
                   if (typeof window !== 'undefined') {
                     const dummyUser = {
                       id: 1,
@@ -185,14 +168,30 @@ export default function LoginPage() {
                       createdAt: new Date().toISOString(),
                     }
                     localStorage.setItem('dummyUser', JSON.stringify(dummyUser))
-                    // 로그인 상태 변경 이벤트 발생 (헤더 등에서 상태 업데이트)
-                    window.dispatchEvent(new Event('authStateChanged'))
                   }
 
                   toast({
                     title: '빠른 로그인 완료',
                     description: '개발용 더미 계정으로 로그인되었습니다.',
                   })
+
+                  // 0. 장바구니 병합 (비로그인 장바구니 -> 로그인 장바구니)
+                  const guestSessionKey = getSessionKey()
+                  if (guestSessionKey) {
+                    // 개발용 더미 로그인에서는 API 호출이 불가능할 수 있으므로 try-catch로 감쌈
+                    // (실제 API와 연동된 경우에만 작동)
+                    try {
+                      cartService
+                        .mergeCart()
+                        .then(() => {
+                          setSessionKey(null)
+                          console.log('장바구니 병합 완료')
+                        })
+                        .catch((e: any) => console.error('장바구니 병합 실패', e))
+                    } catch (e) {
+                      console.error(e)
+                    }
+                  }
 
                   router.push('/')
                 }}
@@ -213,18 +212,6 @@ export default function LoginPage() {
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">또는</span>
               </div>
-            </div>
-
-            <div className="mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleKakaoLogin}
-                disabled={isOauthLoading}
-              >
-                {isOauthLoading ? '카카오 로그인 중...' : '카카오로 로그인'}
-              </Button>
             </div>
 
             <div className="mt-6 text-center text-sm">

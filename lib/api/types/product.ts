@@ -20,14 +20,16 @@ export interface Product {
   reviewCount?: number // 리뷰 개수 (옵셔널)
 }
 
+export type ImageUpdateMode = 'KEEP' | 'REPLACE' | 'CLEAR'
+
 export interface ProductCreateRequest {
   productName: string
   description?: string
-  categoryId: string
+  productCategory: ProductCategory
   price: number
   stockQuantity: number
   productStatus?: ProductStatus
-  imageUrls?: string[]
+  // imageUrls field removed as per guide - images are sent via multipart
 }
 
 export interface ProductUpdateRequest {
@@ -37,7 +39,8 @@ export interface ProductUpdateRequest {
   price?: number
   stockQuantity?: number
   productStatus?: ProductStatus
-  imageUrls?: string[]
+  imageUpdateMode: ImageUpdateMode
+  // imageUrls field removed as per guide
 }
 
 export interface ProductListParams {
