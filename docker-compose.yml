@@ -23,6 +23,10 @@ services:
       # 이미지 URL (Nginx가 서빙)
       - NEXT_PUBLIC_IMAGE_BASE_URL=/uploads
 
+      - NEXT_PUBLIC_KAKAO_CLIENT_ID
+      - NEXT_PUBLIC_KAKAO_REDIRECT_URI
+      - NEXT_PUBLIC_API_GATEWAY_URL
+
     # 로그 수집용 S3 마운트 (프론트는 읽기 전용 + 로그 디렉토리만 쓰기 허용)
     #   호스트에서 확인: id ubuntu (일반적으로 uid 1000)
     #   sudo mkdir -p /mnt/s3/logs/events
