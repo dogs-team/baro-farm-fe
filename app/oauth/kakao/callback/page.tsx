@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast'
 import { authService } from '@/lib/api/services/auth'
 import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
 
-export default function KakaoCallbackPage() {
+function KakaoCallbackPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -86,5 +86,22 @@ export default function KakaoCallbackPage() {
         <p className="text-sm text-muted-foreground">잠시만 기다려 주세요.</p>
       </Card>
     </div>
+  )
+}
+
+export default function KakaoCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className="p-6 w-full max-w-md space-y-4">
+            <h1 className="text-xl font-semibold">카카오 로그인 처리 중...</h1>
+            <p className="text-sm text-muted-foreground">잠시만 기다려 주세요.</p>
+          </Card>
+        </div>
+      }
+    >
+      <KakaoCallbackPageContent />
+    </Suspense>
   )
 }
