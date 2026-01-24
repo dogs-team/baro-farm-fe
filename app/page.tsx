@@ -34,7 +34,7 @@ export default function HomePage() {
       tag: '신선',
     },
     {
-      id: 3,
+      id: 'c33e13c9-43d2-4b50-8630-3e9605a0b63b',
       name: '친환경 딸기',
       farm: '달콤농원',
       location: '전북 완주',
