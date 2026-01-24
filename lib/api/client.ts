@@ -591,7 +591,16 @@ class ApiClient {
     if (isRelativeBase) {
       // 상대 경로인 경우: 직접 문자열 결합
       const base = this.baseUrl.replace(/\/$/, '')
-      const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+      let path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+
+      // rewrites 규칙: /api/auth/:path* → /auth-service/api/:path*
+      // endpoint가 /api/로 시작하면 baseUrl과 중복되므로 /api/ 제거
+      // 예: baseUrl=/api/auth, endpoint=/api/v1/auth/login → /api/auth/v1/auth/login
+      if (path.startsWith('/api/')) {
+        // /api/auth-service/api/... 형태가 되지 않도록 /api/ 제거
+        path = path.replace(/^\/api\//, '/')
+      }
+
       let url = base + path
 
       // 쿼리 파라미터 추가
