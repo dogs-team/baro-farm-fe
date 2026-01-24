@@ -14,6 +14,7 @@ services:
       - /mnt/s3/uploads:/mnt/s3/uploads:ro
       # HTTPS 인증서 (Let's Encrypt 사용 시)
       # - /etc/letsencrypt:/etc/letsencrypt:ro
+    # extra_hosts 불필요: nginx-docker.conf에서 호스트 IP(3.34.14.73:8080) 직접 사용
     depends_on:
       - frontend
     networks:
@@ -48,12 +49,10 @@ services:
     restart: unless-stopped
     init: true
 
-    # 서버(브리지) 모드: 호스트 백엔드에 host.docker.internal로 접근
     # Nginx를 통해 접근하므로 포트 노출 불필요 (개발/디버깅 시에만 주석 해제)
     ports:
       - '3000:3000'
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
+    # extra_hosts 불필요: Nginx를 통해 API 호출하므로 직접 백엔드 접근 없음
 
     environment:
       - NODE_ENV=production
