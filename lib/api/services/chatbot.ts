@@ -1,6 +1,6 @@
 // lib/api/services/chatbot.ts
 
-import { supportApi, API_URLS } from '../client'
+import { supportApi, API_URLS, buildUrlFromBase } from '../client'
 import type { ChatRequest, ChatResponse, ChatStreamChunk, Conversation } from '../types/chatbot'
 
 /**
@@ -42,11 +42,8 @@ export const chatbotService = {
   ): Promise<void> {
     // rewrites 사용 시 상대 경로, 미사용 시 절대 경로
     // rewrites 규칙: /api/support/:path* → /support-service/api/:path*
-    const baseUrl = API_URLS.SUPPORT
-    const endpoint = '/api/v1/chatbot/chat/stream'
-    // endpoint가 /api/로 시작하면 baseUrl과 중복되므로 /api/ 제거
-    const path = endpoint.startsWith('/api/') ? endpoint.replace(/^\/api\//, '/') : endpoint
-    const url = baseUrl + path
+    // buildUrlFromBase 유틸리티 함수 사용
+    const url = buildUrlFromBase(API_URLS.SUPPORT, '/api/v1/chatbot/chat/stream')
 
     const response = await fetch(url, {
       method: 'POST',

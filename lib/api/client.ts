@@ -343,7 +343,9 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
           : '✅ 도메인이 일치합니다.',
     })
 
-    const url = `${API_URLS.AUTH}/api/v1/auth/refresh`
+    // [2] URL 생성: buildUrlFromBase 유틸리티 함수 사용
+    const url = buildUrlFromBase(API_URLS.AUTH, '/api/v1/auth/refresh')
+
     console.log('[ApiClient] refreshToken으로 accessToken 재발급 시도:', url)
     console.log('[ApiClient] 요청 URL:', url)
     console.log('[ApiClient] 요청 메서드: POST')
@@ -573,12 +575,78 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
 }
 
 // ==========
-// ApiClient 구현
+// URL 생성 유틸리티 (공통 로직)
 // ==========
 
 export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>
 }
+
+/**
+ * URL 생성 헬퍼 함수 (공통 로직)
+ * baseUrl과 endpoint를 결합하여 최종 URL을 생성
+ * rewrites 사용 시 상대 경로 처리 포함
+ * @param baseUrl - 기본 URL (상대 경로 또는 절대 URL)
+ * @param endpoint - 엔드포인트 경로
+ * @param params - 쿼리 파라미터 (선택)
+ * @returns 최종 URL 문자열
+ */
+export function buildUrlFromBase(
+  baseUrl: string,
+  endpoint: string,
+  params?: RequestOptions['params']
+): string {
+  const isRelativeBase = baseUrl.startsWith('/')
+
+  if (isRelativeBase) {
+    // 상대 경로인 경우: 직접 문자열 결합
+    const base = baseUrl.replace(/\/$/, '')
+    let path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+
+    // rewrites 규칙: /api/auth/:path* → /auth-service/api/:path*
+    // endpoint가 /api/로 시작하면 baseUrl과 중복되므로 /api/ 제거
+    // 예: baseUrl=/api/auth, endpoint=/api/v1/auth/login → /api/auth/v1/auth/login
+    if (path.startsWith('/api/')) {
+      // /api/auth-service/api/... 형태가 되지 않도록 /api/ 제거
+      path = path.replace(/^\/api\//, '/')
+    }
+
+    let url = base + path
+
+    // 쿼리 파라미터 추가
+    if (params) {
+      const searchParams = new URLSearchParams()
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === null) return
+        searchParams.append(key, String(value))
+      })
+      const queryString = searchParams.toString()
+      if (queryString) {
+        url += `?${queryString}`
+      }
+    }
+
+    return url
+  }
+
+  // 절대 URL인 경우: 기존 로직 사용
+  // endpoint가 '/'로 시작하면 URL(base, endpoint) 사용 시 base의 path가 사라지므로
+  // 직접 문자열로 합쳐서 path를 보존한다. (예: http://host/buyer-service + /api/v1/products)
+  const base = baseUrl.replace(/\/$/, '')
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+  const url = new URL(base + path)
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null) return
+      url.searchParams.append(key, String(value))
+    })
+  }
+  return url.toString()
+}
+
+// ==========
+// ApiClient 구현
+// ==========
 
 class ApiClient {
   private baseUrl: string
@@ -588,53 +656,7 @@ class ApiClient {
   }
 
   private buildUrl(endpoint: string, params?: RequestOptions['params']): string {
-    // baseUrl이 상대 경로인 경우 (rewrites 사용 시)
-    const isRelativeBase = this.baseUrl.startsWith('/')
-
-    if (isRelativeBase) {
-      // 상대 경로인 경우: 직접 문자열 결합
-      const base = this.baseUrl.replace(/\/$/, '')
-      let path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-
-      // rewrites 규칙: /api/auth/:path* → /auth-service/api/:path*
-      // endpoint가 /api/로 시작하면 baseUrl과 중복되므로 /api/ 제거
-      // 예: baseUrl=/api/auth, endpoint=/api/v1/auth/login → /api/auth/v1/auth/login
-      if (path.startsWith('/api/')) {
-        // /api/auth-service/api/... 형태가 되지 않도록 /api/ 제거
-        path = path.replace(/^\/api\//, '/')
-      }
-
-      let url = base + path
-
-      // 쿼리 파라미터 추가
-      if (params) {
-        const searchParams = new URLSearchParams()
-        Object.entries(params).forEach(([key, value]) => {
-          if (value === undefined || value === null) return
-          searchParams.append(key, String(value))
-        })
-        const queryString = searchParams.toString()
-        if (queryString) {
-          url += `?${queryString}`
-        }
-      }
-
-      return url
-    }
-
-    // 절대 URL인 경우: 기존 로직 사용
-    // endpoint가 '/'로 시작하면 URL(base, endpoint) 사용 시 base의 path가 사라지므로
-    // 직접 문자열로 합쳐서 path를 보존한다. (예: http://host/buyer-service + /api/v1/products)
-    const base = this.baseUrl.replace(/\/$/, '')
-    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-    const url = new URL(base + path)
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value === undefined || value === null) return
-        url.searchParams.append(key, String(value))
-      })
-    }
-    return url.toString()
+    return buildUrlFromBase(this.baseUrl, endpoint, params)
   }
 
   private buildHeaders(options?: RequestInit): HeadersInit {
