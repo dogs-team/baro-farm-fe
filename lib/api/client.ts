@@ -64,8 +64,105 @@ export const setAccessToken = (_token: string | null) => {
   // [1] HttpOnly cookie로만 토큰을 사용하므로 localStorage에 저장하지 않음
 }
 
+// ==========
+// 쿠키 읽기 유틸리티 (디버깅용)
+// ==========
+
+/**
+ * 브라우저 쿠키에서 특정 쿠키 값을 읽습니다.
+ * HttpOnly 쿠키는 읽을 수 없습니다 (보안상의 이유로).
+ * @param name 쿠키 이름
+ * @returns 쿠키 값 또는 null (없거나 HttpOnly인 경우)
+ */
+const getCookie = (name: string): string | null => {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const cookies = document.cookie.split(';')
+    for (const cookie of cookies) {
+      const [cookieName, cookieValue] = cookie.trim().split('=')
+      if (cookieName === name) {
+        return decodeURIComponent(cookieValue || '')
+      }
+    }
+  } catch (error) {
+    console.error('[ApiClient] 쿠키 읽기 오류:', error)
+  }
+
+  return null
+}
+
+/**
+ * 모든 쿠키를 확인합니다 (디버깅용)
+ * @returns 쿠키 정보 객체
+ */
+export const checkCookies = (): {
+  accessToken: string | null
+  refreshToken: string | null
+  allCookies: Record<string, string>
+  cookieString: string
+} => {
+  if (typeof window === 'undefined') {
+    return {
+      accessToken: null,
+      refreshToken: null,
+      allCookies: {},
+      cookieString: '',
+    }
+  }
+
+  const cookieString = document.cookie
+  const allCookies: Record<string, string> = {}
+
+  try {
+    const cookies = document.cookie.split(';')
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=')
+      if (name) {
+        allCookies[name] = decodeURIComponent(value || '')
+      }
+    }
+  } catch (error) {
+    console.error('[ApiClient] 쿠키 파싱 오류:', error)
+  }
+
+  // 일반적인 토큰 쿠키 이름들 확인 (서버에서 access_token, refresh_token으로 설정)
+  const accessToken =
+    getCookie('access_token') || // 우선순위 1: 서버에서 사용하는 이름
+    getCookie('accessToken') ||
+    getCookie('token') ||
+    getCookie('authToken') ||
+    null
+
+  const refreshToken =
+    getCookie('refresh_token') || // 우선순위 1: 서버에서 사용하는 이름
+    getCookie('refreshToken') ||
+    null
+
+  return {
+    accessToken,
+    refreshToken,
+    allCookies,
+    cookieString,
+  }
+}
+
 export const getAccessToken = (): string | null => {
-  // [2] HttpOnly cookie는 JS에서 읽을 수 없으므로 항상 null
+  // [2] HttpOnly cookie는 JS에서 읽을 수 없으므로 일반적으로 null
+  //     하지만 일반 쿠키로 설정된 경우 읽을 수 있으므로 시도해봅니다
+  //     서버에서 access_token으로 설정하므로 우선 확인
+  const token =
+    getCookie('access_token') || // 우선순위 1: 서버에서 사용하는 이름
+    getCookie('accessToken') ||
+    getCookie('token') ||
+    getCookie('authToken')
+
+  if (token) {
+    console.log('[ApiClient] access_token 쿠키를 읽었습니다 (일반 쿠키)')
+    return token
+  }
+
+  // HttpOnly 쿠키인 경우 null 반환
   return null
 }
 
@@ -76,7 +173,18 @@ export const setRefreshToken = (_token: string | null) => {
 }
 
 export const getRefreshToken = (): string | null => {
-  // [4] HttpOnly cookie는 JS에서 읽을 수 없으므로 항상 null
+  // [4] HttpOnly cookie는 JS에서 읽을 수 없지만, 일반 쿠키인 경우 시도
+  //     서버에서 refresh_token으로 설정하므로 우선 확인
+  const token =
+    getCookie('refresh_token') || // 우선순위 1: 서버에서 사용하는 이름
+    getCookie('refreshToken')
+
+  if (token) {
+    console.log('[ApiClient] refresh_token 쿠키를 읽었습니다 (일반 쿠키)')
+    return token
+  }
+
+  // HttpOnly 쿠키인 경우 null 반환
   return null
 }
 
@@ -158,28 +266,167 @@ export interface ApiError extends Error {
 // ==========
 
 const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
-  const _refreshToken = getRefreshToken()
-  if (_refreshToken !== null && !_refreshToken) {
-    console.log('[ApiClient] refreshToken이 없습니다.')
-    return false
-  }
+  // [1] HttpOnly cookie는 JavaScript에서 읽을 수 없으므로,
+  //     쿠키 존재 여부를 직접 확인할 수 없습니다.
+  //     브라우저가 자동으로 쿠키를 전송하므로 API 호출을 시도합니다.
 
   try {
+    // [1-1] 쿠키 확인 (디버깅용)
+    const cookieInfo = checkCookies()
+    const hasAccessToken = cookieInfo.accessToken !== null
+    const hasRefreshToken = cookieInfo.refreshToken !== null
+
+    // 현재 도메인 확인
+    const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'unknown'
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown'
+    const apiDomain = new URL(API_URLS.AUTH).hostname
+
+    console.log('[ApiClient] 현재 브라우저 쿠키 상태:', {
+      access_token: hasAccessToken ? '있음 (일반 쿠키)' : '없음 또는 HttpOnly',
+      refresh_token: hasRefreshToken ? '있음 (일반 쿠키)' : '없음 또는 HttpOnly',
+      모든_쿠키: Object.keys(cookieInfo.allCookies),
+      쿠키_개수: Object.keys(cookieInfo.allCookies).length,
+      쿠키_상세: cookieInfo.allCookies,
+      설명:
+        hasAccessToken || hasRefreshToken
+          ? '일반 쿠키: JavaScript에서 읽을 수 있음'
+          : 'HttpOnly 쿠키: JavaScript에서 읽을 수 없지만 브라우저가 자동으로 전송함',
+    })
+
+    console.log('[ApiClient] 도메인 정보:', {
+      현재_도메인: currentDomain,
+      현재_Origin: currentOrigin,
+      API_도메인: apiDomain,
+      도메인_일치:
+        currentDomain === apiDomain ||
+        apiDomain.includes(currentDomain) ||
+        currentDomain.includes(apiDomain),
+      주의:
+        currentDomain !== apiDomain
+          ? '⚠️ 도메인이 다릅니다! 쿠키가 전송되지 않을 수 있습니다.'
+          : '✅ 도메인이 일치합니다.',
+    })
+
     const url = `${API_URLS.AUTH}/api/v1/auth/refresh`
     console.log('[ApiClient] refreshToken으로 accessToken 재발급 시도:', url)
+    console.log('[ApiClient] 요청 URL:', url)
+    console.log('[ApiClient] 요청 메서드: POST')
+    console.log('[ApiClient] credentials: include 설정됨')
+    console.log('[ApiClient] ⚠️ HttpOnly 쿠키 동작 방식:')
+    console.log('  - HttpOnly 쿠키는 JavaScript에서 읽을 수 없습니다 (보안상의 이유)')
+    console.log(
+      '  - 하지만 credentials: "include"로 설정하면 브라우저가 자동으로 쿠키를 요청에 포함시킵니다'
+    )
+    console.log('')
+    console.log('[ApiClient] 📋 쿠키 전송 확인 방법:')
+    console.log('  1. 브라우저 개발자 도구 > Network 탭 열기')
+    console.log('  2. /api/v1/auth/refresh 요청 클릭')
+    console.log('  3. Headers 탭 > Request Headers 확인')
+    console.log('  4. Cookie: 헤더에서 refresh_token 확인')
+    console.log('     - Cookie: refresh_token=... 가 있으면 쿠키가 전송된 것')
+    console.log('     - Cookie: 헤더가 없거나 refresh_token이 없으면 쿠키가 전송되지 않은 것')
+    console.log('')
+    console.log('[ApiClient] 🔍 쿠키가 전송되지 않는 경우 가능한 원인:')
+    console.log('  1. 쿠키 도메인 불일치 (예: 쿠키는 3.34.14.73, 요청은 localhost)')
+    console.log('  2. 쿠키 경로 불일치')
+    console.log('  3. SameSite 정책 문제')
+    console.log('  4. 쿠키가 만료되었거나 삭제됨')
+    console.log('  5. 브라우저가 쿠키를 차단함 (보안 설정)')
 
     const response = await fetch(url, {
       method: 'POST',
-      credentials: 'include', // [6] refresh_token은 HttpOnly cookie로 전송
+      credentials: 'include', // [2] HttpOnly cookie (refreshToken)가 자동으로 전송됨
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // [2-1] HttpOnly cookie 기반이지만 서버가 body를 요구할 수 있으므로 빈 body 전송
+      body: JSON.stringify({}),
     })
 
+    // [3] 응답 헤더 확인 (디버깅용)
+    const setCookieHeader = response.headers.get('Set-Cookie')
+    console.log('[ApiClient] refresh 응답 상태:', response.status, response.statusText)
+    console.log('[ApiClient] Set-Cookie 헤더 존재:', setCookieHeader ? '있음' : '없음')
+
+    // [3-1] 쿠키 전송 여부 확인 안내
+    if (response.status === 401) {
+      console.log('')
+      console.log('[ApiClient] ⚠️ 401 에러 발생 - 쿠키 전송 확인 필요:')
+      console.log('  Network 탭에서 다음을 확인하세요:')
+      console.log('  1. /api/v1/auth/refresh 요청 선택')
+      console.log('  2. Headers 탭 > Request Headers')
+      console.log('  3. Cookie: 헤더 확인')
+      console.log('     - refresh_token이 있으면: 쿠키는 전송되었지만 서버가 인식하지 못함')
+      console.log('     - refresh_token이 없으면: 쿠키가 전송되지 않음 (도메인/경로 문제 가능)')
+      console.log('')
+    }
+
     if (!response.ok) {
-      console.error('[ApiClient] refreshToken API 실패:', response.status, response.statusText)
+      // [4] 에러 응답 본문 읽기
+      let errorMessage = `HTTP ${response.status} ${response.statusText}`
+      let errorData: any = null
+
+      try {
+        const errorText = await response.text()
+        console.log('[ApiClient] refresh 에러 응답 본문 (raw):', errorText)
+
+        if (errorText) {
+          try {
+            errorData = JSON.parse(errorText)
+            errorMessage = errorData.message || errorData.error || errorData.details || errorText
+            console.error('[ApiClient] refreshToken API 실패 상세:', {
+              status: response.status,
+              statusText: response.statusText,
+              message: errorMessage,
+              data: errorData,
+              rawText: errorText,
+            })
+          } catch {
+            errorMessage = errorText
+            console.error('[ApiClient] refreshToken API 실패 (JSON 파싱 실패):', {
+              status: response.status,
+              statusText: response.statusText,
+              message: errorMessage,
+              rawText: errorText,
+            })
+          }
+        } else {
+          console.error('[ApiClient] refreshToken API 실패 (응답 본문 없음):', {
+            status: response.status,
+            statusText: response.statusText,
+          })
+        }
+      } catch (parseError) {
+        console.error('[ApiClient] refreshToken API 실패 (응답 읽기 오류):', parseError)
+      }
+
+      // [5] 401 에러 분석 및 안내
+      if (response.status === 401) {
+        console.error('[ApiClient] ⚠️ 401 Unauthorized - refreshToken 문제:', {
+          원인: [
+            '1. refreshToken 쿠키가 없음 (로그인하지 않았거나 쿠키가 삭제됨)',
+            '2. refreshToken 쿠키가 만료됨',
+            '3. 쿠키 도메인/경로 불일치로 쿠키가 전송되지 않음',
+            '4. SameSite 정책 문제',
+          ],
+          서버_응답: errorMessage,
+          상세_정보: errorData,
+          해결방법: [
+            '1. 다시 로그인하여 refreshToken 쿠키를 재설정',
+            '2. 브라우저 개발자 도구 > Application > Cookies에서 쿠키 확인',
+            '3. 쿠키 도메인과 현재 도메인이 일치하는지 확인',
+          ],
+        })
+      }
+
+      // [6] 인증 상태 초기화
       setAuthTokens(null)
       return false
     }
 
-    // [7] cookie 기반 refresh는 응답 body 없이도 성공 처리
+    // [6] 성공: 서버가 Set-Cookie 헤더로 새로운 accessToken과 refreshToken을 설정함
+    //     HttpOnly cookie이므로 JavaScript에서 읽을 수 없지만, 이후 요청에 자동으로 포함됨
+    console.log('[ApiClient] accessToken 재발급 성공 (쿠키가 자동으로 설정됨)')
     return true
 
     /* [12] cookie 기반 refresh는 응답 body를 사용하지 않음
@@ -227,7 +474,23 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
     return true
   */
   } catch (error) {
-    console.error('[ApiClient] refresh token failed:', error)
+    // [7] 네트워크 오류 또는 기타 예외 처리
+    const errorDetails = error as Error
+    console.error('[ApiClient] refresh token failed (예외 발생):', {
+      name: errorDetails.name,
+      message: errorDetails.message,
+      stack: errorDetails.stack,
+      error: error,
+    })
+
+    // CORS 오류 확인
+    if (
+      errorDetails.message?.includes('Failed to fetch') ||
+      errorDetails.message?.includes('CORS')
+    ) {
+      console.error('[ApiClient] CORS 또는 네트워크 연결 오류 가능성')
+    }
+
     setAuthTokens(null)
     return false
   }
@@ -353,9 +616,13 @@ class ApiClient {
     }
 
     const doFetch = async () => {
+      // [11-1] HttpOnly 쿠키는 credentials: 'include'로 자동 전송됨
+      //        JavaScript에서 읽을 수 없지만, 브라우저가 자동으로 Cookie 헤더에 포함시킴
+      const credentials = fetchOptions.credentials ?? 'include'
+
       const response = await fetch(url, {
         ...fetchOptions,
-        credentials: fetchOptions.credentials ?? 'include', // [11] 모든 인증 요청은 cookie 포함
+        credentials, // [11] 모든 인증 요청은 cookie 포함 (HttpOnly 쿠키 자동 전송)
         headers: this.buildHeaders(fetchOptions),
       })
 
@@ -378,12 +645,16 @@ class ApiClient {
     } catch (error: any) {
       const apiError = error as ApiError
 
-      // 401 → refreshToken으로 한 번 재시도
+      // [5] 401 Unauthorized → HttpOnly cookie (refreshToken)로 accessToken 재발급 시도
       if (apiError.status === 401) {
+        console.log('[ApiClient] 401 에러 발생, refreshToken으로 재발급 시도')
         const refreshed = await refreshAccessTokenWithRefreshToken()
         if (refreshed) {
+          console.log('[ApiClient] accessToken 재발급 성공, 원래 요청 재시도')
           return await doFetch()
         }
+        // [6] refresh 실패: 로그인 상태가 아니거나 refreshToken이 만료됨
+        console.warn('[ApiClient] refreshToken으로 재발급 실패, 인증 상태 초기화')
         setAuthTokens(null)
       }
 
@@ -475,16 +746,17 @@ export const buyerApi = new ApiClient(API_URLS.BUYER)
 export const cartApi = buyerApi
 export const sellerApi = new ApiClient(API_URLS.SELLER)
 export const orderApi = new ApiClient(API_URLS.ORDER)
-export const paymentApi = orderApi // 결제/예치금은 Order 서비스 사용
+export const paymentApi = orderApi // 결제는 Order 서비스 사용 (예치금은 support-service로 이동)
 export const aiApi = new ApiClient(API_URLS.AI)
 
-// Support 서비스 (검색, 리뷰, 체험, 정산, 배송 등)
+// Support 서비스 (검색, 리뷰, 체험, 정산, 배송, 예치금 등)
 export const supportApi = new ApiClient(API_URLS.SUPPORT)
 export const searchApi = supportApi
 export const reviewApi = supportApi
 export const experienceApi = supportApi
 export const notificationApi = supportApi
 export const settlementApi = supportApi
+// depositService는 supportApi를 사용 (support-service로 이동됨)
 
 // 상품/농장 등은 Buyer/Seller 조합으로 사용
 export const productApi = new ApiClient(API_URLS.BUYER)

@@ -23,17 +23,30 @@ import type {
 
 export const authService = {
   // 일반 로그인
+  // [1] 서버가 응답 헤더의 Set-Cookie로 accessToken과 refreshToken을 HttpOnly cookie로 설정
+  // [2] 브라우저가 자동으로 쿠키를 저장하며, 이후 모든 요청에 자동으로 포함됨 (credentials: 'include')
+  // [3] JavaScript에서는 쿠키를 읽을 수 없으므로, userId만 localStorage에 캐시
   async login(data: LoginRequest): Promise<LoginResult> {
     const response = await authApi.post<LoginResult>('/api/v1/auth/login', data)
-    // [1] HttpOnly cookie 기반이므로 userId만 로컬 캐시
+    // HttpOnly cookie는 브라우저가 자동으로 관리하므로, userId만 로컬 캐시
     setAuthTokens({ userId: response.userId })
+
+    // [4] 로그인 성공 후 쿠키 설정 확인 안내
+    console.log('[AuthService] 로그인 성공:', {
+      userId: response.userId,
+      안내: 'HttpOnly 쿠키는 브라우저가 자동으로 관리합니다.',
+      쿠키_확인: '브라우저 개발자 도구 > Application > Cookies에서 확인 가능',
+      주의: 'HttpOnly 쿠키는 JavaScript에서 읽을 수 없습니다.',
+    })
+
     return response
   },
 
   // 농가 로그인
+  // [1] 서버가 응답 헤더의 Set-Cookie로 accessToken과 refreshToken을 HttpOnly cookie로 설정
+  // [2] 일반 로그인과 동일한 방식으로 쿠키 기반 인증 사용
   async farmerLogin(data: LoginRequest): Promise<LoginResult> {
     const response = await authApi.post<LoginResult>('/api/v1/auth/login', data)
-    // [2] farmer login도 cookie 기반
     setAuthTokens({ userId: response.userId })
     return response
   },
@@ -84,18 +97,24 @@ export const authService = {
   },
 
   // Refresh token
+  // [1] HttpOnly cookie (refreshToken)가 자동으로 전송됨
+  // [2] 서버가 새로운 accessToken과 refreshToken을 Set-Cookie 헤더로 설정
+  // [3] 응답 body는 없으며, 쿠키만 업데이트됨
   async refreshToken(): Promise<void> {
-    // [9] cookie-based refresh (empty body)
     await authApi.post('/api/v1/auth/refresh')
   },
 
   // Logout
+  // [1] 서버가 Set-Cookie 헤더로 쿠키를 만료시켜 삭제함
+  // [2] 로컬 캐시(userId, userRole)도 정리
   async logout(data?: LogoutRequest): Promise<void> {
     await authApi.post('/api/v1/auth/logout', data || {})
-    // [10] cookie is cleared by backend; remove local cache only
     setAuthTokens(null)
   },
 
+  // 현재 사용자 정보 조회
+  // [1] HttpOnly cookie (accessToken)가 자동으로 전송됨 (credentials: 'include')
+  // [2] 서버는 Set-Cookie 헤더로 토큰을 설정하지만, 클라이언트는 읽을 수 없음
   async getCurrentUser(): Promise<MeResponse> {
     const response = await authApi.get<{ data: MeResponse } | MeResponse>('/api/v1/auth/me')
     // API 응답이 { status, data: { ... }, message } 형태이면 data 필드 추출
@@ -104,7 +123,7 @@ export const authService = {
         ? response.data
         : (response as MeResponse)
 
-    // role을 localStorage에 저장 (X-User-Role 헤더에 사용)
+    // role을 localStorage에 저장 (UI에서 사용)
     if (userData.role) {
       setUserRole(userData.role)
     }
