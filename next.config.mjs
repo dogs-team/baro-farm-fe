@@ -68,7 +68,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.tosspayments.com", // Next.js 및 토스페이먼츠 스크립트
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
-              `connect-src 'self' http://${gatewayHost}:8080 https://api.tosspayments.com`, // API Gateway 및 토스페이먼츠
+              `connect-src 'self' http://${gatewayHost}:8080 https://api.tosspayments.com https://log.tosspayments.com https://event.tosspayments.com`, // API Gateway 및 토스페이먼츠
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

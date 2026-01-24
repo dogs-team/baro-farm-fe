@@ -187,7 +187,34 @@ export const authService = {
   // [1] HttpOnly cookie (accessToken)가 자동으로 전송됨 (credentials: 'include')
   // [2] 서버는 Set-Cookie 헤더로 토큰을 설정하지만, 클라이언트는 읽을 수 없음
   async getCurrentUser(): Promise<MeResponse> {
+    // [1] 요청 전 상태 확인
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown'
+    console.log('[AuthService] getCurrentUser 요청 전 상태:', {
+      현재_Origin: currentOrigin,
+      API_URL: API_URLS.AUTH,
+      rewrites_사용: API_URLS.AUTH.startsWith('/'),
+    })
+
     const response = await authApi.get<{ data: MeResponse } | MeResponse>('/api/v1/auth/me')
+
+    // [2] 응답 후 상태 확인
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        const cookieInfo = checkCookies()
+        const apiOrigin = API_URLS.AUTH.startsWith('/')
+          ? currentOrigin
+          : new URL(API_URLS.AUTH).origin
+
+        console.log('[AuthService] getCurrentUser 응답 후 상태:', {
+          access_token: cookieInfo.accessToken ? '있음 (일반 쿠키)' : '없음 또는 HttpOnly',
+          refresh_token: cookieInfo.refreshToken ? '있음 (일반 쿠키)' : '없음 또는 HttpOnly',
+          모든_쿠키: Object.keys(cookieInfo.allCookies),
+          현재_Origin: currentOrigin,
+          API_Origin: apiOrigin,
+        })
+      }, 100)
+    }
+
     // API 응답이 { status, data: { ... }, message } 형태이면 data 필드 추출
     const userData =
       response && typeof response === 'object' && 'data' in response

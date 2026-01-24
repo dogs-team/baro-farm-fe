@@ -312,7 +312,10 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
     // 현재 도메인 확인
     const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'unknown'
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown'
-    const apiDomain = new URL(API_URLS.AUTH).hostname
+    // 상대 경로인 경우 현재 도메인 사용, 절대 URL인 경우 URL에서 도메인 추출
+    const apiDomain = API_URLS.AUTH.startsWith('/')
+      ? currentDomain
+      : new URL(API_URLS.AUTH).hostname
 
     console.log('[ApiClient] 현재 브라우저 쿠키 상태:', {
       access_token: hasAccessToken ? '있음 (일반 쿠키)' : '없음 또는 HttpOnly',
@@ -765,9 +768,11 @@ class ApiClient {
       // [11-3] 응답 후 쿠키 전송 여부 확인
       if (typeof window !== 'undefined' && !response.ok && response.status === 401) {
         const currentOrigin = window.location.origin
-        const apiOrigin = new URL(url).origin
+        // 상대 경로인 경우 현재 origin 사용, 절대 URL인 경우 URL에서 origin 추출
+        const isRelativeUrl = url.startsWith('/')
+        const apiOrigin = isRelativeUrl ? currentOrigin : new URL(url).origin
 
-        if (currentOrigin !== apiOrigin) {
+        if (!isRelativeUrl && currentOrigin !== apiOrigin) {
           console.warn('[ApiClient] ⚠️ 401 에러 - 크로스 오리진 쿠키 전송 문제 가능성:', {
             현재_Origin: currentOrigin,
             API_Origin: apiOrigin,

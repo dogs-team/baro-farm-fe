@@ -1,6 +1,6 @@
 // lib/api/services/chatbot.ts
 
-import { supportApi } from '../client'
+import { supportApi, API_URLS } from '../client'
 import type { ChatRequest, ChatResponse, ChatStreamChunk, Conversation } from '../types/chatbot'
 
 /**
@@ -40,8 +40,13 @@ export const chatbotService = {
     request: ChatRequest,
     onChunk: (chunk: ChatStreamChunk) => void
   ): Promise<void> {
-    // TODO: 서버 API 엔드포인트로 변경 필요
-    const url = `${process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://3.34.14.73:8080'}/support-service/api/v1/chatbot/chat/stream`
+    // rewrites 사용 시 상대 경로, 미사용 시 절대 경로
+    // rewrites 규칙: /api/support/:path* → /support-service/api/:path*
+    const baseUrl = API_URLS.SUPPORT
+    const endpoint = '/api/v1/chatbot/chat/stream'
+    // endpoint가 /api/로 시작하면 baseUrl과 중복되므로 /api/ 제거
+    const path = endpoint.startsWith('/api/') ? endpoint.replace(/^\/api\//, '/') : endpoint
+    const url = baseUrl + path
 
     const response = await fetch(url, {
       method: 'POST',
