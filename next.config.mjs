@@ -13,6 +13,45 @@ const nextConfig = {
       },
     ],
   },
+  // API 요청 프록시 (SameSite 쿠키 문제 해결)
+  // 브라우저는 같은 도메인으로 요청을 보내고, Next.js가 백엔드로 프록시
+  async rewrites() {
+    const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://3.34.14.73:8080'
+    
+    // 환경 변수로 rewrites 사용 여부 제어 (기본값: true)
+    const useRewrites = process.env.NEXT_PUBLIC_USE_API_REWRITES !== 'false'
+    
+    if (!useRewrites) {
+      return []
+    }
+
+    return [
+      {
+        source: '/api/auth/:path*',
+        destination: `${gatewayUrl}/auth-service/api/:path*`,
+      },
+      {
+        source: '/api/buyer/:path*',
+        destination: `${gatewayUrl}/buyer-service/api/:path*`,
+      },
+      {
+        source: '/api/seller/:path*',
+        destination: `${gatewayUrl}/seller-service/api/:path*`,
+      },
+      {
+        source: '/api/order/:path*',
+        destination: `${gatewayUrl}/order-service/api/:path*`,
+      },
+      {
+        source: '/api/support/:path*',
+        destination: `${gatewayUrl}/support-service/api/:path*`,
+      },
+      {
+        source: '/api/ai/:path*',
+        destination: `${gatewayUrl}/ai-service/api/:path*`,
+      },
+    ]
+  },
   // 보안 헤더 설정 (SECURITY_INCIDENT_REPORT.md)
   async headers() {
     const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://3.34.14.73:8080'

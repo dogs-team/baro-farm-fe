@@ -17,33 +17,66 @@ const GATEWAY_URL = (
     : 'http://3.34.14.73:8080'
 ).replace(/\/$/, '')
 
+// Next.js rewrites 사용 여부 (기본값: true)
+// rewrites를 사용하면 같은 도메인으로 요청하여 SameSite=Strict 쿠키도 전송됨
+const USE_REWRITES = process.env.NEXT_PUBLIC_USE_API_REWRITES !== 'false'
+
+// API URL 설정
+// rewrites 사용 시: 상대 경로 (/api/auth) - Next.js가 백엔드로 프록시
+// rewrites 미사용 시: 절대 경로 (http://3.34.14.73:8080/auth-service)
 export const API_URLS = {
   AUTH:
     process.env.NEXT_PUBLIC_AUTH_SERVICE_URL &&
     process.env.NEXT_PUBLIC_AUTH_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_AUTH_SERVICE_URL.replace(/\/$/, '')
-      : `${GATEWAY_URL}/auth-service`,
+      : USE_REWRITES
+        ? '/api/auth'
+        : `${GATEWAY_URL}/auth-service`,
   BUYER:
     process.env.NEXT_PUBLIC_BUYER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_BUYER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_BUYER_SERVICE_URL.replace(/\/$/, '')
-      : `${GATEWAY_URL}/buyer-service`,
+      : USE_REWRITES
+        ? '/api/buyer'
+        : `${GATEWAY_URL}/buyer-service`,
   SELLER:
     process.env.NEXT_PUBLIC_SELLER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_SELLER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_SELLER_SERVICE_URL.replace(/\/$/, '')
-      : `${GATEWAY_URL}/seller-service`,
+      : USE_REWRITES
+        ? '/api/seller'
+        : `${GATEWAY_URL}/seller-service`,
   ORDER:
     process.env.NEXT_PUBLIC_ORDER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_ORDER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_ORDER_SERVICE_URL.replace(/\/$/, '')
-      : `${GATEWAY_URL}/order-service`,
+      : USE_REWRITES
+        ? '/api/order'
+        : `${GATEWAY_URL}/order-service`,
   AI:
     process.env.NEXT_PUBLIC_AI_SERVICE_URL &&
     process.env.NEXT_PUBLIC_AI_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_AI_SERVICE_URL.replace(/\/$/, '')
-      : `${GATEWAY_URL}/ai-service`,
-  SUPPORT: `${GATEWAY_URL}/support-service`,
+      : USE_REWRITES
+        ? '/api/ai'
+        : `${GATEWAY_URL}/ai-service`,
+  SUPPORT: USE_REWRITES ? '/api/support' : `${GATEWAY_URL}/support-service`,
+}
+
+// [초기화 로그] API URL 설정 확인
+if (typeof window !== 'undefined') {
+  console.log('[ApiClient] API URL 설정:', {
+    rewrites_사용: USE_REWRITES,
+    AUTH: API_URLS.AUTH,
+    BUYER: API_URLS.BUYER,
+    SELLER: API_URLS.SELLER,
+    ORDER: API_URLS.ORDER,
+    SUPPORT: API_URLS.SUPPORT,
+    AI: API_URLS.AI,
+    설명: USE_REWRITES
+      ? '✅ rewrites 사용 - 같은 도메인으로 요청하여 SameSite=Strict 쿠키도 전송됨'
+      : '⚠️ rewrites 미사용 - 크로스 오리진 요청 (포트가 다르면 SameSite=Strict 쿠키 미전송)',
+  })
 }
 
 // ==========
@@ -660,11 +693,62 @@ class ApiClient {
       //        JavaScript에서 읽을 수 없지만, 브라우저가 자동으로 Cookie 헤더에 포함시킴
       const credentials = fetchOptions.credentials ?? 'include'
 
+      // [11-2] 크로스 오리진 쿠키 전송 진단
+      if (typeof window !== 'undefined') {
+        const currentOrigin = window.location.origin
+        // 상대 경로인 경우 (rewrites 사용) 크로스 오리진이 아님
+        const isRelativePath = url.startsWith('/')
+        const apiOrigin = isRelativePath ? currentOrigin : new URL(url).origin
+
+        if (!isRelativePath && currentOrigin !== apiOrigin) {
+          console.log('[ApiClient] ⚠️ 크로스 오리진 요청 감지:', {
+            현재_Origin: currentOrigin,
+            API_Origin: apiOrigin,
+            주의: '포트가 다르면 SameSite=Strict 쿠키가 전송되지 않습니다!',
+            해결방법: [
+              '1. 서버에서 쿠키를 SameSite=None; Secure로 설정 (HTTPS 필요)',
+              '2. 또는 Next.js rewrites 사용 (NEXT_PUBLIC_USE_API_REWRITES=true)',
+              '3. 또는 프론트엔드와 백엔드를 같은 포트에서 실행',
+            ],
+          })
+        } else if (isRelativePath) {
+          // rewrites 사용 중 - 같은 도메인으로 요청하므로 쿠키 전송 가능
+          console.log('[ApiClient] ✅ rewrites 사용 중 - 같은 도메인으로 요청:', {
+            요청_URL: url,
+            현재_Origin: currentOrigin,
+            설명: 'Next.js가 백엔드로 프록시하므로 SameSite=Strict 쿠키도 전송됩니다',
+          })
+        }
+      }
+
       const response = await fetch(url, {
         ...fetchOptions,
         credentials, // [11] 모든 인증 요청은 cookie 포함 (HttpOnly 쿠키 자동 전송)
         headers: this.buildHeaders(fetchOptions),
       })
+
+      // [11-3] 응답 후 쿠키 전송 여부 확인
+      if (typeof window !== 'undefined' && !response.ok && response.status === 401) {
+        const currentOrigin = window.location.origin
+        const apiOrigin = new URL(url).origin
+
+        if (currentOrigin !== apiOrigin) {
+          console.warn('[ApiClient] ⚠️ 401 에러 - 크로스 오리진 쿠키 전송 문제 가능성:', {
+            현재_Origin: currentOrigin,
+            API_Origin: apiOrigin,
+            원인: 'SameSite=Strict 쿠키는 포트가 다른 경우 전송되지 않습니다',
+            확인방법: [
+              '1. Network 탭 > 요청 선택 > Headers 탭',
+              '2. Request Headers에서 Cookie: 헤더 확인',
+              '3. Cookie: 헤더가 없으면 쿠키가 전송되지 않은 것',
+            ],
+            해결방법: [
+              '서버에서 쿠키를 SameSite=None; Secure로 변경 (HTTPS 필요)',
+              '또는 프론트엔드와 백엔드를 같은 도메인/포트에서 실행',
+            ],
+          })
+        }
+      }
 
       if (!response.ok) {
         throw await this.parseError(response, url)
