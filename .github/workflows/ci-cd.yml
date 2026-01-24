@@ -244,21 +244,26 @@ jobs:
           # 임시 디렉토리에 복사한 후 이동 (권한 문제 방지)
           if [ -f ./nginx-docker.conf ]; then
             echo "📦 Copying nginx-docker.conf..."
+            # 임시 디렉토리에 복사
             scp -i private_key.pem -o StrictHostKeyChecking=no \
               ./nginx-docker.conf ${USER}@${HOST}:/tmp/nginx-docker.conf || {
-              echo "⚠️  Failed to copy nginx-docker.conf to /tmp, trying direct copy..."
-              scp -i private_key.pem -o StrictHostKeyChecking=no \
-                ./nginx-docker.conf ${USER}@${HOST}:/home/${USER}/apps/FE/nginx-docker.conf || {
-                echo "❌ Failed to copy nginx-docker.conf, but continuing..."
-              }
+              echo "⚠️  Failed to copy nginx-docker.conf to /tmp"
             }
-            # 임시 디렉토리에 복사 성공 시 이동
-            if ssh -i private_key.pem -o StrictHostKeyChecking=no \
-              ${USER}@${HOST} "test -f /tmp/nginx-docker.conf"; then
-              ssh -i private_key.pem -o StrictHostKeyChecking=no \
-                ${USER}@${HOST} "mv /tmp/nginx-docker.conf /home/${USER}/apps/FE/nginx-docker.conf && chmod 644 /home/${USER}/apps/FE/nginx-docker.conf"
-              echo "✅ nginx-docker.conf copied successfully"
-            fi
+            # 임시 디렉토리에 복사 성공 시 이동 및 권한 설정
+            ssh -i private_key.pem -o StrictHostKeyChecking=no \
+              ${USER}@${HOST} << 'NGINX_COPY_EOF'
+              if [ -f /tmp/nginx-docker.conf ]; then
+                # 기존 파일/디렉토리 제거 (있다면)
+                rm -rf /home/${USER}/apps/FE/nginx-docker.conf
+                # 파일 이동
+                mv /tmp/nginx-docker.conf /home/${USER}/apps/FE/nginx-docker.conf
+                # 권한 설정
+                chmod 644 /home/${USER}/apps/FE/nginx-docker.conf
+                echo "✅ nginx-docker.conf copied successfully"
+              else
+                echo "⚠️  /tmp/nginx-docker.conf not found, skipping..."
+              fi
+            NGINX_COPY_EOF
           else
             echo "⚠️  nginx-docker.conf not found, skipping..."
           fi
