@@ -258,6 +258,41 @@ jobs:
             bash deploy-frontend.sh
           EOF
 
+          # Nginx 설정 적용 (백엔드 프록시 포함)
+          echo "🔧 Setting up Nginx..."
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${USER}@${HOST} << 'NGINX_EOF'
+            set -e
+            
+            # Nginx 설치 확인 및 설치
+            if ! command -v nginx &> /dev/null; then
+              echo "📦 Installing Nginx..."
+              sudo apt update
+              sudo apt install -y nginx
+            fi
+
+            # Nginx 설정 파일 적용
+            if [ -f /tmp/nginx-with-backend-proxy.conf ]; then
+              echo "🔧 Applying Nginx configuration..."
+              sudo mv /tmp/nginx-with-backend-proxy.conf /etc/nginx/sites-available/barofarm
+              sudo ln -sf /etc/nginx/sites-available/barofarm /etc/nginx/sites-enabled/
+              sudo rm -f /etc/nginx/sites-enabled/default
+              
+              # Nginx 설정 테스트
+              if sudo nginx -t; then
+                sudo systemctl reload nginx || sudo systemctl restart nginx
+                sudo systemctl enable nginx
+                echo "✅ Nginx configuration applied successfully"
+              else
+                echo "❌ Nginx configuration test failed"
+                sudo nginx -t
+                exit 1
+              fi
+            else
+              echo "⚠️  Nginx configuration file not found, skipping..."
+            fi
+          NGINX_EOF
+
           # 배포 결과 확인
           echo "🔍 Checking deployment status..."
           sleep 5
@@ -268,10 +303,10 @@ jobs:
             if docker ps | grep -q "${{ env.SERVICE_NAME }}"; then
               echo "✅ Container is running. Deployment successful!"
               
-              # 헬스 체크
+              # 헬스 체크 (포트 80으로, Nginx를 통해)
               echo "🏥 Performing health check..."
               sleep 5
-              if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              if curl -f http://localhost:80 > /dev/null 2>&1 || curl -f http://localhost:3000 > /dev/null 2>&1; then
                 echo "✅ Health check passed! Frontend is responding."
               else
                 echo "⚠️ Health check failed, but container is running."

@@ -14,12 +14,14 @@ const nextConfig = {
     ],
   },
   // API 요청 프록시 (SameSite 쿠키 문제 해결)
-  // 브라우저는 같은 도메인으로 요청을 보내고, Next.js가 백엔드로 프록시
+  // Nginx를 사용하므로 기본적으로 rewrites는 비활성화
+  // Nginx가 /api/* 요청을 백엔드 Gateway로 프록시함
   async rewrites() {
     const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://3.34.14.73:8080'
 
-    // 환경 변수로 rewrites 사용 여부 제어 (기본값: true)
-    const useRewrites = process.env.NEXT_PUBLIC_USE_API_REWRITES !== 'false'
+    // 환경 변수로 rewrites 사용 여부 제어 (기본값: false - Nginx 사용)
+    // Nginx 없이 개발할 경우에만 NEXT_PUBLIC_USE_API_REWRITES=true로 설정
+    const useRewrites = process.env.NEXT_PUBLIC_USE_API_REWRITES === 'true'
 
     if (!useRewrites) {
       return []

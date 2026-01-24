@@ -47,13 +47,24 @@ DEPLOY_DIR="/home/${USER}/apps/FE"
 mkdir -p ${DEPLOY_DIR}
 cd ${DEPLOY_DIR}
 
+# .env 파일 생성 (Nginx 사용 시)
+if [ ! -f ".env" ]; then
+  echo "📝 Creating .env file for Nginx configuration..."
+  cat > .env <<EOF
+# Nginx 프록시 사용 시 rewrites 비활성화
+NEXT_PUBLIC_USE_API_REWRITES=false
+# API Gateway URL (Nginx가 프록시하므로 상대 경로 사용 가능)
+NEXT_PUBLIC_API_GATEWAY_URL=http://3.34.14.73
+NEXT_PUBLIC_API_BASE_URL=http://3.34.14.73
+EOF
+  echo "✅ .env file created"
+fi
+
 # .env 옵션 (있으면 --env-file .env 추가)
 COMPOSE_ENV_FILE=""
 if [ -f ".env" ]; then
   COMPOSE_ENV_FILE="--env-file .env"
   echo "ℹ️  Using env file: ${DEPLOY_DIR}/.env"
-else
-  echo "⚠️  .env not found in ${DEPLOY_DIR} (using default environment)"
 fi
 
 # Docker 로그인

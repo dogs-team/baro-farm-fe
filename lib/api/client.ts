@@ -9,58 +9,52 @@ import { validateUrl } from '../security'
 // 환경 변수 및 기본 URL
 // ==========
 
-// 게이트웨이 기본값: 명시되지 않은 경우에도 항상 8080 게이트웨이를 사용
-const GATEWAY_URL = (
-  process.env.NEXT_PUBLIC_API_GATEWAY_URL &&
-  process.env.NEXT_PUBLIC_API_GATEWAY_URL.trim().length > 0
-    ? process.env.NEXT_PUBLIC_API_GATEWAY_URL
-    : 'http://3.34.14.73:8080'
-).replace(/\/$/, '')
+// 게이트웨이 기본값: Nginx 사용 시 상대 경로를 사용하므로 더 이상 사용하지 않음
+// 필요시 주석 해제하여 사용 가능
+// const GATEWAY_URL = (
+//   process.env.NEXT_PUBLIC_API_GATEWAY_URL &&
+//   process.env.NEXT_PUBLIC_API_GATEWAY_URL.trim().length > 0
+//     ? process.env.NEXT_PUBLIC_API_GATEWAY_URL
+//     : 'http://3.34.14.73:8080'
+// ).replace(/\/$/, '')
 
-// Next.js rewrites 사용 여부 (기본값: true)
-// rewrites를 사용하면 같은 도메인으로 요청하여 SameSite=Strict 쿠키도 전송됨
-const USE_REWRITES = process.env.NEXT_PUBLIC_USE_API_REWRITES !== 'false'
+// Next.js rewrites 사용 여부 (기본값: false - Nginx 사용)
+// Nginx를 사용하므로 기본적으로 rewrites는 비활성화
+// Nginx가 /api/* 요청을 백엔드 Gateway로 프록시함
+// Nginx 없이 개발할 경우에만 NEXT_PUBLIC_USE_API_REWRITES=true로 설정
+const USE_REWRITES = process.env.NEXT_PUBLIC_USE_API_REWRITES === 'true'
 
 // API URL 설정
-// rewrites 사용 시: 상대 경로 (/api/auth) - Next.js가 백엔드로 프록시
-// rewrites 미사용 시: 절대 경로 (http://3.34.14.73:8080/auth-service)
+// Nginx 사용 시 (기본, USE_REWRITES=false): 상대 경로 (/api/auth) - Nginx가 백엔드로 프록시
+// Next.js rewrites 사용 시 (USE_REWRITES=true): 상대 경로 (/api/auth) - Next.js가 백엔드로 프록시
+// 둘 다 상대 경로를 사용하므로, 항상 상대 경로 사용
 export const API_URLS = {
   AUTH:
     process.env.NEXT_PUBLIC_AUTH_SERVICE_URL &&
     process.env.NEXT_PUBLIC_AUTH_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_AUTH_SERVICE_URL.replace(/\/$/, '')
-      : USE_REWRITES
-        ? '/api/auth'
-        : `${GATEWAY_URL}/auth-service`,
+      : '/api/auth',
   BUYER:
     process.env.NEXT_PUBLIC_BUYER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_BUYER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_BUYER_SERVICE_URL.replace(/\/$/, '')
-      : USE_REWRITES
-        ? '/api/buyer'
-        : `${GATEWAY_URL}/buyer-service`,
+      : '/api/buyer',
   SELLER:
     process.env.NEXT_PUBLIC_SELLER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_SELLER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_SELLER_SERVICE_URL.replace(/\/$/, '')
-      : USE_REWRITES
-        ? '/api/seller'
-        : `${GATEWAY_URL}/seller-service`,
+      : '/api/seller',
   ORDER:
     process.env.NEXT_PUBLIC_ORDER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_ORDER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_ORDER_SERVICE_URL.replace(/\/$/, '')
-      : USE_REWRITES
-        ? '/api/order'
-        : `${GATEWAY_URL}/order-service`,
+      : '/api/order',
   AI:
     process.env.NEXT_PUBLIC_AI_SERVICE_URL &&
     process.env.NEXT_PUBLIC_AI_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_AI_SERVICE_URL.replace(/\/$/, '')
-      : USE_REWRITES
-        ? '/api/ai'
-        : `${GATEWAY_URL}/ai-service`,
-  SUPPORT: USE_REWRITES ? '/api/support' : `${GATEWAY_URL}/support-service`,
+      : '/api/ai',
+  SUPPORT: '/api/support',
 }
 
 // [초기화 로그] API URL 설정 확인
@@ -74,8 +68,8 @@ if (typeof window !== 'undefined') {
     SUPPORT: API_URLS.SUPPORT,
     AI: API_URLS.AI,
     설명: USE_REWRITES
-      ? '✅ rewrites 사용 - 같은 도메인으로 요청하여 SameSite=Strict 쿠키도 전송됨'
-      : '⚠️ rewrites 미사용 - 크로스 오리진 요청 (포트가 다르면 SameSite=Strict 쿠키 미전송)',
+      ? '✅ Next.js rewrites 사용 - Next.js가 백엔드로 프록시'
+      : '✅ Nginx 프록시 사용 (기본) - Nginx가 백엔드로 프록시, 같은 도메인으로 요청하여 SameSite=Strict 쿠키도 전송됨',
   })
 }
 
@@ -781,10 +775,35 @@ class ApiClient {
         }
       }
 
+      // [11-4] 실제 요청 URL 확인 (rewrites 작동 여부 확인)
+      const actualRequestUrl = typeof window !== 'undefined' ? window.location.origin + url : url
+
+      console.log('[ApiClient] 실제 요청 URL:', {
+        상대_경로: url,
+        절대_URL: actualRequestUrl,
+        현재_Origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
+        rewrites_작동_여부: url.startsWith('/')
+          ? '예상됨 (서버 사이드에서 프록시)'
+          : '아니오 (직접 요청)',
+        주의: 'rewrites는 서버 사이드에서만 작동합니다. 클라이언트 사이드 fetch는 rewrites를 거치지 않을 수 있습니다.',
+      })
+
       const response = await fetch(url, {
         ...fetchOptions,
         credentials, // [11] 모든 인증 요청은 cookie 포함 (HttpOnly 쿠키 자동 전송)
         headers: this.buildHeaders(fetchOptions),
+      })
+
+      // [11-5] 응답 후 실제 요청 URL 확인 (Network 탭과 비교)
+      console.log('[ApiClient] 응답 수신 - Network 탭 확인:', {
+        요청_URL_상대경로: url,
+        예상_절대_URL: actualRequestUrl,
+        확인_방법: [
+          '1. Network 탭에서 실제 요청 URL 확인',
+          '2. http://3.34.14.73:3000/api/auth/... 이면 rewrites 작동 ✅',
+          '3. http://3.34.14.73:8080/auth-service/... 이면 rewrites 미작동 ❌',
+          '4. Request Headers에 Cookie: 헤더가 있는지 확인',
+        ],
       })
 
       // [11-3] 응답 후 쿠키 전송 여부 확인
