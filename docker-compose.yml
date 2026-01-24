@@ -22,12 +22,12 @@ services:
     deploy:
       resources:
         limits:
-          memory: 96M  # Nginx는 매우 가볍습니다 (일반적으로 10-50MB 사용)
+          memory: 96M # Nginx는 매우 가볍습니다 (일반적으로 10-50MB 사용)
         reservations:
-          memory: 64M   # 최소 메모리 보장
+          memory: 64M # 최소 메모리 보장
     # 헬스 체크
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost/health']
       interval: 30s
       timeout: 10s
       retries: 3
