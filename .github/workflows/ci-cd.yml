@@ -251,19 +251,7 @@ jobs:
             }
             # 임시 디렉토리에 복사 성공 시 이동 및 권한 설정
             ssh -i private_key.pem -o StrictHostKeyChecking=no \
-              ${USER}@${HOST} << 'NGINX_COPY_EOF'
-              if [ -f /tmp/nginx-docker.conf ]; then
-                # 기존 파일/디렉토리 제거 (있다면)
-                rm -rf /home/${USER}/apps/FE/nginx-docker.conf
-                # 파일 이동
-                mv /tmp/nginx-docker.conf /home/${USER}/apps/FE/nginx-docker.conf
-                # 권한 설정
-                chmod 644 /home/${USER}/apps/FE/nginx-docker.conf
-                echo "✅ nginx-docker.conf copied successfully"
-              else
-                echo "⚠️  /tmp/nginx-docker.conf not found, skipping..."
-              fi
-            NGINX_COPY_EOF
+              ${USER}@${HOST} "if [ -f /tmp/nginx-docker.conf ]; then rm -rf /home/${USER}/apps/FE/nginx-docker.conf; mv /tmp/nginx-docker.conf /home/${USER}/apps/FE/nginx-docker.conf && chmod 644 /home/${USER}/apps/FE/nginx-docker.conf && echo '✅ nginx-docker.conf copied successfully'; else echo '⚠️  /tmp/nginx-docker.conf not found, skipping...'; fi"
           else
             echo "⚠️  nginx-docker.conf not found, skipping..."
           fi
