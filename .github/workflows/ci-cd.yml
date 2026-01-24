@@ -240,6 +240,15 @@ jobs:
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             ./Dockerfile ${USER}@${HOST}:/home/${USER}/apps/FE/
 
+          # Nginx 설정 파일 복사 (Docker용)
+          if [ -f ./nginx-docker.conf ]; then
+            echo "📦 Copying nginx-docker.conf..."
+            scp -i private_key.pem -o StrictHostKeyChecking=no \
+              ./nginx-docker.conf ${USER}@${HOST}:/home/${USER}/apps/FE/
+          else
+            echo "⚠️  nginx-docker.conf not found, skipping..."
+          fi
+
           # 배포 스크립트 실행
           echo "🚀 Executing deployment script on EC2..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
