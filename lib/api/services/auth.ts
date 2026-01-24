@@ -44,7 +44,10 @@ export const authService = {
       setTimeout(() => {
         const afterCookies = document.cookie
         const cookieInfo = checkCookies()
-        const apiOrigin = new URL(API_URLS.AUTH).origin
+        // 상대 경로인 경우 현재 origin 사용, 절대 URL인 경우 URL에서 origin 추출
+        const apiOrigin = API_URLS.AUTH.startsWith('/')
+          ? currentOrigin
+          : new URL(API_URLS.AUTH).origin
 
         console.log('[AuthService] 로그인 응답 후 쿠키 상태:', {
           쿠키_문자열: afterCookies || '쿠키 없음',
@@ -100,7 +103,9 @@ export const authService = {
       ],
       쿠키_탭_확인: [
         `Application > Cookies > ${currentOrigin} 확인`,
-        `Application > Cookies > ${new URL(API_URLS.AUTH).origin} 확인`,
+        API_URLS.AUTH.startsWith('/')
+          ? `Application > Cookies > ${currentOrigin} 확인 (rewrites 사용 중)`
+          : `Application > Cookies > ${new URL(API_URLS.AUTH).origin} 확인`,
         '쿠키가 다른 도메인에 저장되었을 수 있습니다',
       ],
     })
