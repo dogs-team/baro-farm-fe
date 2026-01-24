@@ -227,7 +227,7 @@ jobs:
           # 배포 디렉토리 생성
           echo "📁 Creating deployment directory..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
-            ${USER}@${HOST} "mkdir -p /home/${USER}/apps/FE"
+            ${USER}@${HOST} "mkdir -p /home/${USER}/apps/FE && chmod 755 /home/${USER}/apps/FE"
 
           # 배포 파일들 복사
           echo "📦 Copying deployment files..."
@@ -241,10 +241,24 @@ jobs:
             ./Dockerfile ${USER}@${HOST}:/home/${USER}/apps/FE/
 
           # Nginx 설정 파일 복사 (Docker용)
+          # 임시 디렉토리에 복사한 후 이동 (권한 문제 방지)
           if [ -f ./nginx-docker.conf ]; then
             echo "📦 Copying nginx-docker.conf..."
             scp -i private_key.pem -o StrictHostKeyChecking=no \
-              ./nginx-docker.conf ${USER}@${HOST}:/home/${USER}/apps/FE/
+              ./nginx-docker.conf ${USER}@${HOST}:/tmp/nginx-docker.conf || {
+              echo "⚠️  Failed to copy nginx-docker.conf to /tmp, trying direct copy..."
+              scp -i private_key.pem -o StrictHostKeyChecking=no \
+                ./nginx-docker.conf ${USER}@${HOST}:/home/${USER}/apps/FE/nginx-docker.conf || {
+                echo "❌ Failed to copy nginx-docker.conf, but continuing..."
+              }
+            }
+            # 임시 디렉토리에 복사 성공 시 이동
+            if ssh -i private_key.pem -o StrictHostKeyChecking=no \
+              ${USER}@${HOST} "test -f /tmp/nginx-docker.conf"; then
+              ssh -i private_key.pem -o StrictHostKeyChecking=no \
+                ${USER}@${HOST} "mv /tmp/nginx-docker.conf /home/${USER}/apps/FE/nginx-docker.conf && chmod 644 /home/${USER}/apps/FE/nginx-docker.conf"
+              echo "✅ nginx-docker.conf copied successfully"
+            fi
           else
             echo "⚠️  nginx-docker.conf not found, skipping..."
           fi
