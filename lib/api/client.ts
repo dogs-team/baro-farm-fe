@@ -328,11 +328,34 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
     console.log('')
     console.log('[ApiClient] 🔍 쿠키가 전송되지 않는 경우 가능한 원인:')
     console.log('  1. 쿠키 도메인 불일치 (예: 쿠키는 3.34.14.73, 요청은 localhost)')
-    console.log('  2. 쿠키 경로 불일치')
-    console.log('  3. SameSite 정책 문제')
-    console.log('  4. 쿠키가 만료되었거나 삭제됨')
-    console.log('  5. 브라우저가 쿠키를 차단함 (보안 설정)')
+    console.log(
+      '     → 해결: 쿠키 도메인을 .3.34.14.73 또는 *로 설정하거나, 프론트엔드도 같은 도메인 사용'
+    )
+    console.log('  2. SameSite 정책 문제')
+    console.log('     → 크로스 오리진 요청: SameSite=None; Secure 필요 (HTTPS)')
+    console.log('     → 같은 도메인: SameSite=Lax 또는 Strict 가능')
+    console.log('  3. 쿠키 경로 불일치')
+    console.log('     → 해결: 쿠키 경로를 /로 설정')
+    console.log('  4. CORS 설정 문제')
+    console.log('     → 서버에서 Access-Control-Allow-Credentials: true 필요')
+    console.log('     → Access-Control-Allow-Origin에 구체적인 도메인 필요 (와일드카드 * 불가)')
+    console.log('  5. 쿠키가 만료되었거나 삭제됨')
+    console.log('  6. 브라우저가 쿠키를 차단함 (보안 설정)')
+    console.log('')
+    console.log('[ApiClient] 📝 쿠키 설정 확인 방법:')
+    console.log('  1. 개발자 도구 > Application > Cookies')
+    console.log('  2. refresh_token 쿠키 클릭')
+    console.log('  3. 다음 항목 확인:')
+    console.log('     - Domain: 3.34.14.73 또는 .3.34.14.73')
+    console.log('     - Path: /')
+    console.log('     - SameSite: None (크로스 오리진) 또는 Lax/Strict (같은 도메인)')
+    console.log('     - Secure: SameSite=None인 경우 필수')
+    console.log('     - HttpOnly: 체크됨 (정상)')
 
+    // [2] 크로스 오리진 요청에서 쿠키 전송을 위한 설정
+    //     - credentials: 'include' 필수
+    //     - 서버에서 CORS 설정에 Access-Control-Allow-Credentials: true 필요
+    //     - SameSite=None인 경우 Secure 플래그 필요 (HTTPS)
     const response = await fetch(url, {
       method: 'POST',
       credentials: 'include', // [2] HttpOnly cookie (refreshToken)가 자동으로 전송됨
@@ -342,6 +365,23 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
       // [2-1] HttpOnly cookie 기반이지만 서버가 body를 요구할 수 있으므로 빈 body 전송
       body: JSON.stringify({}),
     })
+
+    // [2-2] 요청 후 쿠키 전송 여부 확인 안내
+    console.log('[ApiClient] 요청 완료 - 쿠키 전송 확인:')
+    console.log('  Network 탭에서 다음을 확인하세요:')
+    console.log('  1. /api/v1/auth/refresh 요청 선택')
+    console.log('  2. Headers 탭 > Request Headers')
+    console.log('  3. Cookie: 헤더 확인')
+    console.log('     ✅ Cookie: refresh_token=... 있으면: 쿠키 전송됨 (서버 인식 문제)')
+    console.log(
+      '     ❌ Cookie: 헤더 없거나 refresh_token 없으면: 쿠키 미전송 (도메인/경로/SameSite 문제)'
+    )
+    console.log('')
+    console.log('[ApiClient] 크로스 오리진 쿠키 전송 조건:')
+    console.log('  1. credentials: "include" 설정 ✅ (현재 설정됨)')
+    console.log('  2. 서버 CORS: Access-Control-Allow-Credentials: true 필요')
+    console.log('  3. 쿠키 SameSite=None인 경우 Secure 플래그 필요 (HTTPS)')
+    console.log('  4. 쿠키 도메인이 요청 도메인과 일치하거나 포함되어야 함')
 
     // [3] 응답 헤더 확인 (디버깅용)
     const setCookieHeader = response.headers.get('Set-Cookie')
