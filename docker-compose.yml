@@ -87,9 +87,9 @@ services:
     tmpfs:
       - /tmp:noexec,nosuid,size=100m
       - /var/tmp:noexec,nosuid,size=100m
-    # 네트워크 격리 (필요시 추가)
-    # networks:
-    #   - frontend-network
+    # Nginx와 통신하기 위한 네트워크
+    networks:
+      - barofarm-network
 
     # ========================================
     # S3 마운트 정책

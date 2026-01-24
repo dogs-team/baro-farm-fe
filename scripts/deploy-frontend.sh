@@ -95,6 +95,7 @@ else
 fi
 
 # override 파일 구성 (레지스트리 이미지가 있는 경우)
+# frontend만 override하고 nginx는 그대로 유지
 OVERRIDE_FILE=""
 COMPOSE_FILES="-f docker-compose.yml"
 if [ -n "$IMAGE_TO_USE" ]; then
@@ -103,6 +104,7 @@ if [ -n "$IMAGE_TO_USE" ]; then
 services:
   frontend:
     image: ${IMAGE_TO_USE}
+  # nginx는 docker-compose.yml의 설정 그대로 사용
 EOF
   COMPOSE_FILES="${COMPOSE_FILES} -f ${OVERRIDE_FILE}"
 fi
@@ -129,6 +131,15 @@ sleep 10
 if $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ${COMPOSE_FILES} ps | grep -q "Up"; then
   echo "✅ Frontend deployed successfully!"
   $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ${COMPOSE_FILES} ps
+  
+  # Nginx 컨테이너 확인
+  if docker ps | grep -q "barofarm-nginx"; then
+    echo "✅ Nginx container is running"
+    $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ${COMPOSE_FILES} logs --tail=10 nginx
+  else
+    echo "⚠️  Nginx container is not running"
+  fi
+  
   $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ${COMPOSE_FILES} logs --tail=20 frontend
   
   # 배포 이력 기록
