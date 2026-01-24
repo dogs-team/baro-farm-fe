@@ -585,6 +585,32 @@ class ApiClient {
   }
 
   private buildUrl(endpoint: string, params?: RequestOptions['params']): string {
+    // baseUrl이 상대 경로인 경우 (rewrites 사용 시)
+    const isRelativeBase = this.baseUrl.startsWith('/')
+
+    if (isRelativeBase) {
+      // 상대 경로인 경우: 직접 문자열 결합
+      const base = this.baseUrl.replace(/\/$/, '')
+      const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+      let url = base + path
+
+      // 쿼리 파라미터 추가
+      if (params) {
+        const searchParams = new URLSearchParams()
+        Object.entries(params).forEach(([key, value]) => {
+          if (value === undefined || value === null) return
+          searchParams.append(key, String(value))
+        })
+        const queryString = searchParams.toString()
+        if (queryString) {
+          url += `?${queryString}`
+        }
+      }
+
+      return url
+    }
+
+    // 절대 URL인 경우: 기존 로직 사용
     // endpoint가 '/'로 시작하면 URL(base, endpoint) 사용 시 base의 path가 사라지므로
     // 직접 문자열로 합쳐서 path를 보존한다. (예: http://host/buyer-service + /api/v1/products)
     const base = this.baseUrl.replace(/\/$/, '')
