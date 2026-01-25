@@ -1,11 +1,13 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CreditCard, Truck, Edit, Wallet } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Header } from '@/components/layout/header'
 import {
   Select,
@@ -68,7 +70,66 @@ export interface CheckoutViewProps {
   isDepositInsufficient: boolean
   isProcessing: boolean
   onSubmit: (e: React.FormEvent) => void
+  isMockCheckout?: boolean
 }
+
+type RecipeRecommendation = {
+  name: string
+  description: string
+  cookTime: string
+  difficulty: string
+  ingredients: string[]
+}
+
+type AddOnRecommendation = {
+  id: string
+  name: string
+  price: number
+  image: string
+  reason: string
+}
+
+const RECOMMENDATIONS_TIMEOUT_MS = 3000
+const SAMPLE_PRODUCT_ID = 'c33e13c9-43d2-4b50-8630-3e9605a0b63b'
+
+const FALLBACK_RECIPE: RecipeRecommendation = {
+  name: '딸기 요거트 볼',
+  description: '장바구니 구성에 맞춰 간단히 만들 수 있는 상큼한 디저트 레시피입니다.',
+  cookTime: '10분',
+  difficulty: '쉬움',
+  ingredients: ['딸기', '그릭요거트', '견과류', '꿀'],
+}
+
+const FALLBACK_ADDONS: AddOnRecommendation[] = [
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '그릭요거트',
+    price: 6800,
+    image: '/images/strawberries.png',
+    reason: '딸기와 잘 어울리는 베이스 재료',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '국산 꿀',
+    price: 12000,
+    image: '/fresh-organic-cherry-tomatoes.jpg',
+    reason: '디저트 풍미를 높여주는 자연 감미료',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '견과류 믹스',
+    price: 9800,
+    image: '/fresh-organic-lettuce.png',
+    reason: '식감을 살려주는 토핑 추천',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '생크림',
+    price: 4500,
+    image: '/fresh-organic-potatoes.jpg',
+    reason: '디저트와 궁합이 좋은 추가 재료',
+  },
+]
 
 export function CheckoutView({
   formData,
@@ -90,12 +151,102 @@ export function CheckoutView({
   isDepositInsufficient,
   isProcessing,
   onSubmit,
+  isMockCheckout,
 }: CheckoutViewProps) {
+  const [showRecommendations, setShowRecommendations] = useState(false)
+  const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false)
+  const [recipeRecommendation, setRecipeRecommendation] = useState<RecipeRecommendation | null>(
+    null
+  )
+  const [addOnRecommendations, setAddOnRecommendations] = useState<AddOnRecommendation[]>([])
+
+  useEffect(() => {
+    if (!showRecommendations) return
+
+    const fetchRecommendations = async () => {
+      setIsRecommendationsLoading(true)
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), RECOMMENDATIONS_TIMEOUT_MS)
+
+        const payload = {
+          items: checkoutItems.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        }
+
+        const response = await fetch('/api/recommendations/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error('Failed to load checkout recommendations')
+        }
+
+        const data = await response.json()
+        const recipe = data?.recipe || data?.data?.recipe
+        const addons = data?.addons || data?.data?.addons || data?.products || data?.data?.products
+
+        const normalizedRecipe: RecipeRecommendation | null = recipe
+          ? {
+              name: recipe.name || recipe.recipeName || FALLBACK_RECIPE.name,
+              description: recipe.description || FALLBACK_RECIPE.description,
+              cookTime: recipe.cookTime || FALLBACK_RECIPE.cookTime,
+              difficulty: recipe.difficulty || FALLBACK_RECIPE.difficulty,
+              ingredients: Array.isArray(recipe.ingredients)
+                ? recipe.ingredients
+                : FALLBACK_RECIPE.ingredients,
+            }
+          : null
+
+        const normalizedAddons: AddOnRecommendation[] = Array.isArray(addons)
+          ? addons.slice(0, 5).map((item: any) => ({
+              id: String(item.productId || item.id || SAMPLE_PRODUCT_ID),
+              name: item.productName || item.name || '추천 상품',
+              price: Number(item.price) || 0,
+              image: item.imageUrl || item.image || '/placeholder.svg',
+              reason: item.reason || '장바구니 구성과 잘 어울리는 상품',
+            }))
+          : []
+
+        if (!normalizedRecipe && normalizedAddons.length === 0) {
+          throw new Error('Empty recommendations')
+        }
+
+        setRecipeRecommendation(normalizedRecipe || FALLBACK_RECIPE)
+        setAddOnRecommendations(normalizedAddons.length > 0 ? normalizedAddons : FALLBACK_ADDONS)
+      } catch (error) {
+        console.warn('[Checkout] Fallback recommendations used:', error)
+        setRecipeRecommendation(FALLBACK_RECIPE)
+        setAddOnRecommendations(FALLBACK_ADDONS)
+      } finally {
+        setIsRecommendationsLoading(false)
+      }
+    }
+
+    fetchRecommendations()
+  }, [checkoutItems, showRecommendations])
+
   return (
     <div className="min-h-screen bg-background">
       <Header showCart />
 
       <div className="container mx-auto px-4 py-8">
+        {isMockCheckout && (
+          <Badge variant="secondary" className="mb-4 inline-flex">
+            예시 데이터
+          </Badge>
+        )}
         <h1 className="text-3xl font-bold mb-8">주문/결제</h1>
 
         <form onSubmit={onSubmit}>
@@ -382,6 +533,7 @@ export function CheckoutView({
                 <Button
                   type="submit"
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => setShowRecommendations(true)}
                   disabled={
                     isProcessing ||
                     (formData.paymentMethod === 'deposit' &&
@@ -406,6 +558,85 @@ export function CheckoutView({
         </form>
 
         {/* 배송지 추가/수정 다이얼로그 */}
+        {showRecommendations && (
+          <section className="mt-12">
+            <div className="flex flex-col gap-2 mb-6">
+              <h2 className="text-2xl font-bold">결제 전 추천</h2>
+              <p className="text-sm text-muted-foreground">
+                장바구니 내역을 기반으로 레시피와 추가 구매 상품을 추천해요.
+              </p>
+            </div>
+
+            {isRecommendationsLoading ? (
+              <div className="text-sm text-muted-foreground">추천 정보를 불러오는 중...</div>
+            ) : (
+              <div className="grid lg:grid-cols-3 gap-6">
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">오늘의 레시피</h3>
+                    <Badge variant="secondary">AI 추천</Badge>
+                  </div>
+                  <h4 className="text-xl font-bold mb-2">
+                    {recipeRecommendation?.name || FALLBACK_RECIPE.name}
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {recipeRecommendation?.description || FALLBACK_RECIPE.description}
+                  </p>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
+                    <span>
+                      조리 시간: {recipeRecommendation?.cookTime || FALLBACK_RECIPE.cookTime}
+                    </span>
+                    <span>
+                      난이도: {recipeRecommendation?.difficulty || FALLBACK_RECIPE.difficulty}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-semibold">추천 재료</h5>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      {(recipeRecommendation?.ingredients || FALLBACK_RECIPE.ingredients).map(
+                        (ingredient) => (
+                          <li key={ingredient}>{ingredient}</li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                </Card>
+
+                <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4">
+                  {(addOnRecommendations.length > 0 ? addOnRecommendations : FALLBACK_ADDONS).map(
+                    (item) => (
+                      <Card key={`addon-${item.id}-${item.name}`} className="p-4">
+                        <div className="flex gap-4">
+                          <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                            <Image
+                              src={item.image || '/placeholder.svg'}
+                              alt={item.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold mb-1">{item.name}</h4>
+                            <p className="text-xs text-muted-foreground mb-2">{item.reason}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-bold text-primary">
+                                {item.price.toLocaleString()}원
+                              </span>
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href={`/products/${item.id}`}>상품 보기</Link>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
         <AddressDialog
           open={isAddressDialogOpen}
           onOpenChange={onAddressDialogOpenChange}

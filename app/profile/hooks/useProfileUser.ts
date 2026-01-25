@@ -35,15 +35,28 @@ export function useProfileUser() {
           phone: '', // TODO: 전화번호는 별도 API에서 가져와야 할 수 있음
           avatar: '/placeholder.svg',
         })
-      } catch (error) {
+      } catch (error: any) {
         console.error('사용자 정보 조회 실패:', error)
-        toast({
-          title: '사용자 정보 조회 실패',
-          description: '다시 시도해주세요.',
-          variant: 'destructive',
-        })
-        // 로그인되지 않은 경우 홈으로 리다이렉트
-        router.push('/')
+
+        // [1] 401 에러: HttpOnly cookie가 없거나 만료됨 (로그인 필요)
+        const isUnauthorized =
+          error?.status === 401 || error?.message?.includes('Authentication is required')
+
+        if (isUnauthorized) {
+          toast({
+            title: '로그인이 필요합니다',
+            description: '로그인 후 다시 시도해주세요.',
+            variant: 'destructive',
+          })
+          router.push('/login')
+        } else {
+          toast({
+            title: '사용자 정보 조회 실패',
+            description: error?.message || '다시 시도해주세요.',
+            variant: 'destructive',
+          })
+          router.push('/')
+        }
       } finally {
         setIsLoadingUser(false)
       }

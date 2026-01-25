@@ -47,13 +47,24 @@ DEPLOY_DIR="/home/${USER}/apps/FE"
 mkdir -p ${DEPLOY_DIR}
 cd ${DEPLOY_DIR}
 
+# .env 파일 생성 (Nginx 사용 시)
+if [ ! -f ".env" ]; then
+  echo "📝 Creating .env file for Nginx configuration..."
+  cat > .env <<EOF
+# Nginx 프록시 사용 시 rewrites 비활성화
+NEXT_PUBLIC_USE_API_REWRITES=false
+# API Gateway URL (Nginx가 프록시하므로 상대 경로 사용 가능)
+NEXT_PUBLIC_API_GATEWAY_URL=http://3.34.14.73
+NEXT_PUBLIC_API_BASE_URL=http://3.34.14.73
+EOF
+  echo "✅ .env file created"
+fi
+
 # .env 옵션 (있으면 --env-file .env 추가)
 COMPOSE_ENV_FILE=""
 if [ -f ".env" ]; then
   COMPOSE_ENV_FILE="--env-file .env"
   echo "ℹ️  Using env file: ${DEPLOY_DIR}/.env"
-else
-  echo "⚠️  .env not found in ${DEPLOY_DIR} (using default environment)"
 fi
 
 # Docker 로그인
@@ -84,6 +95,7 @@ else
 fi
 
 # override 파일 구성 (레지스트리 이미지가 있는 경우)
+# frontend만 override하고 nginx는 그대로 유지
 OVERRIDE_FILE=""
 COMPOSE_FILES="-f docker-compose.yml"
 if [ -n "$IMAGE_TO_USE" ]; then
@@ -92,6 +104,7 @@ if [ -n "$IMAGE_TO_USE" ]; then
 services:
   frontend:
     image: ${IMAGE_TO_USE}
+  # nginx는 docker-compose.yml의 설정 그대로 사용
 EOF
   COMPOSE_FILES="${COMPOSE_FILES} -f ${OVERRIDE_FILE}"
 fi
@@ -118,6 +131,15 @@ sleep 10
 if $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ${COMPOSE_FILES} ps | grep -q "Up"; then
   echo "✅ Frontend deployed successfully!"
   $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ${COMPOSE_FILES} ps
+  
+  # Nginx 컨테이너 확인
+  if docker ps | grep -q "barofarm-nginx"; then
+    echo "✅ Nginx container is running"
+    $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ${COMPOSE_FILES} logs --tail=10 nginx
+  else
+    echo "⚠️  Nginx container is not running"
+  fi
+  
   $DOCKER_COMPOSE ${COMPOSE_ENV_FILE} ${COMPOSE_FILES} logs --tail=20 frontend
   
   # 배포 이력 기록

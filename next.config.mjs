@@ -13,6 +13,55 @@ const nextConfig = {
       },
     ],
   },
+  // API 요청 프록시 (SameSite 쿠키 문제 해결)
+  // Nginx를 사용하므로 기본적으로 rewrites는 비활성화
+  // Nginx가 /api/* 요청을 백엔드 Gateway로 프록시함
+  async rewrites() {
+    const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://3.34.14.73:8080'
+
+    // 환경 변수로 rewrites 사용 여부 제어 (기본값: false - Nginx 사용)
+    // Nginx 없이 개발할 경우에만 NEXT_PUBLIC_USE_API_REWRITES=true로 설정
+    const useRewrites = process.env.NEXT_PUBLIC_USE_API_REWRITES === 'true'
+
+    if (!useRewrites) {
+      return []
+    }
+
+    return [
+      {
+        source: '/api/auth-service/api/:path*',
+        destination: `${gatewayUrl}/auth-service/api/:path*`,
+      },
+      {
+        source: '/api/buyer-service/api/:path*',
+        destination: `${gatewayUrl}/buyer-service/api/:path*`,
+      },
+      {
+        source: '/api/seller-service/api/:path*',
+        destination: `${gatewayUrl}/seller-service/api/:path*`,
+      },
+      {
+        source: '/api/order-service/api/:path*',
+        destination: `${gatewayUrl}/order-service/api/:path*`,
+      },
+      {
+        source: '/api/payment-service/api/:path*',
+        destination: `${gatewayUrl}/payment-service/api/:path*`,
+      },
+      {
+        source: '/api/support-service/api/:path*',
+        destination: `${gatewayUrl}/support-service/api/:path*`,
+      },
+      {
+        source: '/api/settlement-service/api/:path*',
+        destination: `${gatewayUrl}/settlement-service/api/:path*`,
+      },
+      {
+        source: '/api/ai-service/api/:path*',
+        destination: `${gatewayUrl}/ai-service/api/:path*`,
+      },
+    ]
+  },
   // 보안 헤더 설정 (SECURITY_INCIDENT_REPORT.md)
   async headers() {
     const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://3.34.14.73:8080'
@@ -29,7 +78,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.tosspayments.com", // Next.js 및 토스페이먼츠 스크립트
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
-              `connect-src 'self' http://${gatewayHost}:8080 https://api.tosspayments.com`, // API Gateway 및 토스페이먼츠
+              `connect-src 'self' http://${gatewayHost}:8080 https://api.tosspayments.com https://log.tosspayments.com https://event.tosspayments.com`, // API Gateway 및 토스페이먼츠
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

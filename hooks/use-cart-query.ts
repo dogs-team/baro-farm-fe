@@ -4,9 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { cartService } from '@/lib/api/services/cart'
 import type { AddItemRequest } from '@/lib/api/types'
 import { useToast } from '@/hooks/use-toast'
-import { getSessionKey, setSessionKey } from '@/lib/api/client'
-import { v4 as uuidv4 } from 'uuid'
-import { useEffect } from 'react'
 
 export const CART_QUERY_KEY = ['cart']
 

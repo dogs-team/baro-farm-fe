@@ -24,6 +24,14 @@ const ALLOWED_DOMAINS = [
  */
 export function validateUrl(url: string): boolean {
   try {
+    // 상대 경로인 경우 (Next.js rewrites 사용 시) 허용
+    if (url.startsWith('/')) {
+      // 상대 경로는 같은 도메인으로 요청하므로 안전
+      // 경로가 /api/로 시작하는지 확인 (rewrites 규칙과 일치)
+      return url.startsWith('/api/')
+    }
+
+    // 절대 URL인 경우 기존 검증 로직 사용
     const urlObj = new URL(url)
     const hostname = urlObj.hostname
 

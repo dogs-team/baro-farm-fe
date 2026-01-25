@@ -34,6 +34,8 @@ jobs:
       NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL || secrets.NEXT_PUBLIC_API_GATEWAY_URL }}
       NEXT_PUBLIC_TOSS_CLIENT_KEY: ${{ secrets.NEXT_PUBLIC_TOSS_CLIENT_KEY || secrets.TOSS_CLIENT_KEY }}
       NEXT_PUBLIC_IMAGE_BASE_URL: ${{ secrets.NEXT_PUBLIC_IMAGE_BASE_URL || '/uploads' }}
+      NEXT_PUBLIC_KAKAO_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_KAKAO_CLIENT_ID }}
+      NEXT_PUBLIC_KAKAO_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_KAKAO_REDIRECT_URI }}
 
     steps:
       - name: Checkout code
@@ -100,6 +102,8 @@ jobs:
       NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL || secrets.NEXT_PUBLIC_API_GATEWAY_URL }}
       NEXT_PUBLIC_TOSS_CLIENT_KEY: ${{ secrets.NEXT_PUBLIC_TOSS_CLIENT_KEY || secrets.TOSS_CLIENT_KEY }}
       NEXT_PUBLIC_IMAGE_BASE_URL: ${{ secrets.NEXT_PUBLIC_IMAGE_BASE_URL || '/uploads' }}
+      NEXT_PUBLIC_KAKAO_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_KAKAO_CLIENT_ID }}
+      NEXT_PUBLIC_KAKAO_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_KAKAO_REDIRECT_URI }}
     timeout-minutes: 30 # Docker 빌드 타임아웃 설정
     # data, infra 브랜치는 Docker 빌드 건너뛰기 (인프라만 배포)
     if: |
@@ -151,6 +155,8 @@ jobs:
             NEXT_PUBLIC_API_BASE_URL=${{ env.NEXT_PUBLIC_API_BASE_URL }}
             NEXT_PUBLIC_TOSS_CLIENT_KEY=${{ env.NEXT_PUBLIC_TOSS_CLIENT_KEY }}
             NEXT_PUBLIC_IMAGE_BASE_URL=${{ env.NEXT_PUBLIC_IMAGE_BASE_URL }}
+            NEXT_PUBLIC_KAKAO_CLIENT_ID=${{ env.NEXT_PUBLIC_KAKAO_CLIENT_ID }}
+            NEXT_PUBLIC_KAKAO_REDIRECT_URI=${{ env.NEXT_PUBLIC_KAKAO_REDIRECT_URI }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ env.SERVICE_NAME }}:buildcache
@@ -221,7 +227,7 @@ jobs:
           # 배포 디렉토리 생성
           echo "📁 Creating deployment directory..."
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
-            ${USER}@${HOST} "mkdir -p /home/${USER}/apps/FE"
+            ${USER}@${HOST} "mkdir -p /home/${USER}/apps/FE && chmod 755 /home/${USER}/apps/FE"
 
           # 배포 파일들 복사
           echo "📦 Copying deployment files..."
@@ -233,6 +239,32 @@ jobs:
 
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             ./Dockerfile ${USER}@${HOST}:/home/${USER}/apps/FE/
+
+          # Nginx 설정 파일 복사 (Docker용)
+          # 임시 디렉토리에 복사한 후 이동 (권한 문제 방지)
+          if [ -f ./nginx-docker.conf ]; then
+            echo "📦 Copying nginx-docker.conf..."
+            # 임시 디렉토리에 복사
+            scp -i private_key.pem -o StrictHostKeyChecking=no \
+              ./nginx-docker.conf ${USER}@${HOST}:/tmp/nginx-docker.conf || {
+              echo "⚠️  Failed to copy nginx-docker.conf to /tmp"
+            }
+            # 임시 디렉토리에 복사 성공 시 이동 및 권한 설정
+            ssh -i private_key.pem -o StrictHostKeyChecking=no \
+              ${USER}@${HOST} "if [ -f /tmp/nginx-docker.conf ]; then rm -rf /home/${USER}/apps/FE/nginx-docker.conf; mv /tmp/nginx-docker.conf /home/${USER}/apps/FE/nginx-docker.conf && chmod 644 /home/${USER}/apps/FE/nginx-docker.conf && echo '✅ nginx-docker.conf copied successfully'; else echo '⚠️  /tmp/nginx-docker.conf not found, skipping...'; fi"
+          else
+            echo "⚠️  nginx-docker.conf not found, skipping..."
+          fi
+
+          # 호스트 Nginx 중지 (Docker Nginx 사용 시) - 배포 전에 먼저 중지
+          echo "🔧 Stopping host Nginx (using Docker Nginx instead)..."
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${USER}@${HOST} "sudo systemctl stop nginx 2>/dev/null || true; sudo systemctl disable nginx 2>/dev/null || true; echo '✅ Host Nginx stopped (Docker Nginx will use port 80)'"
+
+          # 포트 80 확인
+          echo "🔍 Checking port 80 availability..."
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            ${USER}@${HOST} "sudo lsof -i :80 || echo 'Port 80 is available'"
 
           # 배포 스크립트 실행
           echo "🚀 Executing deployment script on EC2..."
@@ -262,10 +294,10 @@ jobs:
             if docker ps | grep -q "${{ env.SERVICE_NAME }}"; then
               echo "✅ Container is running. Deployment successful!"
               
-              # 헬스 체크
+              # 헬스 체크 (포트 80으로, Nginx를 통해)
               echo "🏥 Performing health check..."
               sleep 5
-              if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              if curl -f http://localhost:80 > /dev/null 2>&1 || curl -f http://localhost:3000 > /dev/null 2>&1; then
                 echo "✅ Health check passed! Frontend is responding."
               else
                 echo "⚠️ Health check failed, but container is running."
