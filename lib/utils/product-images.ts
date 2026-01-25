@@ -36,26 +36,26 @@ export const PRODUCT_IMAGES = {
   // 브로콜리 관련
   BROCCOLI: '/fresh-organic-broccoli.jpg',
 
-  // 추가 채소/야채 이미지
-  ONION: '/fresh-organic-onion.jpg',
-  GARLIC: '/fresh-organic-garlic.jpg',
-  NAPA_CABBAGE: '/fresh-organic-napa-cabbage.jpg',
-  CABBAGE: '/fresh-organic-cabbage.jpg',
-  BELL_PEPPER: '/fresh-organic-bell-pepper.jpg',
-  SPINACH: '/fresh-organic-spinach.jpg',
-  RADISH: '/fresh-organic-radish.jpg',
-  PUMPKIN: '/fresh-organic-pumpkin.jpg',
-  SWEET_POTATO: '/fresh-organic-sweet-potato.jpg',
-  CAULIFLOWER: '/fresh-organic-cauliflower.jpg',
-  KALE: '/fresh-organic-kale.jpg',
-  ASPARAGUS: '/fresh-organic-asparagus.jpg',
+  // 추가 채소/야채 이미지 (실제 파일이 없으므로 fallback 이미지 사용)
+  // ONION: '/fresh-organic-onion.jpg', // 파일 없음 -> LETTUCE 사용
+  // GARLIC: '/fresh-organic-garlic.jpg', // 파일 없음 -> CARROT 사용
+  // NAPA_CABBAGE: '/fresh-organic-napa-cabbage.jpg', // 파일 없음 -> LETTUCE 사용
+  // CABBAGE: '/fresh-organic-cabbage.jpg', // 파일 없음 -> LETTUCE 사용
+  // BELL_PEPPER: '/fresh-organic-bell-pepper.jpg', // 파일 없음 -> TOMATO 사용
+  // SPINACH: '/fresh-organic-spinach.jpg', // 파일 없음 -> LETTUCE 사용
+  // RADISH: '/fresh-organic-radish.jpg', // 파일 없음 -> CARROT 사용
+  // PUMPKIN: '/fresh-organic-pumpkin.jpg', // 파일 없음 -> POTATO 사용
+  // SWEET_POTATO: '/fresh-organic-sweet-potato.jpg', // 파일 없음 -> POTATO 사용
+  // CAULIFLOWER: '/fresh-organic-cauliflower.jpg', // 파일 없음 -> BROCCOLI 사용
+  // KALE: '/fresh-organic-kale.jpg', // 파일 없음 -> LETTUCE 사용
+  // ASPARAGUS: '/fresh-organic-asparagus.jpg', // 파일 없음 -> BROCCOLI 사용
 
-  // 버섯 이미지
-  ENOKI_MUSHROOM: '/fresh-organic-enoki-mushroom.jpg',
-  OYSTER_MUSHROOM: '/fresh-organic-oyster-mushroom.jpg',
-  SHIITAKE_MUSHROOM: '/fresh-organic-shiitake-mushroom.jpg',
-  KING_OYSTER_MUSHROOM: '/fresh-organic-king-oyster-mushroom.jpg',
-  BUTTON_MUSHROOM: '/fresh-organic-button-mushroom.jpg',
+  // 버섯 이미지 (실제 파일이 없으므로 fallback 이미지 사용)
+  // ENOKI_MUSHROOM: '/fresh-organic-enoki-mushroom.jpg', // 파일 없음 -> BROCCOLI 사용
+  // OYSTER_MUSHROOM: '/fresh-organic-oyster-mushroom.jpg', // 파일 없음 -> BROCCOLI 사용
+  // SHIITAKE_MUSHROOM: '/fresh-organic-shiitake-mushroom.jpg', // 파일 없음 -> BROCCOLI 사용
+  // KING_OYSTER_MUSHROOM: '/fresh-organic-king-oyster-mushroom.jpg', // 파일 없음 -> BROCCOLI 사용
+  // BUTTON_MUSHROOM: '/fresh-organic-button-mushroom.jpg', // 파일 없음 -> BROCCOLI 사용
 
   // 농장/체험 관련
   FARM_GREENHOUSE: '/sunny-farm-with-greenhouse.jpg',
@@ -134,12 +134,14 @@ export function getProductImage(productName: string, productId: string): string 
 
   // 배추 관련
   if (name.includes('배추') || name.includes('napa cabbage')) {
-    return PRODUCT_IMAGES.NAPA_CABBAGE
+    // NAPA_CABBAGE 이미지가 없으므로 상추 이미지 사용
+    return PRODUCT_IMAGES.LETTUCE
   }
 
   // 양파 관련
   if (name.includes('양파') || name.includes('onion')) {
-    return PRODUCT_IMAGES.ONION
+    // ONION 이미지가 없으므로 상추 이미지 사용
+    return PRODUCT_IMAGES.LETTUCE
   }
 
   // 고추 관련
@@ -185,12 +187,14 @@ export function getProductImage(productName: string, productId: string): string 
 
   // 시금치 관련
   if (name.includes('시금치') || name.includes('spinach')) {
-    return PRODUCT_IMAGES.SPINACH
+    // SPINACH 이미지가 없으므로 상추 이미지 사용
+    return PRODUCT_IMAGES.LETTUCE
   }
 
   // 양배추 관련
   if (name.includes('양배추') || (name.includes('cabbage') && !name.includes('napa'))) {
-    return PRODUCT_IMAGES.CABBAGE
+    // CABBAGE 이미지가 없으므로 상추 이미지 사용
+    return PRODUCT_IMAGES.LETTUCE
   }
 
   // 가지 관련
@@ -206,17 +210,20 @@ export function getProductImage(productName: string, productId: string): string 
     name.includes('squash') ||
     name.includes('zucchini')
   ) {
-    return PRODUCT_IMAGES.PUMPKIN
+    // PUMPKIN 이미지가 없으므로 감자 이미지 사용
+    return PRODUCT_IMAGES.POTATO
   }
 
   // 고구마 관련
   if (name.includes('고구마') || name.includes('sweet potato') || name.includes('yam')) {
-    return PRODUCT_IMAGES.SWEET_POTATO
+    // SWEET_POTATO 이미지가 없으므로 감자 이미지 사용
+    return PRODUCT_IMAGES.POTATO
   }
 
   // 무 관련
   if (name.includes('무') || name.includes('radish') || name.includes('daikon')) {
-    return PRODUCT_IMAGES.RADISH
+    // RADISH 이미지가 없으므로 당근 이미지 사용
+    return PRODUCT_IMAGES.CARROT
   }
 
   // 파/대파 관련
@@ -231,7 +238,8 @@ export function getProductImage(productName: string, productId: string): string 
 
   // 마늘 관련
   if (name.includes('마늘') || name.includes('garlic')) {
-    return PRODUCT_IMAGES.GARLIC
+    // GARLIC 이미지가 없으므로 당근 이미지 사용
+    return PRODUCT_IMAGES.CARROT
   }
 
   // 생강 관련
@@ -266,17 +274,20 @@ export function getProductImage(productName: string, productId: string): string 
 
   // 케일 관련
   if (name.includes('케일') || name.includes('kale')) {
-    return PRODUCT_IMAGES.KALE
+    // KALE 이미지가 없으므로 상추 이미지 사용
+    return PRODUCT_IMAGES.LETTUCE
   }
 
   // 아스파라거스 관련
   if (name.includes('아스파라거스') || name.includes('asparagus')) {
-    return PRODUCT_IMAGES.ASPARAGUS
+    // ASPARAGUS 이미지가 없으므로 브로콜리 이미지 사용
+    return PRODUCT_IMAGES.BROCCOLI
   }
 
   // 콜리플라워 관련
   if (name.includes('콜리플라워') || name.includes('cauliflower')) {
-    return PRODUCT_IMAGES.CAULIFLOWER
+    // CAULIFLOWER 이미지가 없으므로 브로콜리 이미지 사용
+    return PRODUCT_IMAGES.BROCCOLI
   }
 
   // 피망/파프리카 관련
@@ -286,27 +297,26 @@ export function getProductImage(productName: string, productId: string): string 
     name.includes('bell pepper') ||
     name.includes('paprika')
   ) {
-    return PRODUCT_IMAGES.BELL_PEPPER
+    // BELL_PEPPER 이미지가 없으므로 토마토 이미지 사용
+    return PRODUCT_IMAGES.TOMATO
   }
 
-  // 버섯 관련 (더 세분화)
-  if (name.includes('팽이버섯') || name.includes('enoki')) {
-    return PRODUCT_IMAGES.ENOKI_MUSHROOM
-  }
-  if (name.includes('느타리') || name.includes('oyster mushroom')) {
-    return PRODUCT_IMAGES.OYSTER_MUSHROOM
-  }
-  if (name.includes('표고') || name.includes('shiitake')) {
-    return PRODUCT_IMAGES.SHIITAKE_MUSHROOM
-  }
-  if (name.includes('새송이') || name.includes('king oyster')) {
-    return PRODUCT_IMAGES.KING_OYSTER_MUSHROOM
-  }
-  if (name.includes('양송이') || name.includes('button mushroom')) {
-    return PRODUCT_IMAGES.BUTTON_MUSHROOM
-  }
-  if (name.includes('버섯') || name.includes('mushroom')) {
-    // 일반 버섯은 브로콜리 이미지 사용
+  // 버섯 관련 (더 세분화) - 모든 버섯 이미지가 없으므로 브로콜리 이미지 사용
+  if (
+    name.includes('팽이버섯') ||
+    name.includes('enoki') ||
+    name.includes('느타리') ||
+    name.includes('oyster mushroom') ||
+    name.includes('표고') ||
+    name.includes('shiitake') ||
+    name.includes('새송이') ||
+    name.includes('king oyster') ||
+    name.includes('양송이') ||
+    name.includes('button mushroom') ||
+    name.includes('버섯') ||
+    name.includes('mushroom')
+  ) {
+    // 모든 버섯 이미지가 없으므로 브로콜리 이미지 사용
     return PRODUCT_IMAGES.BROCCOLI
   }
 

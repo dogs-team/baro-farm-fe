@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { FileText, X, Loader2, Volume2, VolumeX } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { getUserId } from '@/lib/api/client'
 
 interface SummaryData {
   statistics?: Record<string, unknown>
@@ -114,9 +115,9 @@ export function SellerSummaryButton({ sellerId }: SellerSummaryButtonProps) {
     setShowResults(true)
 
     try {
-      // 게이트웨이 URL 구성
-      const gatewayUrl =
-        process.env.NEXT_PUBLIC_API_GATEWAY_URL?.replace(/\/$/, '') || 'http://3.34.14.73:8080'
+      // AI 서비스 URL 직접 사용 (게이트웨이 우회)
+      const aiServiceUrl =
+        process.env.NEXT_PUBLIC_AI_SERVICE_URL?.replace(/\/$/, '') || 'http://localhost:8092'
 
       // 어제 날짜 계산 (YYYY-MM-DD 형식)
       const yesterday = new Date()
@@ -126,13 +127,20 @@ export function SellerSummaryButton({ sellerId }: SellerSummaryButtonProps) {
       // EventSource는 헤더를 직접 설정할 수 없으므로, URL에 토큰을 포함하거나
       // fetch API를 사용하여 스트림을 읽어야 합니다.
       // 여기서는 fetch API를 사용하여 ReadableStream을 읽는 방식으로 구현합니다.
-      const url = `${gatewayUrl}/api/v1/seller-summary/${sellerId}/stream?date=${dateStr}`
+      const url = `${aiServiceUrl}/api/v1/seller-summary/${sellerId}/stream?date=${dateStr}`
+
+      // X-USER-ID 헤더 구성 (서버에서 필요할 수 있음)
+      const headers: HeadersInit = {
+        Accept: 'text/event-stream',
+      }
+      const userId = getUserId()
+      if (userId) {
+        headers['X-User-Id'] = userId
+      }
 
       const response = await fetch(url, {
         credentials: 'include', // [1] cookie 기반 인증
-        headers: {
-          Accept: 'text/event-stream',
-        },
+        headers,
       })
 
       if (!response.ok) {

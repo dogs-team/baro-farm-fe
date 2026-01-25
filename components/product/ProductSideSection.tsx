@@ -7,7 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 interface RelatedProduct {
-  id: number
+  id: string | number
   name: string
   price: number
   image: string
@@ -19,6 +19,7 @@ interface ProductSideSectionProps {
   farmId: string
   location: string
   relatedProducts: RelatedProduct[]
+  isLoading?: boolean
 }
 
 export function ProductSideSection({
@@ -26,6 +27,7 @@ export function ProductSideSection({
   farmId,
   location,
   relatedProducts,
+  isLoading = false,
 }: ProductSideSectionProps) {
   return (
     <div className="space-y-6">
@@ -45,32 +47,43 @@ export function ProductSideSection({
 
       <Card className="p-6">
         <h3 className="font-semibold mb-4">함께 구매하면 좋은 상품</h3>
-        <div className="space-y-4">
-          {relatedProducts.map((item) => (
-            <Link
-              key={item.id}
-              href={`/products/${item.id}`}
-              className="flex gap-3 hover:opacity-80 transition-opacity"
-            >
-              <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                <Image
-                  src={item.image || '/placeholder.svg'}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm mb-1 truncate">{item.name}</h4>
-                <div className="flex items-center gap-1 mb-1">
-                  <Star className="h-3 w-3 fill-primary text-primary" />
-                  <span className="text-xs">{item.rating}</span>
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">추천 상품을 불러오는 중...</div>
+        ) : relatedProducts.length === 0 ? (
+          <div className="text-sm text-muted-foreground">추천 상품이 없습니다.</div>
+        ) : (
+          <div className="space-y-4">
+            {relatedProducts.map((item) => (
+              <Link
+                key={item.id}
+                href={`/products/${item.id}`}
+                className="flex gap-3 hover:opacity-80 transition-opacity"
+              >
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                  <Image
+                    src={item.image || '/placeholder.svg'}
+                    alt={item.name}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
-                <p className="font-semibold text-sm">{(item.price || 0).toLocaleString()}원</p>
-              </div>
-            </Link>
-          ))}
-        </div>
+                <div className="flex-1 min-w-0">
+                  <h4
+                    className="font-medium text-sm mb-1 line-clamp-2 break-words"
+                    title={item.name}
+                  >
+                    {item.name}
+                  </h4>
+                  <div className="flex items-center gap-1 mb-1">
+                    <Star className="h-3 w-3 fill-primary text-primary" />
+                    <span className="text-xs">{item.rating}</span>
+                  </div>
+                  <p className="font-semibold text-sm">{(item.price || 0).toLocaleString()}원</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   )

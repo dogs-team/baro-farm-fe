@@ -23,6 +23,8 @@ import type { Product, Review, InventoryInfo } from '@/lib/api/types'
 import type { SellerInfoData } from '@/lib/api/types/seller'
 import { cartService } from '@/lib/api/services/cart'
 import { useProductDetailTracking } from '@/hooks/use-product-detail-tracking'
+import { useSimilarProducts } from '@/hooks/use-recommendations'
+import { getProductImage } from '@/lib/utils/product-images'
 
 export default function ProductDetailPage() {
   const router = useRouter()
@@ -36,7 +38,7 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [inventoryId, setInventoryId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const { addItem, getTotalItems } = useCartStore()
+  const { addItem } = useCartStore()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -118,6 +120,13 @@ export default function ProductDetailPage() {
     }
   }, [mounted, productId])
 
+  // 유사 상품 추천 조회 (함께 구매하면 좋은 상품)
+  const { data: similarProductsData, isLoading: isSimilarProductsLoading } = useSimilarProducts(
+    productId,
+    3, // topK: 3개 추천
+    !!productId // productId가 있을 때만 활성화
+  )
+
   // 상품명에 따른 이미지 매핑은 lib/utils/product-images.ts의 getProductImages 함수 사용
 
   // API에서 가져온 상품 데이터를 표시 형식으로 변환
@@ -150,29 +159,16 @@ export default function ProductDetailPage() {
       })()
     : null
 
-  const relatedProducts = [
-    {
-      id: 2,
-      name: '무농약 상추',
-      price: 5000,
-      image: '/fresh-organic-lettuce.png',
-      rating: 4.9,
-    },
-    {
-      id: 5,
-      name: '무농약 사과',
-      price: 18000,
-      image: '/images/apples.png',
-      rating: 4.9,
-    },
-    {
-      id: 6,
-      name: '유기농 당근',
-      price: 6500,
-      image: '/fresh-organic-carrots.jpg',
-      rating: 4.6,
-    },
-  ]
+  // 유사 상품 데이터를 ProductSideSection이 기대하는 형식으로 변환
+  const relatedProducts = similarProductsData
+    ? similarProductsData.map((item) => ({
+        id: item.productId,
+        name: item.productName,
+        price: item.price,
+        image: getProductImage(item.productName, item.productId),
+        rating: 0, // API 응답에 rating이 없으므로 기본값 0 사용
+      }))
+    : []
 
   const handleAddToCart = async () => {
     if (!displayProduct) return
@@ -391,6 +387,7 @@ export default function ProductDetailPage() {
           farmId={displayProduct.sellerId}
           location="" // 판매자 정보에서는 위치 정보가 없으므로 빈 문자열
           relatedProducts={relatedProducts}
+          isLoading={isSimilarProductsLoading}
         />
       </div>
     </DetailPageLayout>

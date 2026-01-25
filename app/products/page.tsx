@@ -57,90 +57,91 @@ interface DisplayProduct {
   rank?: number
 }
 
+// 각 fallback 상품에 고유한 ID 생성
 const FALLBACK_PRODUCTS: DisplayProduct[] = [
   {
-    id: SAMPLE_PRODUCT_ID,
+    id: `${SAMPLE_PRODUCT_ID}-fallback-1`,
     name: '친환경 딸기',
     storeName: '샘플 농장',
     price: 15000,
-    image: getProductImage('딸기', SAMPLE_PRODUCT_ID),
+    image: getProductImage('딸기', `${SAMPLE_PRODUCT_ID}-fallback-1`),
     rating: 4.8,
     reviews: 120,
     tag: '추천',
     category: '과일',
   },
   {
-    id: SAMPLE_PRODUCT_ID,
+    id: `${SAMPLE_PRODUCT_ID}-fallback-2`,
     name: '유기농 방울토마토',
     storeName: '샘플 팜',
     price: 8500,
-    image: getProductImage('토마토', SAMPLE_PRODUCT_ID),
+    image: getProductImage('토마토', `${SAMPLE_PRODUCT_ID}-fallback-2`),
     rating: 4.7,
     reviews: 96,
     tag: '인기',
     category: '과일',
   },
   {
-    id: SAMPLE_PRODUCT_ID,
+    id: `${SAMPLE_PRODUCT_ID}-fallback-3`,
     name: '무농약 상추',
     storeName: '샘플 농원',
     price: 5000,
-    image: getProductImage('상추', SAMPLE_PRODUCT_ID),
+    image: getProductImage('상추', `${SAMPLE_PRODUCT_ID}-fallback-3`),
     rating: 4.9,
     reviews: 88,
     tag: '신선',
     category: '채소',
   },
   {
-    id: SAMPLE_PRODUCT_ID,
+    id: `${SAMPLE_PRODUCT_ID}-fallback-4`,
     name: '국산 감자',
     storeName: '샘플 농장',
     price: 12000,
-    image: getProductImage('감자', SAMPLE_PRODUCT_ID),
+    image: getProductImage('감자', `${SAMPLE_PRODUCT_ID}-fallback-4`),
     rating: 4.6,
     reviews: 54,
     tag: '인기',
     category: '채소',
   },
   {
-    id: SAMPLE_PRODUCT_ID,
+    id: `${SAMPLE_PRODUCT_ID}-fallback-5`,
     name: '유기농 당근',
     storeName: '샘플 팜',
     price: 9000,
-    image: getProductImage('당근', SAMPLE_PRODUCT_ID),
+    image: getProductImage('당근', `${SAMPLE_PRODUCT_ID}-fallback-5`),
     rating: 4.5,
     reviews: 62,
     tag: '추천',
     category: '채소',
   },
   {
-    id: SAMPLE_PRODUCT_ID,
+    id: `${SAMPLE_PRODUCT_ID}-fallback-6`,
     name: '산지 직송 사과',
     storeName: '샘플 과수원',
     price: 18000,
-    image: getProductImage('사과', SAMPLE_PRODUCT_ID),
+    image: getProductImage('사과', `${SAMPLE_PRODUCT_ID}-fallback-6`),
     rating: 4.8,
     reviews: 140,
     tag: '인기',
     category: '과일',
   },
   {
-    id: SAMPLE_PRODUCT_ID,
+    id: `${SAMPLE_PRODUCT_ID}-fallback-7`,
     name: '국산 현미',
     storeName: '샘플 곡창',
     price: 21000,
-    image: getProductImage('현미', SAMPLE_PRODUCT_ID),
+    image: getProductImage('현미', `${SAMPLE_PRODUCT_ID}-fallback-7`),
     rating: 4.4,
     reviews: 33,
     tag: '추천',
     category: '곡물',
   },
   {
-    id: SAMPLE_PRODUCT_ID,
+    id: `${SAMPLE_PRODUCT_ID}-fallback-8`,
     name: '무농약 버섯',
     storeName: '샘플 농원',
     price: 11000,
-    image: getProductImage('버섯', SAMPLE_PRODUCT_ID),
+    image: getProductImage('버섯', `${SAMPLE_PRODUCT_ID}-fallback-8`),
     rating: 4.6,
     reviews: 45,
     tag: '신선',
@@ -153,11 +154,11 @@ export default function ProductsPage() {
   const [category, setCategory] = useState('all')
   const [sortBy, setSortBy] = useState('popular')
   const [displayProducts, setDisplayProducts] = useState<DisplayProduct[]>([])
-  const [rankingProducts, setRankingProducts] = useState<(DisplayProduct & { rank: number })[]>([])
+  const [rankingProducts] = useState<(DisplayProduct & { rank: number })[]>([])
   const [recommendedProducts, setRecommendedProducts] = useState<DisplayProduct[]>([])
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [isRankingLoading, setIsRankingLoading] = useState(false)
+  const [isRankingLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
   const [paginationInfo, setPaginationInfo] = useState<{
@@ -336,10 +337,59 @@ export default function ProductsPage() {
           })
           return
         }
-        // response.content가 배열인지 확인하고, 없으면 빈 배열로 설정
-        const productList = Array.isArray((response as any)?.content)
-          ? (response as any).content
-          : []
+
+        // 응답 구조 확인: PaginatedResponse는 { content: T[], ... } 형태
+        // 또는 게이트웨이를 거치면 { data: PaginatedResponse } 형태일 수 있음
+        let productList: any[] = []
+        let paginationData: any = {}
+
+        if (Array.isArray(response)) {
+          // 응답이 배열인 경우 (직접 서비스 응답)
+          productList = response
+          paginationData = {
+            totalPages: 1,
+            totalElements: response.length,
+            hasNext: false,
+            hasPrevious: false,
+            page: 0,
+            size: response.length,
+          }
+        } else if ((response as any)?.content && Array.isArray((response as any).content)) {
+          // PaginatedResponse 형태: { content: [...], totalPages, ... }
+          productList = (response as any).content
+          paginationData = {
+            totalPages: (response as any).totalPages || 0,
+            totalElements: (response as any).totalElements || 0,
+            hasNext: (response as any).hasNext || false,
+            hasPrevious: (response as any).hasPrevious || false,
+            page: (response as any).page || 0,
+            size: (response as any).size || 20,
+          }
+        } else if ((response as any)?.data) {
+          // { data: PaginatedResponse } 형태
+          const data = (response as any).data
+          if (Array.isArray(data)) {
+            productList = data
+            paginationData = {
+              totalPages: 1,
+              totalElements: data.length,
+              hasNext: false,
+              hasPrevious: false,
+              page: 0,
+              size: data.length,
+            }
+          } else if (data?.content && Array.isArray(data.content)) {
+            productList = data.content
+            paginationData = {
+              totalPages: data.totalPages || 0,
+              totalElements: data.totalElements || 0,
+              hasNext: data.hasNext || false,
+              hasPrevious: data.hasPrevious || false,
+              page: data.page || 0,
+              size: data.size || 20,
+            }
+          }
+        }
 
         if (productList.length === 0) {
           setDisplayProducts(FALLBACK_PRODUCTS)
@@ -391,17 +441,6 @@ export default function ProductsPage() {
           })
         )
         setDisplayProducts(productsWithSellerInfo)
-
-        // 페이지네이션 정보 저장
-        const paginationData = {
-          totalPages: (response as any).totalPages || 0,
-          totalElements: (response as any).totalElements || 0,
-          hasNext: (response as any).hasNext || false,
-          hasPrevious: (response as any).hasPrevious || false,
-          page: (response as any).page || 0,
-          size: (response as any).size || 20,
-        }
-        console.log('페이지네이션 정보:', paginationData)
         setPaginationInfo(paginationData)
       } catch (error) {
         console.error('상품 조회 실패:', error)
@@ -630,9 +669,9 @@ export default function ProductsPage() {
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {filteredAndSortedProducts.map((product) => (
+              {filteredAndSortedProducts.map((product, index) => (
                 <ProductCard
-                  key={product.id}
+                  key={`product-${product.id}-${index}`}
                   id={product.id}
                   name={product.name}
                   storeName={product.storeName}

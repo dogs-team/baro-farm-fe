@@ -1,4 +1,4 @@
-import { productApi, aiApi } from '../client'
+import { productApi } from '../client'
 import type {
   Product,
   ProductListParams,
@@ -7,7 +7,7 @@ import type {
   ProductDetailInfo,
   PaginatedResponse,
 } from '../types'
-import { getUserId, getAccessToken } from '../client' // Assume client.ts exports helpers or use local storage directly
+import { getUserId } from '../client' // Assume client.ts exports helpers or use local storage directly
 
 // Helper to get role (In a real app, this should be better managed)
 const getUserRole = () => {
@@ -19,13 +19,69 @@ const getUserRole = () => {
 export const productService = {
   // 상품 목록 조회
   async getProducts(params?: ProductListParams): Promise<PaginatedResponse<Product>> {
-    const response = await productApi.get<{ data: PaginatedResponse<Product> }>(
-      '/api/v1/products',
-      {
-        params: params as Record<string, string | number | boolean | undefined>,
+    const response = await productApi.get<
+      | { status: number; data: PaginatedResponse<Product> | null; message: string | null }
+      | { data: PaginatedResponse<Product> }
+      | PaginatedResponse<Product>
+    >('/api/v1/products', {
+      params: params as Record<string, string | number | boolean | undefined>,
+    })
+
+    // 응답 구조 확인
+    // 1. ResponseDto 형태: { status: 200, data: PaginatedResponse, message: null }
+    if (
+      (response as { status?: number; data?: unknown })?.status !== undefined &&
+      (response as { data?: unknown })?.data !== undefined
+    ) {
+      const responseDto = response as {
+        status: number
+        data: PaginatedResponse<Product> | null
+        message: string | null
       }
-    )
-    return response.data
+      if (responseDto.data === null) {
+        // data가 null이면 빈 응답 반환
+        return {
+          content: [],
+          totalElements: 0,
+          totalPages: 0,
+          page: 0,
+          size: 20,
+          hasNext: false,
+          hasPrevious: false,
+        }
+      }
+      // data가 PaginatedResponse인지 확인
+      if (responseDto.data.content && Array.isArray(responseDto.data.content)) {
+        return responseDto.data
+      }
+    }
+
+    // 2. { data: PaginatedResponse } 형태 (게이트웨이)
+    if (
+      (response as { data?: { content?: unknown } })?.data &&
+      (response as { data: { content?: unknown } }).data.content
+    ) {
+      return (response as { data: PaginatedResponse<Product> }).data
+    }
+
+    // 3. PaginatedResponse 형태 (직접 서비스)
+    if (
+      (response as { content?: unknown })?.content &&
+      Array.isArray((response as { content: unknown[] }).content)
+    ) {
+      return response as PaginatedResponse<Product>
+    }
+
+    // 예상치 못한 형태
+    return {
+      content: [],
+      totalElements: 0,
+      totalPages: 0,
+      page: 0,
+      size: 20,
+      hasNext: false,
+      hasPrevious: false,
+    }
   },
 
   // 상품 생성 (multipart/form-data)

@@ -49,7 +49,11 @@ export const API_URLS = {
     process.env.NEXT_PUBLIC_AI_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_AI_SERVICE_URL.replace(/\/$/, '')
       : `${GATEWAY_URL}/ai-service`,
-  SUPPORT: `${GATEWAY_URL}/support-service`,
+  SUPPORT:
+    process.env.NEXT_PUBLIC_SUPPORT_SERVICE_URL &&
+    process.env.NEXT_PUBLIC_SUPPORT_SERVICE_URL.trim().length > 0
+      ? process.env.NEXT_PUBLIC_SUPPORT_SERVICE_URL.replace(/\/$/, '')
+      : `${GATEWAY_URL}/support-service`,
 }
 
 // ==========
@@ -145,6 +149,43 @@ export const setAuthTokens = (tokens: StoredTokens | null) => {
   }
   if (tokens.userRole) {
     setUserRole(tokens.userRole)
+  }
+}
+
+/**
+ * 쿠키 확인 유틸리티 함수 (디버깅용)
+ * HttpOnly 쿠키는 JavaScript에서 읽을 수 없으므로, 일반 쿠키만 확인 가능합니다.
+ */
+export const checkCookies = (): {
+  accessToken: string | null
+  refreshToken: string | null
+  allCookies: Record<string, string>
+} => {
+  if (typeof window === 'undefined') {
+    return {
+      accessToken: null,
+      refreshToken: null,
+      allCookies: {},
+    }
+  }
+
+  const cookieString = document.cookie
+  const cookies: Record<string, string> = {}
+
+  if (cookieString) {
+    cookieString.split(';').forEach((cookie) => {
+      const [name, ...valueParts] = cookie.trim().split('=')
+      const value = valueParts.join('=')
+      if (name) {
+        cookies[name] = decodeURIComponent(value || '')
+      }
+    })
+  }
+
+  return {
+    accessToken: cookies.access_token || cookies.accessToken || null,
+    refreshToken: cookies.refresh_token || cookies.refreshToken || null,
+    allCookies: cookies,
   }
 }
 
@@ -399,7 +440,12 @@ class ApiClient {
       const text = await response.text()
       if (!text) return {} as T
 
-      return JSON.parse(text) as T
+      try {
+        return JSON.parse(text) as T
+      } catch (parseError) {
+        console.error('[ApiClient] JSON 파싱 실패:', { url, text, error: parseError })
+        throw parseError
+      }
     }
 
     try {
