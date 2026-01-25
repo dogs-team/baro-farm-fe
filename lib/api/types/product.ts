@@ -6,6 +6,7 @@ export type ProductStatus = 'ON_SALE' | 'DISCOUNTED' | 'SOLD_OUT' | 'HIDDEN' | '
 
 // 백엔드에서 그대로 반환하는 Product DB
 export interface Product {
+  farmName: string
   id: string // UUID
   sellerId: string // UUID
   productName: string

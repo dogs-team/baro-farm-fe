@@ -11,7 +11,8 @@ export interface CartItem {
   image: string
   farm: string
   productId?: string // 실제 상품 UUID
-  sellerId?: string // 판매자 UUID
+  sellerId?: string
+  inventoryId?: string // 판매자 UUID
   maxQuantity?: number
   options?: string // 옵션 정보 (JSON 문자열)
 }

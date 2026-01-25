@@ -4,14 +4,10 @@
 export interface CartItemInfo {
   itemId: string // UUID
   productId: string // UUID
-  productName: string
-  productCategoryName: string
-  quantity: number // Integer
-  unitPrice: number // Long
-  lineTotalPrice: number // Long
-  inventoryId: string // UUID
-  unit: number // Integer (재고 단위)
-  // Legacy fields for backward compatibility
+  inventoryId?: string // UUID
+  quantity: number
+  unitPrice: number
+  lineTotalPrice: number
   optionInfoJson?: string
   productImage?: string // Optional for display
 }
@@ -33,11 +29,10 @@ export interface CartResponse {
 }
 
 export interface AddItemRequest {
-  productId: string // UUID
-  quantity: number // Integer
-  unitPrice: number // Long
+  productId: string | number // UUID or legacy number
+  quantity: number
+  unitPrice: number
   inventoryId: string // UUID
-  // Legacy fields for backward compatibility
   optionInfoJson?: string
 }
 
