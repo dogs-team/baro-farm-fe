@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { validateUrl } from '../security'
-import { getOrCreateSessionKey } from '../utils/session'
+import { getOrCreateSessionKey, getSessionKey, setSessionKey } from '../utils/session'
 
 // ==========
 // 환경 변수 및 기본 URL
@@ -531,3 +531,9 @@ export interface ApiResponse<T = any> {
   data: T
   message?: string
 }
+
+// ==========
+// Session Key 유틸리티 re-export
+// ==========
+
+export { getSessionKey, setSessionKey }
