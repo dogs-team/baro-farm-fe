@@ -4,21 +4,25 @@
 export interface CartItemInfo {
   itemId: string // UUID
   productId: string // UUID
-  quantity: number
-  unitPrice: number
-  lineTotalPrice: number
+  productName: string
+  productCategoryName: string
+  quantity: number // Integer
+  unitPrice: number // Long
+  lineTotalPrice: number // Long
+  inventoryId: string // UUID
+  unit: number // Integer (재고 단위)
+  // Legacy fields for backward compatibility
   optionInfoJson?: string
-  productName?: string // Optional for display
   productImage?: string // Optional for display
 }
 
 export interface CartInfo {
-  cartId: string // UUID
-  buyerId: string // UUID
+  cartId: string | null // UUID (null if empty)
+  buyerId: string | null // UUID (null if guest)
   items: CartItemInfo[]
-  totalPrice: number
-  createdAt: string
-  updatedAt: string
+  totalPrice: number // Long
+  createdAt: string | null // ISO 8601
+  updatedAt: string | null // ISO 8601
 }
 
 // API Response Types
@@ -29,9 +33,11 @@ export interface CartResponse {
 }
 
 export interface AddItemRequest {
-  productId: string | number // UUID or legacy number
-  quantity: number
-  unitPrice: number
+  productId: string // UUID
+  quantity: number // Integer
+  unitPrice: number // Long
+  inventoryId: string // UUID
+  // Legacy fields for backward compatibility
   optionInfoJson?: string
 }
 
@@ -40,8 +46,7 @@ export interface UpdateQuantityRequest {
 }
 
 export interface UpdateOptionRequest {
-  // Option fields to be defined based on backend
-  [key: string]: unknown
+  inventoryId: string // UUID - 변경할 재고 옵션 ID
 }
 
 // Legacy types for backward compatibility

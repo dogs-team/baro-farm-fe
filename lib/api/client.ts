@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { validateUrl } from '../security'
+import { getOrCreateSessionKey } from '../utils/session'
 
 // ==========
 // 환경 변수 및 기본 URL
@@ -658,7 +659,27 @@ class ApiClient {
   }
 
   private buildUrl(endpoint: string, params?: RequestOptions['params']): string {
-    return buildUrlFromBase(this.baseUrl, endpoint, params)
+    // endpoint가 '/'로 시작하면 URL(base, endpoint) 사용 시 base의 path가 사라지므로
+    // 직접 문자열로 합쳐서 path를 보존한다. (예: http://host/buyer-service + /api/v1/products)
+    const base = this.baseUrl.replace(/\/$/, '')
+    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+    const url = new URL(base + path)
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === null) return
+        // 배열인 경우 각 요소를 별도의 쿼리 파라미터로 추가
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (item !== undefined && item !== null) {
+              url.searchParams.append(key, String(item))
+            }
+          })
+        } else {
+          url.searchParams.append(key, String(value))
+        }
+      })
+    }
+    return url.toString()
   }
 
   private buildHeaders(options?: RequestInit): HeadersInit {
@@ -673,11 +694,25 @@ class ApiClient {
     // Authorization 헤더
     // [8] cookie 인증이므로 Authorization 헤더 미사용
 
-    // 주문/예치금 등에서 사용하는 X-User-Id 헤더
-    // [9] X-User-Id 헤더는 사용하지 않음
+    // X-User-Id 헤더 (로그인 사용자)
+    if (typeof window !== 'undefined') {
+      const userId = getUserId()
+      if (userId) {
+        headers['X-User-Id'] = userId
+      } else {
+        // 비로그인 사용자: X-Session-Key 헤더 추가
+        const sessionKey = getOrCreateSessionKey()
+        if (sessionKey) {
+          headers['X-Session-Key'] = sessionKey
+        }
+      }
 
-    // 상품 등록 등에서 사용하는 X-User-Role 헤더
-    // [10] X-User-Role 헤더는 사용하지 않음
+      // X-User-Role 헤더 (관리자/판매자 전용 API)
+      const userRole = getUserRole()
+      if (userRole) {
+        headers['X-User-Role'] = userRole
+      }
+    }
 
     return {
       ...headers,
@@ -964,6 +999,8 @@ export const aiApi = new ApiClient(API_URLS.AI)
 
 // Support 서비스 (검색, 리뷰, 체험, 정산, 배송, 예치금 등)
 export const supportApi = new ApiClient(API_URLS.SUPPORT)
+// 검색 API는 AI 서비스를 사용합니다 (STEP_01_SEARCH_MODULE.md 참고)
+// searchApi는 하위 호환성을 위해 유지하지만, searchService는 aiApi를 직접 사용합니다
 export const searchApi = supportApi
 export const reviewApi = supportApi
 export const experienceApi = supportApi
