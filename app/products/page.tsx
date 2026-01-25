@@ -26,6 +26,11 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { getProductImage } from '@/lib/utils/product-images'
+import { getUserId } from '@/lib/api/client'
+
+const PRODUCT_LIST_TIMEOUT_MS = 4000
+const RECOMMENDATION_TIMEOUT_MS = 2500
+const SAMPLE_PRODUCT_ID = 'c33e13c9-43d2-4b50-8630-3e9605a0b63b'
 
 // 카테고리 한글 변환 맵 (컴포넌트 외부로 이동하여 useMemo 의존성 문제 해결)
 const categoryMap: Record<string, string> = {
@@ -52,12 +57,105 @@ interface DisplayProduct {
   rank?: number
 }
 
+const FALLBACK_PRODUCTS: DisplayProduct[] = [
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '친환경 딸기',
+    storeName: '샘플 농장',
+    price: 15000,
+    image: getProductImage('딸기', SAMPLE_PRODUCT_ID),
+    rating: 4.8,
+    reviews: 120,
+    tag: '추천',
+    category: '과일',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '유기농 방울토마토',
+    storeName: '샘플 팜',
+    price: 8500,
+    image: getProductImage('토마토', SAMPLE_PRODUCT_ID),
+    rating: 4.7,
+    reviews: 96,
+    tag: '인기',
+    category: '과일',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '무농약 상추',
+    storeName: '샘플 농원',
+    price: 5000,
+    image: getProductImage('상추', SAMPLE_PRODUCT_ID),
+    rating: 4.9,
+    reviews: 88,
+    tag: '신선',
+    category: '채소',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '국산 감자',
+    storeName: '샘플 농장',
+    price: 12000,
+    image: getProductImage('감자', SAMPLE_PRODUCT_ID),
+    rating: 4.6,
+    reviews: 54,
+    tag: '인기',
+    category: '채소',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '유기농 당근',
+    storeName: '샘플 팜',
+    price: 9000,
+    image: getProductImage('당근', SAMPLE_PRODUCT_ID),
+    rating: 4.5,
+    reviews: 62,
+    tag: '추천',
+    category: '채소',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '산지 직송 사과',
+    storeName: '샘플 과수원',
+    price: 18000,
+    image: getProductImage('사과', SAMPLE_PRODUCT_ID),
+    rating: 4.8,
+    reviews: 140,
+    tag: '인기',
+    category: '과일',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '국산 현미',
+    storeName: '샘플 곡창',
+    price: 21000,
+    image: getProductImage('현미', SAMPLE_PRODUCT_ID),
+    rating: 4.4,
+    reviews: 33,
+    tag: '추천',
+    category: '곡물',
+  },
+  {
+    id: SAMPLE_PRODUCT_ID,
+    name: '무농약 버섯',
+    storeName: '샘플 농원',
+    price: 11000,
+    image: getProductImage('버섯', SAMPLE_PRODUCT_ID),
+    rating: 4.6,
+    reviews: 45,
+    tag: '신선',
+    category: '버섯',
+  },
+]
+
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [sortBy, setSortBy] = useState('popular')
   const [displayProducts, setDisplayProducts] = useState<DisplayProduct[]>([])
   const [rankingProducts, setRankingProducts] = useState<(DisplayProduct & { rank: number })[]>([])
+  const [recommendedProducts, setRecommendedProducts] = useState<DisplayProduct[]>([])
+  const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isRankingLoading, setIsRankingLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -74,6 +172,66 @@ export default function ProductsPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!mounted) return
+
+      setIsRecommendationsLoading(true)
+      try {
+        const userId = getUserId()
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), RECOMMENDATION_TIMEOUT_MS)
+
+        const endpoint = userId
+          ? `/api/recommendations/products?topK=5&userId=${encodeURIComponent(userId)}`
+          : '/api/recommendations/products?topK=5'
+
+        const response = await fetch(endpoint, { signal: controller.signal })
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error('Failed to load recommendations')
+        }
+
+        const payload = await response.json()
+        const rawItems = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload)
+            ? payload
+            : []
+
+        const mapped = rawItems.slice(0, 5).map((item: any) => {
+          const productId = String(item.productId || item.id || SAMPLE_PRODUCT_ID)
+          const productName = item.productName || item.name || '추천 상품'
+          return {
+            id: productId,
+            name: productName,
+            storeName: item.storeName || item.farmName || '추천 농장',
+            price: Number(item.price) || 0,
+            image: item.imageUrl || item.image || getProductImage(productName, productId),
+            rating: Number(item.rating) || 0,
+            reviews: Number(item.reviewCount) || 0,
+            tag: '추천',
+            category: item.categoryName || '기타',
+          } as DisplayProduct
+        })
+
+        if (mapped.length === 0) {
+          throw new Error('Empty recommendations')
+        }
+
+        setRecommendedProducts(mapped)
+      } catch (error) {
+        console.warn('[Products] Fallback recommendations used:', error)
+        setRecommendedProducts(FALLBACK_PRODUCTS.slice(0, 5))
+      } finally {
+        setIsRecommendationsLoading(false)
+      }
+    }
+
+    fetchRecommendations()
+  }, [mounted])
 
   // 실시간 랭킹 상품 로드 (주석처리)
   // useEffect(() => {
@@ -155,13 +313,50 @@ export default function ProductsPage() {
         if (searchQuery.trim()) {
           params.keyword = searchQuery.trim()
         }
-        const response = await productService.getProducts(params)
+        let timeoutId: ReturnType<typeof setTimeout> | null = null
+        const timeoutPromise = new Promise<null>((resolve) => {
+          timeoutId = setTimeout(() => resolve(null), PRODUCT_LIST_TIMEOUT_MS)
+        })
+
+        const response = await Promise.race([productService.getProducts(params), timeoutPromise])
+
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+        }
+
+        if (!response) {
+          setDisplayProducts(FALLBACK_PRODUCTS)
+          setPaginationInfo({
+            totalPages: 1,
+            totalElements: FALLBACK_PRODUCTS.length,
+            hasNext: false,
+            hasPrevious: false,
+            page: 0,
+            size: FALLBACK_PRODUCTS.length,
+          })
+          return
+        }
         // response.content가 배열인지 확인하고, 없으면 빈 배열로 설정
-        const productList = Array.isArray(response?.content) ? response.content : []
+        const productList = Array.isArray((response as any)?.content)
+          ? (response as any).content
+          : []
+
+        if (productList.length === 0) {
+          setDisplayProducts(FALLBACK_PRODUCTS)
+          setPaginationInfo({
+            totalPages: 1,
+            totalElements: FALLBACK_PRODUCTS.length,
+            hasNext: false,
+            hasPrevious: false,
+            page: 0,
+            size: FALLBACK_PRODUCTS.length,
+          })
+          return
+        }
 
         // 각 상품의 판매자 정보를 가져와서 displayProducts 생성
         const productsWithSellerInfo = await Promise.all(
-          productList.map(async (product) => {
+          productList.map(async (product: any) => {
             const productName = product.productName
             const defaultImage = getProductImage(productName, product.id)
 
@@ -199,20 +394,27 @@ export default function ProductsPage() {
 
         // 페이지네이션 정보 저장
         const paginationData = {
-          totalPages: response.totalPages || 0,
-          totalElements: response.totalElements || 0,
-          hasNext: response.hasNext || false,
-          hasPrevious: response.hasPrevious || false,
-          page: response.page || 0,
-          size: response.size || 20,
+          totalPages: (response as any).totalPages || 0,
+          totalElements: (response as any).totalElements || 0,
+          hasNext: (response as any).hasNext || false,
+          hasPrevious: (response as any).hasPrevious || false,
+          page: (response as any).page || 0,
+          size: (response as any).size || 20,
         }
         console.log('페이지네이션 정보:', paginationData)
         setPaginationInfo(paginationData)
       } catch (error) {
         console.error('상품 조회 실패:', error)
         // 에러 발생 시 빈 배열로 설정
-        setDisplayProducts([])
-        setPaginationInfo(null)
+        setDisplayProducts(FALLBACK_PRODUCTS)
+        setPaginationInfo({
+          totalPages: 1,
+          totalElements: FALLBACK_PRODUCTS.length,
+          hasNext: false,
+          hasPrevious: false,
+          page: 0,
+          size: FALLBACK_PRODUCTS.length,
+        })
       } finally {
         setIsLoading(false)
       }
@@ -282,6 +484,41 @@ export default function ProductsPage() {
         <div className="container mx-auto px-4">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">농산물 장터</h1>
           <p className="text-muted-foreground">신선한 농산물을 농장에서 직접 배송받으세요</p>
+        </div>
+      </section>
+
+      {/* Recommendations */}
+      <section className="py-8 border-b bg-background">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold">추천 상품 TOP 5</h2>
+              <p className="text-sm text-muted-foreground">
+                사용자 활동 기반으로 선별한 추천 상품이에요.
+              </p>
+            </div>
+          </div>
+
+          {isRecommendationsLoading && recommendedProducts.length === 0 ? (
+            <div className="text-sm text-muted-foreground">추천 상품 불러오는 중...</div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {recommendedProducts.map((product) => (
+                <ProductCard
+                  key={`recommend-${product.id}-${product.name}`}
+                  id={product.id}
+                  name={product.name}
+                  storeName={product.storeName}
+                  price={product.price}
+                  originalPrice={product.originalPrice}
+                  image={product.image}
+                  rating={product.rating}
+                  reviews={product.reviews}
+                  tag={product.tag}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

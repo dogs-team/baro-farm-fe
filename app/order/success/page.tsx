@@ -6,7 +6,6 @@ import { Sprout, CheckCircle, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
-import { paymentService } from '@/lib/api/services/payment'
 import { useToast } from '@/hooks/use-toast'
 
 function OrderSuccessPageContent() {
@@ -35,11 +34,22 @@ function OrderSuccessPageContent() {
           amount: paymentAmount,
         })
 
-        await paymentService.confirmPayment({
-          paymentKey,
-          orderId,
-          amount: paymentAmount,
+        const response = await fetch('/api/payments/toss/confirm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            paymentKey,
+            orderId,
+            amount: paymentAmount,
+          }),
         })
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}))
+          throw new Error(payload?.message || '결제 승인 중 오류가 발생했습니다.')
+        }
 
         setIsError(false)
         setErrorMessage(null)

@@ -11,6 +11,29 @@ import { CheckoutView, type CheckoutItem } from './CheckoutView'
 import { Button } from '@/components/ui/button'
 import type { Address } from '@/lib/api/types'
 
+const MOCK_CHECKOUT_ITEMS: CheckoutItem[] = [
+  {
+    id: 1,
+    productId: 'c33e13c9-43d2-4b50-8630-3e9605a0b63b',
+    sellerId: 'mock-seller',
+    name: '친환경 딸기',
+    price: 15000,
+    image: '/images/strawberries.png',
+    farm: '샘플 농장',
+    quantity: 2,
+  },
+  {
+    id: 2,
+    productId: 'c33e13c9-43d2-4b50-8630-3e9605a0b63b',
+    sellerId: 'mock-seller',
+    name: '유기농 방울토마토',
+    price: 8500,
+    image: '/fresh-organic-cherry-tomatoes.jpg',
+    farm: '샘플 팜',
+    quantity: 1,
+  },
+]
+
 export function CheckoutContainer() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -20,6 +43,7 @@ export function CheckoutContainer() {
   // 바로 구매 데이터 확인 (sessionStorage에서 직접 읽기)
   const [buyNowItem, setBuyNowItem] = useState<any>(null)
   const isBuyNow = searchParams.get('buyNow') === 'true'
+  const isMockCheckout = searchParams.get('mock') === 'true'
 
   useEffect(() => {
     if (!mounted) return
@@ -299,6 +323,15 @@ export function CheckoutContainer() {
         }
 
         if (checkCount >= maxChecks && !hasBuyNowInStorage) {
+          if (isMockCheckout) {
+            setIsLoadingItems(false)
+            isCleanedUp = true
+            if (intervalId) {
+              clearInterval(intervalId)
+              intervalId = null
+            }
+            return true
+          }
           console.log('[Checkout] No items found after max checks, redirecting to cart...')
           setIsLoadingItems(false)
           isCleanedUp = true
@@ -375,7 +408,7 @@ export function CheckoutContainer() {
         }
       }
 
-      if (checkoutItems.length === 0 && items.length === 0 && !finalHasBuyNow) {
+      if (checkoutItems.length === 0 && items.length === 0 && !finalHasBuyNow && !isMockCheckout) {
         console.log('[Checkout] 최대 대기 시간 후에도 아이템 없음, 장바구니로 리다이렉트')
         router.push('/cart')
       } else if (finalHasBuyNow) {
@@ -421,6 +454,7 @@ export function CheckoutContainer() {
               id: Number(buyNowItem.productId) || 0,
               productId: buyNowItem.productId,
               sellerId: buyNowItem.sellerId,
+              inventoryId: buyNowItem.inventoryId,
               name: buyNowItem.name,
               price: buyNowItem.price,
               image: buyNowItem.image,
@@ -431,27 +465,28 @@ export function CheckoutContainer() {
             },
           ]
         : []
-      : items.map((item) => ({
-          id: item.id,
-          productId: item.productId || String(item.id),
-          sellerId: item.sellerId || '',
-          name: item.name,
-          price: item.price,
-          image: item.image,
-          farm: item.farm,
-          quantity: item.quantity,
-          options: item.options,
-        }))
+      : items.length > 0
+        ? items.map((item) => ({
+            id: item.id,
+            productId: item.productId || String(item.id),
+            sellerId: item.sellerId || '',
+            inventoryId: item.inventoryId,
+            name: item.name,
+            price: item.price,
+            image: item.image,
+            farm: item.farm,
+            quantity: item.quantity,
+            options: item.options,
+          }))
+        : isMockCheckout
+          ? MOCK_CHECKOUT_ITEMS
+          : []
     : []
 
   const isLoadingBuyNow = isBuyNow && !buyNowItem
   const [isLoadingItems, setIsLoadingItems] = useState(true)
   const totalPrice = mounted
-    ? isBuyNow
-      ? buyNowItem
-        ? buyNowItem.price * buyNowItem.quantity
-        : 0
-      : items.reduce((total, item) => total + item.price * item.quantity, 0)
+    ? checkoutItems.reduce((total, item) => total + item.price * item.quantity, 0)
     : 0
   const deliveryFee = 0
   const finalPrice = totalPrice + deliveryFee
@@ -521,8 +556,9 @@ export function CheckoutContainer() {
         items: checkoutItems.map((item) => {
           const productId = item.productId
           const sellerId = item.sellerId
+          const inventoryId = item.inventoryId
 
-          if (!productId || !sellerId) {
+          if (!productId || !sellerId || !inventoryId) {
             throw new Error(
               '상품 정보가 올바르지 않습니다. 상품 상세 페이지에서 다시 시도해주세요.'
             )
@@ -530,6 +566,8 @@ export function CheckoutContainer() {
 
           return {
             productId,
+            productName: item.name,
+            inventoryId,
             sellerId,
             quantity: item.quantity,
             unitPrice: item.price,
@@ -708,7 +746,7 @@ export function CheckoutContainer() {
   }
 
   // 아이템이 없으면 장바구니로 리다이렉트
-  if (checkoutItems.length === 0 && items.length === 0 && !isBuyNow) {
+  if (checkoutItems.length === 0 && items.length === 0 && !isBuyNow && !isMockCheckout) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -740,6 +778,7 @@ export function CheckoutContainer() {
       isDepositInsufficient={isDepositInsufficient}
       isProcessing={isProcessing}
       onSubmit={handleSubmit}
+      isMockCheckout={isMockCheckout}
     />
   )
 }

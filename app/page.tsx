@@ -34,7 +34,7 @@ export default function HomePage() {
       tag: '신선',
     },
     {
-      id: 3,
+      id: '22222222-2222-2222-2222-222222222222',
       name: '친환경 딸기',
       farm: '달콤농원',
       location: '전북 완주',

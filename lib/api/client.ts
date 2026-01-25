@@ -39,6 +39,11 @@ export const API_URLS = {
     process.env.NEXT_PUBLIC_ORDER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_ORDER_SERVICE_URL.replace(/\/$/, '')
       : `${GATEWAY_URL}/order-service`,
+  PAYMENT:
+    process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL &&
+    process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL.trim().length > 0
+      ? process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL.replace(/\/$/, '')
+      : `${GATEWAY_URL}/payment-service`,
   AI:
     process.env.NEXT_PUBLIC_AI_SERVICE_URL &&
     process.env.NEXT_PUBLIC_AI_SERVICE_URL.trim().length > 0
@@ -499,7 +504,7 @@ export const buyerApi = new ApiClient(API_URLS.BUYER)
 export const cartApi = buyerApi
 export const sellerApi = new ApiClient(API_URLS.SELLER)
 export const orderApi = new ApiClient(API_URLS.ORDER)
-export const paymentApi = orderApi // 결제/예치금은 Order 서비스 사용
+export const paymentApi = new ApiClient(API_URLS.PAYMENT) // 결제/예치금은 Order 서비스 사용
 export const aiApi = new ApiClient(API_URLS.AI)
 
 // Support 서비스 (리뷰, 체험, 정산, 배송 등)

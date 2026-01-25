@@ -29,10 +29,18 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.tosspayments.com", // Next.js 및 토스페이먼츠 스크립트
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
-              `connect-src 'self' http://${gatewayHost}:8080 https://api.tosspayments.com`, // API Gateway 및 토스페이먼츠
+              // ✅ 여기 핵심: Toss가 실제로 쓰는 도메인 추가
+              `connect-src 'self' http://${gatewayHost}:8080 https://api.tosspayments.com https://log.tosspayments.com https://event.tosspayments.com https://apigw-sandbox.tosspayments.com`,
+
+              // ✅ 결제창/위젯 동작을 위한 frame 허용
+              "frame-src 'self' https://*.tosspayments.com",
+              "child-src 'self' https://*.tosspayments.com",
+
+              // ✅ 중복 제거하고 한 번만
+              "form-action 'self' https://*.tosspayments.com",
+
               "frame-ancestors 'none'",
               "base-uri 'self'",
-              "form-action 'self'",
             ].join('; '),
           },
           {
