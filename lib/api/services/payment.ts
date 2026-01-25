@@ -1,4 +1,4 @@
-import { paymentApi, orderApi } from '../client'
+import { paymentApi, supportApi } from '../client'
 import type {
   TossPaymentConfirmRequest,
   TossPaymentRefundRequest,
@@ -28,12 +28,12 @@ export const paymentService = {
 export const depositService = {
   // 예치금 계정 생성 (회원가입 시 자동 생성)
   async createDeposit(): Promise<void> {
-    await orderApi.post('/api/v1/deposits/create')
+    await supportApi.post('/api/v1/deposits/create')
   },
 
   // 예치금 조회
   async getDeposit(): Promise<{ amount: number; userId?: string }> {
-    const response = await orderApi.get<{ data: { userId?: string; amount: number } }>(
+    const response = await supportApi.get<{ data: { userId?: string; amount: number } }>(
       '/api/v1/deposits'
     )
     // API 응답이 { status, data: { userId, amount }, message } 형태이므로 data 필드 추출
@@ -44,7 +44,7 @@ export const depositService = {
   async createCharge(
     data: DepositChargeCreateRequest
   ): Promise<{ chargeId: string; amount: number }> {
-    const response = await orderApi.post<{ data: { chargeId: string; amount: number } }>(
+    const response = await supportApi.post<{ data: { chargeId: string; amount: number } }>(
       '/api/v1/deposits/charges',
       data
     )
@@ -54,11 +54,11 @@ export const depositService = {
 
   // 예치금으로 주문 결제
   async payWithDeposit(data: DepositPaymentRequest): Promise<Payment> {
-    return orderApi.post<Payment>('/api/v1/deposits/pay', data)
+    return supportApi.post<Payment>('/api/v1/deposits/pay', data)
   },
 
   // 예치금 결제 환불
   async refundDeposit(data: DepositRefundRequest): Promise<Payment> {
-    return orderApi.post<Payment>('/api/v1/deposits/refund', data)
+    return supportApi.post<Payment>('/api/v1/deposits/refund', data)
   },
 }

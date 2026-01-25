@@ -24,6 +24,7 @@ export const API_URLS = {
 
   // AI Module
   AI: `${GATEWAY_BASE}${SERVICE_PREFIX.AI}`,
+  SUPPORT: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
   CART: `${GATEWAY_BASE}${SERVICE_PREFIX.BUYER}`,
   SEARCH: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
   RANKING: `${GATEWAY_BASE}${SERVICE_PREFIX.SUPPORT}`,
@@ -40,7 +41,7 @@ export const API_URLS = {
 
   // Order Module (order, payment → order-service로 라우팅)
   ORDER: `${GATEWAY_BASE}${SERVICE_PREFIX.ORDER}`,
-  PAYMENT: `${GATEWAY_BASE}${SERVICE_PREFIX.ORDER}`,
+  PAYMENT: `${GATEWAY_BASE}${SERVICE_PREFIX.PAYMENT}`,
   // Payment Module (payment → payment-service로 라우팅)
   // PAYMENT: `${GATEWAY_BASE}${SERVICE_PREFIX.PAYMENT}`,
 

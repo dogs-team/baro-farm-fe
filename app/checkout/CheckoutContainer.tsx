@@ -454,6 +454,7 @@ export function CheckoutContainer() {
               id: Number(buyNowItem.productId) || 0,
               productId: buyNowItem.productId,
               sellerId: buyNowItem.sellerId,
+              inventoryId: buyNowItem.inventoryId,
               name: buyNowItem.name,
               price: buyNowItem.price,
               image: buyNowItem.image,
@@ -469,6 +470,7 @@ export function CheckoutContainer() {
             id: item.id,
             productId: item.productId || String(item.id),
             sellerId: item.sellerId || '',
+            inventoryId: item.inventoryId,
             name: item.name,
             price: item.price,
             image: item.image,
@@ -554,8 +556,9 @@ export function CheckoutContainer() {
         items: checkoutItems.map((item) => {
           const productId = item.productId
           const sellerId = item.sellerId
+          const inventoryId = item.inventoryId
 
-          if (!productId || !sellerId) {
+          if (!productId || !sellerId || !inventoryId) {
             throw new Error(
               '상품 정보가 올바르지 않습니다. 상품 상세 페이지에서 다시 시도해주세요.'
             )
@@ -563,6 +566,8 @@ export function CheckoutContainer() {
 
           return {
             productId,
+            productName: item.name,
+            inventoryId,
             sellerId,
             quantity: item.quantity,
             unitPrice: item.price,

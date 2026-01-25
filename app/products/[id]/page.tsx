@@ -18,7 +18,8 @@ import {
 import { productService } from '@/lib/api/services/product'
 import { sellerService } from '@/lib/api/services/seller'
 import { reviewService } from '@/lib/api/services/review'
-import type { Product, Review } from '@/lib/api/types'
+import { inventoryService } from '@/lib/api/services/inventory'
+import type { Product, Review, InventoryInfo } from '@/lib/api/types'
 import type { SellerInfoData } from '@/lib/api/types/seller'
 import { cartService } from '@/lib/api/services/cart'
 import { useProductDetailTracking } from '@/hooks/use-product-detail-tracking'
@@ -33,6 +34,7 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null)
   const [sellerInfo, setSellerInfo] = useState<SellerInfoData | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
+  const [inventoryId, setInventoryId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { addItem, getTotalItems } = useCartStore()
   const { toast } = useToast()
@@ -95,6 +97,27 @@ export default function ProductDetailPage() {
     }
   }, [mounted, productId, router, toast])
 
+  useEffect(() => {
+    const fetchInventory = async () => {
+      if (!productId) return
+
+      try {
+        const inventories: InventoryInfo[] =
+          await inventoryService.getInventoriesByProductId(productId)
+        const available =
+          inventories.find((item) => item.quantity - item.reservedQuantity > 0) || inventories[0]
+        setInventoryId(available?.inventoryId ?? null)
+      } catch (error) {
+        console.warn('[ProductDetail] Inventory load failed:', error)
+        setInventoryId(null)
+      }
+    }
+
+    if (mounted && productId) {
+      fetchInventory()
+    }
+  }, [mounted, productId])
+
   // 상품명에 따른 이미지 매핑은 lib/utils/product-images.ts의 getProductImages 함수 사용
 
   // API에서 가져온 상품 데이터를 표시 형식으로 변환
@@ -153,6 +176,14 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = async () => {
     if (!displayProduct) return
+    if (!inventoryId) {
+      toast({
+        title: '재고 정보를 찾을 수 없습니다',
+        description: '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     try {
       // 서버 API로 장바구니에 상품 추가
@@ -160,6 +191,7 @@ export default function ProductDetailPage() {
         productId: displayProduct.id,
         quantity,
         unitPrice: displayProduct.price,
+        inventoryId,
         optionInfoJson: '',
       })
 
@@ -168,6 +200,7 @@ export default function ProductDetailPage() {
         id: Number(displayProduct.id) || 0, // TODO: UUID를 number로 변환하는 로직 개선 필요
         productId: String(displayProduct.id),
         sellerId: String(displayProduct.sellerId),
+        inventoryId: inventoryId || undefined,
         name: displayProduct.productName,
         price: displayProduct.price,
         image: displayProduct.imageUrls[0] || '/placeholder.svg',
@@ -216,9 +249,19 @@ export default function ProductDetailPage() {
       return
     }
 
+    if (!inventoryId) {
+      toast({
+        title: '재고 정보를 찾을 수 없습니다',
+        description: '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     const buyNowData = {
       productId: String(displayProduct.id),
       sellerId: String(displayProduct.sellerId),
+      inventoryId,
       name: displayProduct.productName,
       price: Number(displayProduct.price),
       image: displayProduct.imageUrls[0] ?? '/placeholder.svg',

@@ -227,7 +227,7 @@ export default function CartPage() {
             productName = product.productName || productName
             productImage = product.imageUrls?.[0] || productImage
             sellerId = product.sellerId || ''
-            farm = product.farmName || product.farm?.name || farm
+            // farm data not available from product API, keeping default
           }
         } catch (error) {
           console.warn(`상품 ${item.productId} 정보 조회 실패, 기본값 사용:`, error)
@@ -238,6 +238,7 @@ export default function CartPage() {
         id: index + 1, // 고유한 숫자 ID 부여 (1부터 시작)
         productId: item.productId,
         sellerId: sellerId,
+        inventoryId: item.inventoryId || undefined,
         name: productName,
         price: item.unitPrice,
         image: productImage,

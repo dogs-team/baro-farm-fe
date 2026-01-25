@@ -4,6 +4,7 @@
 export interface CartItemInfo {
   itemId: string // UUID
   productId: string // UUID
+  inventoryId?: string // UUID
   quantity: number
   unitPrice: number
   lineTotalPrice: number
@@ -32,6 +33,7 @@ export interface AddItemRequest {
   productId: string | number // UUID or legacy number
   quantity: number
   unitPrice: number
+  inventoryId: string // UUID
   optionInfoJson?: string
 }
 

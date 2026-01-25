@@ -25,6 +25,7 @@ export interface CheckoutItem {
   id: number
   productId: string
   sellerId: string
+  inventoryId?: string
   name: string
   price: number
   image: string

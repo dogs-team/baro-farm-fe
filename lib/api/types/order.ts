@@ -6,6 +6,8 @@ export type OrderStatus = 'PENDING' | 'PAID' | 'PREPARING' | 'SHIPPED' | 'CANCEL
 export interface OrderItemRequest {
   productId: string // UUID
   sellerId: string // UUID
+  productName: string
+  inventoryId: string // UUID
   quantity: number
   unitPrice?: number
 }
