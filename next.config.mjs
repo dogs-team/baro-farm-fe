@@ -29,27 +29,35 @@ const nextConfig = {
 
     return [
       {
-        source: '/api/auth/:path*',
+        source: '/api/auth-service/api/:path*',
         destination: `${gatewayUrl}/auth-service/api/:path*`,
       },
       {
-        source: '/api/buyer/:path*',
+        source: '/api/buyer-service/api/:path*',
         destination: `${gatewayUrl}/buyer-service/api/:path*`,
       },
       {
-        source: '/api/seller/:path*',
+        source: '/api/seller-service/api/:path*',
         destination: `${gatewayUrl}/seller-service/api/:path*`,
       },
       {
-        source: '/api/order/:path*',
+        source: '/api/order-service/api/:path*',
         destination: `${gatewayUrl}/order-service/api/:path*`,
       },
       {
-        source: '/api/support/:path*',
+        source: '/api/payment-service/api/:path*',
+        destination: `${gatewayUrl}/payment-service/api/:path*`,
+      },
+      {
+        source: '/api/support-service/api/:path*',
         destination: `${gatewayUrl}/support-service/api/:path*`,
       },
       {
-        source: '/api/ai/:path*',
+        source: '/api/settlement-service/api/:path*',
+        destination: `${gatewayUrl}/settlement-service/api/:path*`,
+      },
+      {
+        source: '/api/ai-service/api/:path*',
         destination: `${gatewayUrl}/ai-service/api/:path*`,
       },
     ]

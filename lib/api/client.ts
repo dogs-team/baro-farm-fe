@@ -33,28 +33,38 @@ export const API_URLS = {
     process.env.NEXT_PUBLIC_AUTH_SERVICE_URL &&
     process.env.NEXT_PUBLIC_AUTH_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_AUTH_SERVICE_URL.replace(/\/$/, '')
-      : '/api/auth',
+      : '/api/auth-service',
   BUYER:
     process.env.NEXT_PUBLIC_BUYER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_BUYER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_BUYER_SERVICE_URL.replace(/\/$/, '')
-      : '/api/buyer',
+      : '/api/buyer-service',
   SELLER:
     process.env.NEXT_PUBLIC_SELLER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_SELLER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_SELLER_SERVICE_URL.replace(/\/$/, '')
-      : '/api/seller',
+      : '/api/seller-service',
   ORDER:
     process.env.NEXT_PUBLIC_ORDER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_ORDER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_ORDER_SERVICE_URL.replace(/\/$/, '')
-      : '/api/order',
+      : '/api/order-service',
   AI:
     process.env.NEXT_PUBLIC_AI_SERVICE_URL &&
     process.env.NEXT_PUBLIC_AI_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_AI_SERVICE_URL.replace(/\/$/, '')
-      : '/api/ai',
-  SUPPORT: '/api/support',
+      : '/api/ai-service',
+  PAYMENT:
+    process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL &&
+    process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL.trim().length > 0
+      ? process.env.NEXT_PUBLIC_PAYMENT_SERVICE_URL.replace(/\/$/, '')
+      : '/api/payment-service',
+  SETTLEMENT:
+    process.env.NEXT_PUBLIC_SETTLEMENT_SERVICE_URL &&
+    process.env.NEXT_PUBLIC_SETTLEMENT_SERVICE_URL.trim().length > 0
+      ? process.env.NEXT_PUBLIC_SETTLEMENT_SERVICE_URL.replace(/\/$/, '')
+      : '/api/settlement-service',
+  SUPPORT: '/api/support-service',
 }
 
 // [초기화 로그] API URL 설정 확인
@@ -65,7 +75,9 @@ if (typeof window !== 'undefined') {
     BUYER: API_URLS.BUYER,
     SELLER: API_URLS.SELLER,
     ORDER: API_URLS.ORDER,
+    PAYMENT: API_URLS.PAYMENT,
     SUPPORT: API_URLS.SUPPORT,
+    SETTLEMENT: API_URLS.SETTLEMENT,
     AI: API_URLS.AI,
     설명: USE_REWRITES
       ? '✅ Next.js rewrites 사용 - Next.js가 백엔드로 프록시'
@@ -597,13 +609,9 @@ export function buildUrlFromBase(
     const base = baseUrl.replace(/\/$/, '')
     let path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
 
-    // rewrites 규칙: /api/auth/:path* → /auth-service/api/:path*
-    // endpoint가 /api/로 시작하면 baseUrl과 중복되므로 /api/ 제거
-    // 예: baseUrl=/api/auth, endpoint=/api/v1/auth/login → /api/auth/v1/auth/login
-    if (path.startsWith('/api/')) {
-      // /api/auth-service/api/... 형태가 되지 않도록 /api/ 제거
-      path = path.replace(/^\/api\//, '/')
-    }
+    // Nginx: /api/auth-service/api/v1/... → /auth-service/api/v1/...
+    // endpoint가 /api/로 시작해도 그대로 사용 (제거하지 않음)
+    // 예: baseUrl=/api/auth-service, endpoint=/api/v1/auth/login → /api/auth-service/api/v1/auth/login
 
     let url = base + path
 
