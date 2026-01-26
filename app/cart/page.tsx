@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { ShoppingCart, ArrowRight, Truck, Loader2 } from 'lucide-react'
+import { ShoppingCart, ArrowRight, Truck, Loader2, Sparkles, ChefHat } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCartStore } from '@/lib/cart-store'
@@ -21,6 +21,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { recommendService } from '@/lib/api/services/recommend'
+import { getUserId } from '@/lib/api/client'
+import { getProductImage } from '@/lib/utils/product-images'
 
 const CART_TIMEOUT_MS = 4000
 const PRODUCT_DETAIL_TIMEOUT_MS = 2000
@@ -59,15 +64,25 @@ const FALLBACK_RECIPE = {
   cookTime: '10분',
   difficulty: '쉬움',
   ingredients: ['딸기', '그릭요거트', '견과류', '꿀'],
+  ownedIngredients: ['딸기'],
+  missingCoreIngredients: ['그릭요거트', '견과류', '꿀'],
 }
 
-const FALLBACK_ADDONS = [
+const FALLBACK_ADDONS: Array<{
+  id: string
+  name: string
+  price: number
+  image: string
+  reason: string
+  category?: string
+}> = [
   {
     id: SAMPLE_PRODUCT_ID,
     name: '그릭요거트',
     price: 6800,
     image: '/images/strawberries.png',
     reason: '딸기와 잘 어울리는 베이스 재료',
+    category: '유제품',
   },
   {
     id: SAMPLE_PRODUCT_ID,
@@ -75,6 +90,7 @@ const FALLBACK_ADDONS = [
     price: 12000,
     image: '/fresh-organic-cherry-tomatoes.jpg',
     reason: '달콤함을 더해주는 자연 감미료',
+    category: '식품',
   },
   {
     id: SAMPLE_PRODUCT_ID,
@@ -82,6 +98,7 @@ const FALLBACK_ADDONS = [
     price: 9800,
     image: '/fresh-organic-lettuce.png',
     reason: '식감과 영양을 보완하는 토핑',
+    category: '견과류',
   },
   {
     id: SAMPLE_PRODUCT_ID,
@@ -89,6 +106,7 @@ const FALLBACK_ADDONS = [
     price: 4500,
     image: '/fresh-organic-potatoes.jpg',
     reason: '디저트 마무리를 돕는 재료',
+    category: '유제품',
   },
 ]
 
@@ -102,6 +120,27 @@ export default function CartPage() {
   const [updatingItem, setUpdatingItem] = useState<string | null>(null)
   const [isFallbackCart, setIsFallbackCart] = useState(false)
   const [showCheckoutRecommend, setShowCheckoutRecommend] = useState(false)
+  const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false)
+  const [recipeRecommendation, setRecipeRecommendation] = useState<{
+    name: string
+    description: string
+    cookTime: string
+    difficulty: string
+    ingredients: string[]
+    ownedIngredients: string[]
+    missingCoreIngredients: string[]
+    instructions?: string
+  } | null>(null)
+  const [addOnRecommendations, setAddOnRecommendations] = useState<
+    Array<{
+      id: string
+      name: string
+      price: number
+      image: string
+      reason: string
+      category?: string
+    }>
+  >([])
 
   // 클라이언트에서만 마운트 확인 (Hydration 에러 방지)
   useEffect(() => {
@@ -293,6 +332,118 @@ export default function CartPage() {
     setShowCheckoutRecommend(true)
   }
 
+  // 추천 데이터 가져오기 (장바구니 로드 시 미리 호출)
+  useEffect(() => {
+    if (!mounted || !cartData || cartItems.length === 0 || loading) return
+
+    const fetchRecommendations = async () => {
+      setIsRecommendationsLoading(true)
+      try {
+        const userId = getUserId()
+        let recipeData = null
+        let addOnProducts: Array<{
+          id: string
+          name: string
+          price: number
+          image: string
+          reason: string
+          category?: string
+        }> = []
+
+        // 먼저 테스트용 API 시도
+        try {
+          recipeData = await recommendService.getRecipeRecommendationTest({
+            cartId: cartData.cartId,
+            buyerId: userId || cartData.buyerId || null,
+            items: cartItems.map((item) => ({
+              productId: item.productId,
+              productName: item.productName || '상품',
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              inventoryId: item.inventoryId || '',
+            })),
+            totalPrice: totalPrice,
+            createdAt: cartData.createdAt,
+            updatedAt: cartData.updatedAt,
+          })
+          console.log('[Cart] Recipe recommendation test API success:', recipeData)
+        } catch (error) {
+          console.warn('[Cart] Test recipe recommendation failed:', error)
+          // 테스트 API 실패 시 사용자 ID가 있으면 일반 API 시도
+          if (userId) {
+            try {
+              recipeData = await recommendService.getRecipeRecommendation({ userId })
+              console.log('[Cart] Recipe recommendation API success:', recipeData)
+            } catch (error2) {
+              console.warn('[Cart] Recipe recommendation API also failed:', error2)
+            }
+          }
+        }
+
+        // 레시피 데이터 정규화
+        const normalizedRecipe = recipeData
+          ? {
+              name: recipeData.recipeName || FALLBACK_RECIPE.name,
+              description: `장바구니에 담긴 ${recipeData.ownedIngredients?.length || 0}가지 재료로 만들 수 있는 레시피입니다.`,
+              cookTime: '15분',
+              difficulty: '쉬움',
+              ingredients: [
+                ...(recipeData.ownedIngredients || []),
+                ...(recipeData.missingCoreIngredients || []),
+              ],
+              ownedIngredients: recipeData.ownedIngredients || [],
+              missingCoreIngredients: recipeData.missingCoreIngredients || [],
+              instructions: recipeData.instructions || '',
+            }
+          : null
+
+        // 부족한 재료별 상품 추천 수집
+        if (recipeData?.missingRecommendations && recipeData.missingRecommendations.length > 0) {
+          const { productService } = await import('@/lib/api/services/product')
+
+          for (const ingredientRec of recipeData.missingRecommendations) {
+            for (const product of ingredientRec.products) {
+              let productImage = getProductImage(product.productName, product.productId)
+
+              // 실제 상품 정보를 가져와서 이미지 URL 업데이트
+              try {
+                const productDetail = await productService.getProduct(product.productId)
+                if (productDetail?.imageUrls && productDetail.imageUrls.length > 0) {
+                  productImage = productDetail.imageUrls[0]
+                }
+              } catch (error) {
+                console.warn(`상품 ${product.productId} 이미지 조회 실패, 기본 이미지 사용:`, error)
+              }
+
+              addOnProducts.push({
+                id: product.productId,
+                name: product.productName,
+                price: product.price,
+                image: productImage,
+                reason: `${ingredientRec.ingredientName} 재료로 추천`,
+                category: product.productCategoryName,
+              })
+            }
+          }
+        }
+
+        // 최대 10개까지 표시 (더 많은 추천 표시)
+        addOnProducts = addOnProducts.slice(0, 10)
+
+        setRecipeRecommendation(normalizedRecipe || FALLBACK_RECIPE)
+        setAddOnRecommendations(addOnProducts.length > 0 ? addOnProducts : FALLBACK_ADDONS)
+      } catch (error) {
+        console.warn('[Cart] Fallback recommendations used:', error)
+        setRecipeRecommendation(FALLBACK_RECIPE)
+        setAddOnRecommendations(FALLBACK_ADDONS)
+      } finally {
+        setIsRecommendationsLoading(false)
+      }
+    }
+
+    fetchRecommendations()
+  }, [mounted, cartData, cartItems, totalPrice, loading])
+
   const handleProceedCheckout = () => {
     setShowCheckoutRecommend(false)
     router.push(isFallbackCart ? '/checkout?mock=true' : '/checkout')
@@ -387,78 +538,179 @@ export default function CartPage() {
       </div>
 
       <Dialog open={showCheckoutRecommend} onOpenChange={setShowCheckoutRecommend}>
-        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              이런 건 어떠세요?
-              <Badge variant="secondary">추천</Badge>
-            </DialogTitle>
-            <DialogDescription>
-              장바구니를 기준으로 레시피와 추가 구매 상품을 제안합니다.
-            </DialogDescription>
+        <DialogContent className="max-w-none w-[98vw] max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader className="pb-4 border-b">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <DialogTitle className="text-xl font-bold">이런 건 어떠세요?</DialogTitle>
+            </div>
+            <DialogDescription>장바구니 내역을 분석하여 추천해드려요</DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col gap-6">
-            <div className="border rounded-lg p-4 bg-muted/30">
-              <div className="flex items-center gap-2 mb-3">
-                <h3 className="text-sm font-semibold whitespace-nowrap">오늘의 레시피</h3>
-                <Badge variant="secondary">AI</Badge>
-                <span className="text-xs text-muted-foreground">· {FALLBACK_RECIPE.name}</span>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    {FALLBACK_RECIPE.description}
-                  </p>
-                  <div className="text-[11px] text-muted-foreground space-y-1">
-                    <div>조리 시간: {FALLBACK_RECIPE.cookTime}</div>
-                    <div>난이도: {FALLBACK_RECIPE.difficulty}</div>
-                  </div>
+          <div className="py-6 space-y-6">
+            {isRecommendationsLoading ? (
+              <div className="space-y-6">
+                {/* 레시피 스켈레톤 */}
+                <div className="p-4 border rounded-lg">
+                  <Skeleton className="h-5 w-32 mb-3" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-3/4" />
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  <div className="font-medium mb-2">추천 재료</div>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {FALLBACK_RECIPE.ingredients.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                {/* 상품 스켈레톤 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="border rounded-lg p-5">
+                      <Skeleton className="w-full aspect-square rounded-lg mb-4" />
+                      <Skeleton className="h-6 w-full mb-3" />
+                      <Skeleton className="h-4 w-full mb-3" />
+                      <Skeleton className="h-5 w-24 mb-4" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
-              {FALLBACK_ADDONS.map((item) => (
-                <div key={`addon-${item.name}`} className="border rounded-lg overflow-hidden">
-                  <div className="relative aspect-[4/3] bg-muted">
-                    <Image
-                      src={item.image || '/placeholder.svg'}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h4 className="font-semibold text-sm mb-1 line-clamp-1">{item.name}</h4>
-                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{item.reason}</p>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm font-bold text-green-600">
-                        {item.price.toLocaleString()}원
-                      </span>
-                      <Button size="sm" variant="outline" className="w-full" asChild>
-                        <Link href={`/products/${item.id}`}>보기</Link>
-                      </Button>
+            ) : (
+              <div className="space-y-6">
+                {/* 레시피 섹션 */}
+                {recipeRecommendation && (
+                  <div className="p-5 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20">
+                    <div className="flex items-center gap-2 mb-4">
+                      <ChefHat className="h-5 w-5 text-primary" />
+                      <h3 className="font-semibold text-lg">오늘의 레시피</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        AI
+                      </Badge>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-xl font-bold mb-2">{recipeRecommendation.name}</h4>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {recipeRecommendation.description}
+                        </p>
+                        <div className="flex gap-4 text-sm text-muted-foreground">
+                          <span>⏱️ {recipeRecommendation.cookTime}</span>
+                          <span>📊 {recipeRecommendation.difficulty}</span>
+                        </div>
+                      </div>
+                      {(recipeRecommendation.ownedIngredients.length > 0 ||
+                        recipeRecommendation.missingCoreIngredients.length > 0) && (
+                        <div className="space-y-3">
+                          {recipeRecommendation.ownedIngredients.length > 0 && (
+                            <div>
+                              <h5 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                <span className="text-green-600">✓</span>
+                                장바구니에 담긴 재료 ({recipeRecommendation.ownedIngredients.length}
+                                개)
+                              </h5>
+                              <div className="flex flex-wrap gap-2">
+                                {recipeRecommendation.ownedIngredients.map((ingredient) => (
+                                  <Badge
+                                    key={ingredient}
+                                    variant="outline"
+                                    className="text-xs bg-green-50 text-green-700 border-green-200"
+                                  >
+                                    {ingredient}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {recipeRecommendation.missingCoreIngredients.length > 0 && (
+                            <div>
+                              <h5 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                <span className="text-orange-600">⚠</span>
+                                부족한 재료 ({recipeRecommendation.missingCoreIngredients.length}개)
+                              </h5>
+                              <div className="flex flex-wrap gap-2">
+                                {recipeRecommendation.missingCoreIngredients.map((ingredient) => (
+                                  <Badge
+                                    key={ingredient}
+                                    variant="outline"
+                                    className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+                                  >
+                                    {ingredient}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {recipeRecommendation.instructions && (
+                        <div className="pt-3 border-t">
+                          <h5 className="text-sm font-semibold mb-2">조리 방법</h5>
+                          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                            {recipeRecommendation.instructions}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
+                )}
+
+                {/* 추가 상품 추천 섹션 */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold">추가 구매 추천</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {(addOnRecommendations.length > 0 ? addOnRecommendations : FALLBACK_ADDONS).map(
+                      (item: {
+                        id: string
+                        name: string
+                        price: number
+                        image: string
+                        reason: string
+                        category?: string
+                      }) => (
+                        <div
+                          key={`addon-${item.id}-${item.name}`}
+                          className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col"
+                        >
+                          <div className="relative aspect-square bg-muted">
+                            <Image
+                              src={item.image || '/placeholder.svg'}
+                              alt={item.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div className="p-5 flex-1 flex flex-col">
+                            <h4 className="font-semibold text-lg mb-2">{item.name}</h4>
+                            <p className="text-sm text-muted-foreground mb-3 flex-shrink-0">
+                              {item.reason}
+                            </p>
+                            {item.category && (
+                              <Badge variant="outline" className="text-xs mb-4 w-fit">
+                                {item.category}
+                              </Badge>
+                            )}
+                            <div className="mt-auto space-y-3">
+                              <div className="text-lg font-bold text-primary">
+                                {item.price.toLocaleString()}원
+                              </div>
+                              <Button variant="outline" size="default" className="w-full" asChild>
+                                <Link href={`/products/${item.id}`}>상품 보기</Link>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="pt-4 border-t gap-2">
             <Button variant="outline" onClick={() => setShowCheckoutRecommend(false)}>
               닫기
             </Button>
-            <Button onClick={handleProceedCheckout}>그냥 주문하기</Button>
+            <Button onClick={handleProceedCheckout} className="bg-green-600 hover:bg-green-700">
+              주문하기
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

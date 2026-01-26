@@ -1,6 +1,7 @@
 import { aiApi } from '../client'
 import type {
   ProductRecommendResponse,
+  PersonalizedRecommendationResponse,
   RecipeRecommendResponse,
   RecipeTestRequest,
   PersonalizedRecommendParams,
@@ -14,12 +15,12 @@ export const recommendService = {
    * GET /api/v1/recommendations/personalized/{userId}?topK={count}
    *
    * @param params - 개인화 추천 파라미터
-   * @returns 추천 상품 목록
+   * @returns 추천 상품 목록과 추천 근거
    */
   async getPersonalizedRecommendations(
     params: PersonalizedRecommendParams
-  ): Promise<ProductRecommendResponse[]> {
-    return aiApi.get<ProductRecommendResponse[]>(
+  ): Promise<PersonalizedRecommendationResponse> {
+    return aiApi.get<PersonalizedRecommendationResponse>(
       `/api/v1/recommendations/personalized/${params.userId}`,
       {
         params: {

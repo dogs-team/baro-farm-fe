@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CreditCard, Truck, Edit, Wallet } from 'lucide-react'
+import { CreditCard, Truck, Edit, Wallet, ChefHat, Sparkles, X } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Header } from '@/components/layout/header'
@@ -20,6 +20,17 @@ import { Badge } from '@/components/ui/badge'
 import { AddressDialog } from '@/components/address/address-dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { Address } from '@/lib/api/types'
+import { recommendService } from '@/lib/api/services/recommend'
+import { getUserId } from '@/lib/api/client'
+import { Skeleton } from '@/components/ui/skeleton'
+import { getProductImage } from '@/lib/utils/product-images'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 
 export interface CheckoutItem {
   id: number
@@ -80,6 +91,9 @@ type RecipeRecommendation = {
   cookTime: string
   difficulty: string
   ingredients: string[]
+  ownedIngredients: string[]
+  missingCoreIngredients: string[]
+  instructions?: string
 }
 
 type AddOnRecommendation = {
@@ -88,6 +102,7 @@ type AddOnRecommendation = {
   price: number
   image: string
   reason: string
+  category?: string
 }
 
 const RECOMMENDATIONS_TIMEOUT_MS = 3000
@@ -99,6 +114,8 @@ const FALLBACK_RECIPE: RecipeRecommendation = {
   cookTime: '10분',
   difficulty: '쉬움',
   ingredients: ['딸기', '그릭요거트', '견과류', '꿀'],
+  ownedIngredients: ['딸기'],
+  missingCoreIngredients: ['그릭요거트', '견과류', '꿀'],
 }
 
 const FALLBACK_ADDONS: AddOnRecommendation[] = [
@@ -170,62 +187,101 @@ export function CheckoutView({
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), RECOMMENDATIONS_TIMEOUT_MS)
 
-        const payload = {
-          items: checkoutItems.map((item) => ({
-            productId: item.productId,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        }
+        const userId = getUserId()
 
-        const response = await fetch('/api/recommendations/checkout', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        })
+        let recipeData = null
+        let addOnProducts: AddOnRecommendation[] = []
+
+        // 먼저 테스트용 API 시도 (장바구니 아이템이 있는 경우)
+        if (checkoutItems.length > 0) {
+          try {
+            recipeData = await recommendService.getRecipeRecommendationTest({
+              cartId: null,
+              buyerId: userId || null,
+              items: checkoutItems.map((item) => ({
+                productId: item.productId,
+                productName: item.name,
+                quantity: item.quantity,
+                unitPrice: item.price,
+                inventoryId: item.inventoryId || '',
+              })),
+              totalPrice: totalPrice,
+              createdAt: null,
+              updatedAt: null,
+            })
+            console.log('[Checkout] Recipe recommendation test API success:', recipeData)
+          } catch (error) {
+            console.warn('[Checkout] Test recipe recommendation failed:', error)
+            // 테스트 API 실패 시 사용자 ID가 있으면 일반 API 시도
+            if (userId) {
+              try {
+                recipeData = await recommendService.getRecipeRecommendation({ userId })
+                console.log('[Checkout] Recipe recommendation API success:', recipeData)
+              } catch (error2) {
+                console.warn('[Checkout] Recipe recommendation API also failed:', error2)
+              }
+            }
+          }
+        }
 
         clearTimeout(timeoutId)
 
-        if (!response.ok) {
-          throw new Error('Failed to load checkout recommendations')
-        }
-
-        const data = await response.json()
-        const recipe = data?.recipe || data?.data?.recipe
-        const addons = data?.addons || data?.data?.addons || data?.products || data?.data?.products
-
-        const normalizedRecipe: RecipeRecommendation | null = recipe
+        // 레시피 데이터 정규화
+        const normalizedRecipe: RecipeRecommendation | null = recipeData
           ? {
-              name: recipe.name || recipe.recipeName || FALLBACK_RECIPE.name,
-              description: recipe.description || FALLBACK_RECIPE.description,
-              cookTime: recipe.cookTime || FALLBACK_RECIPE.cookTime,
-              difficulty: recipe.difficulty || FALLBACK_RECIPE.difficulty,
-              ingredients: Array.isArray(recipe.ingredients)
-                ? recipe.ingredients
-                : FALLBACK_RECIPE.ingredients,
+              name: recipeData.recipeName || FALLBACK_RECIPE.name,
+              description: `장바구니에 담긴 ${recipeData.ownedIngredients?.length || 0}가지 재료로 만들 수 있는 레시피입니다.`,
+              cookTime: '15분',
+              difficulty: '쉬움',
+              ingredients: [
+                ...(recipeData.ownedIngredients || []),
+                ...(recipeData.missingCoreIngredients || []),
+              ],
+              ownedIngredients: recipeData.ownedIngredients || [],
+              missingCoreIngredients: recipeData.missingCoreIngredients || [],
+              instructions: recipeData.instructions || '',
             }
           : null
 
-        const normalizedAddons: AddOnRecommendation[] = Array.isArray(addons)
-          ? addons.slice(0, 5).map((item: any) => ({
-              id: String(item.productId || item.id || SAMPLE_PRODUCT_ID),
-              name: item.productName || item.name || '추천 상품',
-              price: Number(item.price) || 0,
-              image: item.imageUrl || item.image || '/placeholder.svg',
-              reason: item.reason || '장바구니 구성과 잘 어울리는 상품',
-            }))
-          : []
+        // 부족한 재료별 상품 추천 수집
+        if (recipeData?.missingRecommendations && recipeData.missingRecommendations.length > 0) {
+          const { productService } = await import('@/lib/api/services/product')
 
-        if (!normalizedRecipe && normalizedAddons.length === 0) {
+          for (const ingredientRec of recipeData.missingRecommendations) {
+            for (const product of ingredientRec.products) {
+              let productImage = getProductImage(product.productName, product.productId)
+
+              // 실제 상품 정보를 가져와서 이미지 URL 업데이트
+              try {
+                const productDetail = await productService.getProduct(product.productId)
+                if (productDetail?.imageUrls && productDetail.imageUrls.length > 0) {
+                  productImage = productDetail.imageUrls[0]
+                }
+              } catch (error) {
+                console.warn(`상품 ${product.productId} 이미지 조회 실패, 기본 이미지 사용:`, error)
+              }
+
+              addOnProducts.push({
+                id: product.productId,
+                name: product.productName,
+                price: product.price,
+                image: productImage,
+                reason: `${ingredientRec.ingredientName} 재료로 추천`,
+                category: product.productCategoryName,
+              })
+            }
+          }
+        }
+
+        // 최대 10개까지 표시 (더 많은 추천 표시)
+        addOnProducts = addOnProducts.slice(0, 10)
+
+        if (!normalizedRecipe && addOnProducts.length === 0) {
           throw new Error('Empty recommendations')
         }
 
         setRecipeRecommendation(normalizedRecipe || FALLBACK_RECIPE)
-        setAddOnRecommendations(normalizedAddons.length > 0 ? normalizedAddons : FALLBACK_ADDONS)
+        setAddOnRecommendations(addOnProducts.length > 0 ? addOnProducts : FALLBACK_ADDONS)
       } catch (error) {
         console.warn('[Checkout] Fallback recommendations used:', error)
         setRecipeRecommendation(FALLBACK_RECIPE)
@@ -236,7 +292,7 @@ export function CheckoutView({
     }
 
     fetchRecommendations()
-  }, [checkoutItems, showRecommendations])
+  }, [checkoutItems, showRecommendations, totalPrice])
 
   return (
     <div className="min-h-screen bg-background">
@@ -558,57 +614,135 @@ export function CheckoutView({
           </div>
         </form>
 
-        {/* 배송지 추가/수정 다이얼로그 */}
-        {showRecommendations && (
-          <section className="mt-12">
-            <div className="flex flex-col gap-2 mb-6">
-              <h2 className="text-2xl font-bold">결제 전 추천</h2>
-              <p className="text-sm text-muted-foreground">
-                장바구니 내역을 기반으로 레시피와 추가 구매 상품을 추천해요.
-              </p>
-            </div>
+        {/* 추천 모달 */}
+        <Dialog open={showRecommendations} onOpenChange={setShowRecommendations}>
+          <DialogContent className="max-w-none w-[98vw] max-h-[90vh] overflow-y-auto p-6">
+            <DialogHeader className="pb-4 border-b">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <DialogTitle className="text-xl font-bold">이런 건 어떠세요?</DialogTitle>
+              </div>
+              <DialogDescription>장바구니 내역을 분석하여 추천해드려요</DialogDescription>
+            </DialogHeader>
 
-            {isRecommendationsLoading ? (
-              <div className="text-sm text-muted-foreground">추천 정보를 불러오는 중...</div>
-            ) : (
-              <div className="grid lg:grid-cols-3 gap-6">
-                <Card className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">오늘의 레시피</h3>
-                    <Badge variant="secondary">AI 추천</Badge>
+            <div className="py-6 space-y-6">
+              {isRecommendationsLoading ? (
+                <div className="space-y-6">
+                  {/* 레시피 스켈레톤 */}
+                  <div className="p-4 border rounded-lg">
+                    <Skeleton className="h-5 w-32 mb-3" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-3/4" />
                   </div>
-                  <h4 className="text-xl font-bold mb-2">
-                    {recipeRecommendation?.name || FALLBACK_RECIPE.name}
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {recipeRecommendation?.description || FALLBACK_RECIPE.description}
-                  </p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
-                    <span>
-                      조리 시간: {recipeRecommendation?.cookTime || FALLBACK_RECIPE.cookTime}
-                    </span>
-                    <span>
-                      난이도: {recipeRecommendation?.difficulty || FALLBACK_RECIPE.difficulty}
-                    </span>
+                  {/* 상품 스켈레톤 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="border rounded-lg p-5">
+                        <Skeleton className="w-full aspect-square rounded-lg mb-4" />
+                        <Skeleton className="h-6 w-full mb-3" />
+                        <Skeleton className="h-4 w-full mb-3" />
+                        <Skeleton className="h-5 w-24 mb-4" />
+                        <Skeleton className="h-10 w-full" />
+                      </div>
+                    ))}
                   </div>
-                  <div className="space-y-2">
-                    <h5 className="text-sm font-semibold">추천 재료</h5>
-                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                      {(recipeRecommendation?.ingredients || FALLBACK_RECIPE.ingredients).map(
-                        (ingredient) => (
-                          <li key={ingredient}>{ingredient}</li>
-                        )
-                      )}
-                    </ul>
-                  </div>
-                </Card>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* 레시피 섹션 */}
+                  {recipeRecommendation && (
+                    <div className="p-5 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20">
+                      <div className="flex items-center gap-2 mb-4">
+                        <ChefHat className="h-5 w-5 text-primary" />
+                        <h3 className="font-semibold text-lg">오늘의 레시피</h3>
+                        <Badge variant="secondary" className="text-xs">
+                          AI
+                        </Badge>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="text-xl font-bold mb-2">{recipeRecommendation.name}</h4>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {recipeRecommendation.description}
+                          </p>
+                          <div className="flex gap-4 text-sm text-muted-foreground">
+                            <span>⏱️ {recipeRecommendation.cookTime}</span>
+                            <span>📊 {recipeRecommendation.difficulty}</span>
+                          </div>
+                        </div>
+                        {(recipeRecommendation.ownedIngredients.length > 0 ||
+                          recipeRecommendation.missingCoreIngredients.length > 0) && (
+                          <div className="space-y-3">
+                            {recipeRecommendation.ownedIngredients.length > 0 && (
+                              <div>
+                                <h5 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                  <span className="text-green-600">✓</span>
+                                  장바구니에 담긴 재료 (
+                                  {recipeRecommendation.ownedIngredients.length}개)
+                                </h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {recipeRecommendation.ownedIngredients.map((ingredient) => (
+                                    <Badge
+                                      key={ingredient}
+                                      variant="outline"
+                                      className="text-xs bg-green-50 text-green-700 border-green-200"
+                                    >
+                                      {ingredient}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {recipeRecommendation.missingCoreIngredients.length > 0 && (
+                              <div>
+                                <h5 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                  <span className="text-orange-600">⚠</span>
+                                  부족한 재료 ({recipeRecommendation.missingCoreIngredients.length}
+                                  개)
+                                </h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {recipeRecommendation.missingCoreIngredients.map((ingredient) => (
+                                    <Badge
+                                      key={ingredient}
+                                      variant="outline"
+                                      className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+                                    >
+                                      {ingredient}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {recipeRecommendation.instructions && (
+                          <div className="pt-3 border-t">
+                            <h5 className="text-sm font-semibold mb-2">조리 방법</h5>
+                            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                              {recipeRecommendation.instructions}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
-                <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4">
-                  {(addOnRecommendations.length > 0 ? addOnRecommendations : FALLBACK_ADDONS).map(
-                    (item) => (
-                      <Card key={`addon-${item.id}-${item.name}`} className="p-4">
-                        <div className="flex gap-4">
-                          <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                  {/* 추가 상품 추천 섹션 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold">추가 구매 추천</h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {(addOnRecommendations.length > 0
+                        ? addOnRecommendations
+                        : FALLBACK_ADDONS
+                      ).map((item) => (
+                        <div
+                          key={`addon-${item.id}-${item.name}`}
+                          className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col"
+                        >
+                          <div className="relative aspect-square bg-muted">
                             <Image
                               src={item.image || '/placeholder.svg'}
                               alt={item.name}
@@ -616,27 +750,34 @@ export function CheckoutView({
                               className="object-cover"
                             />
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold mb-1">{item.name}</h4>
-                            <p className="text-xs text-muted-foreground mb-2">{item.reason}</p>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-bold text-primary">
+                          <div className="p-5 flex-1 flex flex-col">
+                            <h4 className="font-semibold text-lg mb-2">{item.name}</h4>
+                            <p className="text-sm text-muted-foreground mb-3 flex-shrink-0">
+                              {item.reason}
+                            </p>
+                            {item.category && (
+                              <Badge variant="outline" className="text-xs mb-4 w-fit">
+                                {item.category}
+                              </Badge>
+                            )}
+                            <div className="mt-auto space-y-3">
+                              <div className="text-lg font-bold text-primary">
                                 {item.price.toLocaleString()}원
-                              </span>
-                              <Button variant="outline" size="sm" asChild>
+                              </div>
+                              <Button variant="outline" size="default" className="w-full" asChild>
                                 <Link href={`/products/${item.id}`}>상품 보기</Link>
                               </Button>
                             </div>
                           </div>
                         </div>
-                      </Card>
-                    )
-                  )}
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </section>
-        )}
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <AddressDialog
           open={isAddressDialogOpen}

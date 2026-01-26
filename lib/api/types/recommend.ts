@@ -14,6 +14,15 @@ export interface ProductRecommendResponse {
 }
 
 /**
+ * 개인화 추천 응답
+ * 전체 추천 결과와 추천 근거를 포함
+ */
+export interface PersonalizedRecommendationResponse {
+  products: ProductRecommendResponse[] // 추천 상품 목록
+  recommendationReason: string | null // LLM이 생성한 추천 근거 설명
+}
+
+/**
  * 부족한 재료별 상품 추천 응답
  */
 export interface IngredientRecommendResponse {

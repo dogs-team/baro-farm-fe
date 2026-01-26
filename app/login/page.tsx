@@ -43,7 +43,7 @@ export default function LoginPage() {
       const guestSessionKey = getSessionKey()
       if (guestSessionKey) {
         try {
-          await cartService.mergeCart()
+          await cartService.mergeGuestCartToUserCart()
           // 병합 성공 후 세션 키 삭제 (더 이상 필요 없음)
           setSessionKey(null)
           console.log('장바구니 병합 완료')
@@ -182,7 +182,7 @@ export default function LoginPage() {
                     // (실제 API와 연동된 경우에만 작동)
                     try {
                       cartService
-                        .mergeCart()
+                        .mergeGuestCartToUserCart()
                         .then(() => {
                           setSessionKey(null)
                           console.log('장바구니 병합 완료')

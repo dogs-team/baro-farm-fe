@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Filter, X, Search } from 'lucide-react'
+import { Filter, X, Search, Info } from 'lucide-react'
 import { ProductCard } from '@/components/product/product-card'
 import { ProductRanking } from '@/components/product/product-ranking'
 import { SearchBox } from '@/components/search'
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { productService } from '@/lib/api/services/product'
 import { sellerService } from '@/lib/api/services/seller'
+import { recommendService } from '@/lib/api/services/recommend'
 import {
   Pagination,
   PaginationContent,
@@ -25,6 +26,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getProductImage } from '@/lib/utils/product-images'
 import { getUserId } from '@/lib/api/client'
 
@@ -156,7 +159,10 @@ export default function ProductsPage() {
   const [displayProducts, setDisplayProducts] = useState<DisplayProduct[]>([])
   const [rankingProducts] = useState<(DisplayProduct & { rank: number })[]>([])
   const [recommendedProducts, setRecommendedProducts] = useState<DisplayProduct[]>([])
+  const [recommendationReason, setRecommendationReason] = useState<string | null>(null)
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false)
+  const [isRecommendationPopoverOpen, setIsRecommendationPopoverOpen] = useState(false)
+  const [isRecommendationPopoverPinned, setIsRecommendationPopoverPinned] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isRankingLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -181,42 +187,64 @@ export default function ProductsPage() {
       setIsRecommendationsLoading(true)
       try {
         const userId = getUserId()
+
+        // 로그인한 사용자만 개인화 추천 사용
+        if (!userId) {
+          // 비로그인 사용자는 fallback 상품 사용
+          setRecommendedProducts(FALLBACK_PRODUCTS.slice(0, 5))
+          setRecommendationReason(null)
+          return
+        }
+
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), RECOMMENDATION_TIMEOUT_MS)
 
-        const endpoint = userId
-          ? `/api/recommendations/products?topK=5&userId=${encodeURIComponent(userId)}`
-          : '/api/recommendations/products?topK=5'
+        // 개인화 추천 API 호출
+        const response = await recommendService.getPersonalizedRecommendations({
+          userId,
+          topK: 5,
+        })
 
-        const response = await fetch(endpoint, { signal: controller.signal })
         clearTimeout(timeoutId)
 
-        if (!response.ok) {
-          throw new Error('Failed to load recommendations')
-        }
+        // 추천 근거 저장
+        setRecommendationReason(response.recommendationReason)
 
-        const payload = await response.json()
-        const rawItems = Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload)
-            ? payload
-            : []
+        // 상품 목록 매핑 및 판매자 정보 조회
+        const mapped = await Promise.all(
+          response.products.slice(0, 5).map(async (item) => {
+            const productId = String(item.productId || SAMPLE_PRODUCT_ID)
+            const productName = item.productName || '추천 상품'
 
-        const mapped = rawItems.slice(0, 5).map((item: any) => {
-          const productId = String(item.productId || item.id || SAMPLE_PRODUCT_ID)
-          const productName = item.productName || item.name || '추천 상품'
-          return {
-            id: productId,
-            name: productName,
-            storeName: item.storeName || item.farmName || '추천 농장',
-            price: Number(item.price) || 0,
-            image: item.imageUrl || item.image || getProductImage(productName, productId),
-            rating: Number(item.rating) || 0,
-            reviews: Number(item.reviewCount) || 0,
-            tag: '추천',
-            category: item.categoryName || '기타',
-          } as DisplayProduct
-        })
+            // 상품 상세 정보에서 판매자 정보 가져오기
+            let storeName = '판매자 정보 없음'
+            try {
+              const productDetail = await productService.getProduct(productId)
+              if (productDetail.sellerId) {
+                try {
+                  const sellerInfo = await sellerService.getSellerInfo(productDetail.sellerId)
+                  storeName = sellerInfo?.storeName || '판매자 정보 없음'
+                } catch (error) {
+                  console.warn(`판매자 정보 로드 실패 (${productId}):`, error)
+                }
+              }
+            } catch (error) {
+              console.warn(`상품 상세 정보 로드 실패 (${productId}):`, error)
+            }
+
+            return {
+              id: productId,
+              name: productName,
+              storeName,
+              price: Number(item.price) || 0,
+              image: getProductImage(productName, productId),
+              rating: 0, // 개인화 추천 API는 평점 정보를 반환하지 않음
+              reviews: 0, // 개인화 추천 API는 리뷰 수를 반환하지 않음
+              tag: '추천',
+              category: item.productCategoryName || '기타',
+            } as DisplayProduct
+          })
+        )
 
         if (mapped.length === 0) {
           throw new Error('Empty recommendations')
@@ -226,6 +254,7 @@ export default function ProductsPage() {
       } catch (error) {
         console.warn('[Products] Fallback recommendations used:', error)
         setRecommendedProducts(FALLBACK_PRODUCTS.slice(0, 5))
+        setRecommendationReason(null)
       } finally {
         setIsRecommendationsLoading(false)
       }
@@ -530,18 +559,116 @@ export default function ProductsPage() {
       <section className="py-8 border-b bg-background">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <div className="flex items-center gap-2">
               <h2 className="text-2xl font-bold">추천 상품 TOP 5</h2>
-              <p className="text-sm text-muted-foreground">
-                사용자 활동 기반으로 선별한 추천 상품이에요.
-              </p>
+              {recommendationReason && (
+                <Popover
+                  open={isRecommendationPopoverOpen}
+                  onOpenChange={(open) => {
+                    setIsRecommendationPopoverOpen(open)
+                    if (!open) {
+                      setIsRecommendationPopoverPinned(false)
+                    }
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                      aria-label="추천 근거 보기"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (isRecommendationPopoverPinned) {
+                          // 이미 고정되어 있으면 닫기
+                          setIsRecommendationPopoverOpen(false)
+                          setIsRecommendationPopoverPinned(false)
+                        } else {
+                          // 고정하기
+                          setIsRecommendationPopoverOpen(true)
+                          setIsRecommendationPopoverPinned(true)
+                        }
+                      }}
+                      onMouseEnter={() => {
+                        if (!isRecommendationPopoverPinned) {
+                          setIsRecommendationPopoverOpen(true)
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (!isRecommendationPopoverPinned) {
+                          setIsRecommendationPopoverOpen(false)
+                        }
+                      }}
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-80 p-4"
+                    side="bottom"
+                    align="start"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                    onMouseEnter={() => {
+                      if (!isRecommendationPopoverPinned) {
+                        setIsRecommendationPopoverOpen(true)
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (!isRecommendationPopoverPinned) {
+                        setIsRecommendationPopoverOpen(false)
+                      }
+                    }}
+                    onInteractOutside={(e) => {
+                      // 외부 클릭 시 고정 해제
+                      if (isRecommendationPopoverPinned) {
+                        setIsRecommendationPopoverPinned(false)
+                      }
+                    }}
+                  >
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-sm">추천 근거</h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed select-text">
+                        {recommendationReason}
+                      </p>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
+            <p className="text-sm text-muted-foreground">
+              사용자 활동 기반으로 선별한 추천 상품이에요.
+            </p>
           </div>
 
           {isRecommendationsLoading && recommendedProducts.length === 0 ? (
-            <div className="text-sm text-muted-foreground">추천 상품 불러오는 중...</div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={`skeleton-${index}`}
+                  className="bg-white dark:bg-gray-900 border border-border/50 rounded-xl overflow-hidden shadow-sm"
+                >
+                  <Skeleton className="aspect-square w-full" />
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center gap-1.5">
+                      <Skeleton className="h-3 w-3 rounded-full" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <div className="flex items-center gap-1.5">
+                      <Skeleton className="h-3.5 w-3.5 rounded-full" />
+                      <Skeleton className="h-3.5 w-8" />
+                      <Skeleton className="h-3 w-10" />
+                    </div>
+                    <div className="pt-3 border-t border-border/50">
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {recommendedProducts.map((product) => (
                 <ProductCard
                   key={`recommend-${product.id}-${product.name}`}
@@ -554,6 +681,7 @@ export default function ProductsPage() {
                   rating={product.rating}
                   reviews={product.reviews}
                   tag={product.tag}
+                  className="scale-95"
                 />
               ))}
             </div>

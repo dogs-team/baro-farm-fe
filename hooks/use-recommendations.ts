@@ -5,6 +5,7 @@ import { recommendService } from '@/lib/api/services'
 import { getUserId } from '@/lib/api/client'
 import type {
   ProductRecommendResponse,
+  PersonalizedRecommendationResponse,
   RecipeRecommendResponse,
   PersonalizedRecommendParams,
   RecipeRecommendParams,
@@ -16,7 +17,7 @@ import type {
  *
  * @param topK - 추천할 상품 개수 (기본값: 5)
  * @param enabled - 훅 활성화 여부 (기본값: true)
- * @returns 추천 상품 목록, 로딩 상태, 에러 상태
+ * @returns 추천 상품 목록과 추천 근거, 로딩 상태, 에러 상태
  *
  * @example
  * ```tsx
@@ -24,13 +25,16 @@ import type {
  *
  * if (isLoading) return <LoadingSkeleton />;
  * if (error) return <ErrorMessage error={error} />;
- * if (!recommendations || recommendations.length === 0) {
+ * if (!recommendations || recommendations.products.length === 0) {
  *   return <EmptyRecommendationMessage />;
  * }
  *
  * return (
  *   <div>
- *     {recommendations.map(product => (
+ *     {recommendations.recommendationReason && (
+ *       <p>{recommendations.recommendationReason}</p>
+ *     )}
+ *     {recommendations.products.map(product => (
  *       <ProductCard key={product.productId} product={product} />
  *     ))}
  *   </div>
@@ -38,7 +42,7 @@ import type {
  * ```
  */
 export function usePersonalizedRecommendations(topK: number = 5, enabled: boolean = true) {
-  const [data, setData] = useState<ProductRecommendResponse[] | null>(null)
+  const [data, setData] = useState<PersonalizedRecommendationResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
