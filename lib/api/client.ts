@@ -483,9 +483,10 @@ export const orderApi = new ApiClient(API_URLS.ORDER)
 export const paymentApi = new ApiClient(API_URLS.PAYMENT) // 결제/예치금은 Order 서비스 사용
 export const aiApi = new ApiClient(API_URLS.AI)
 
-// Support 서비스 (검색, 리뷰, 체험, 정산, 배송 등)
+// Support 서비스 (리뷰, 체험, 정산, 배송 등)
 export const supportApi = new ApiClient(API_URLS.SUPPORT)
-export const searchApi = supportApi
+// Search 서비스는 AI 서비스로 이동
+export const searchApi = aiApi
 export const reviewApi = supportApi
 export const experienceApi = supportApi
 export const notificationApi = supportApi
