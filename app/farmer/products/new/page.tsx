@@ -45,7 +45,7 @@ const STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
   { value: 'HIDDEN', label: '숨김' },
 ]
 
-const PRODUCT_CATEGORY_PARENT_ID = '1f428190-f4ff-11f0-a138-82c74923ca5d'
+const PRODUCT_CATEGORY_PARENT_ID = '1f42efbf-bdef-bfbd-efbf-bdefbfbd11ef'
 
 export default function NewProductPage() {
   const router = useRouter()
