@@ -159,38 +159,32 @@ export default function NewProductPage() {
 
     setIsSubmitting(true)
     try {
-      // 이미지 업로드 (있는 경우) - uploadService가 자동으로 압축 처리
-      let uploadedImageUrls: string[] = []
-      if (images.length > 0) {
-        setIsUploadingImages(true)
-        try {
-          const uploadResults = await uploadService.uploadMultipleFiles(images, 'product')
-          uploadedImageUrls = uploadResults.files.map((f) => f.url)
-          setImageUrls(uploadedImageUrls)
-        } catch (error) {
-          console.error('이미지 업로드 실패:', error)
-          toast({
-            title: '이미지 업로드 실패',
-            description: '이미지 업로드 중 오류가 발생했습니다. 다시 시도해주세요.',
-            variant: 'destructive',
-          })
-          setIsUploadingImages(false)
-          setIsSubmitting(false)
-          return
-        } finally {
-          setIsUploadingImages(false)
-        }
-      }
+      // FormData 생성
+      const multipartFormData = new FormData()
 
-      await productService.createProduct({
+      // data 필드에 JSON 데이터 추가 (application/json 타입)
+      const productData = {
         productName: formData.productName.trim(),
         description: formData.description.trim() || undefined,
         categoryId: formData.categoryId.trim(),
         price,
         stockQuantity,
         productStatus: formData.productStatus,
-        imageUrls: uploadedImageUrls.length > 0 ? uploadedImageUrls : undefined,
-      })
+      }
+
+      // JSON을 Blob으로 변환하여 application/json 타입으로 추가
+      const dataBlob = new Blob([JSON.stringify(productData)], { type: 'application/json' })
+      multipartFormData.append('data', dataBlob, 'data.json')
+
+      // images 필드에 이미지 파일들 추가
+      if (images.length > 0) {
+        images.forEach((image) => {
+          multipartFormData.append('images', image)
+        })
+      }
+
+      // FormData로 상품 등록
+      await productService.createProductWithFormData(multipartFormData)
 
       toast({
         title: '상품 등록 완료',

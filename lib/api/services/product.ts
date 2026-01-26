@@ -20,9 +20,14 @@ export const productService = {
     return response.data
   },
 
-  // 상품 생성
+  // 상품 생성 (JSON 방식)
   async createProduct(data: ProductCreateRequest): Promise<Product> {
     return productApi.post<Product>('/api/v1/products', data)
+  },
+
+  // 상품 생성 (FormData 방식 - data 필드에 JSON, images 필드에 파일)
+  async createProductWithFormData(formData: FormData): Promise<Product> {
+    return productApi.post<Product>('/api/v1/products', formData)
   },
 
   // 상품 상세 조회
