@@ -57,9 +57,11 @@ export default function NewProductPage() {
     description: '',
     categoryId: '',
     price: '',
-    stockQuantity: '',
     productStatus: 'ON_SALE' as ProductStatus,
   })
+  const [inventoryOptions, setInventoryOptions] = useState<
+    Array<{ quantity: string; unit: string }>
+  >([{ quantity: '', unit: '1' }])
   const [images, setImages] = useState<File[]>([])
   const [categories, setCategories] = useState<CategoryListItem[]>([])
   const [isLoadingCategories, setIsLoadingCategories] = useState(false)
@@ -147,11 +149,21 @@ export default function NewProductPage() {
       return
     }
 
-    const stockQuantity = Number(formData.stockQuantity)
-    if (isNaN(stockQuantity) || stockQuantity < 0) {
+    // inventoryOptions 유효성 검사
+    const validInventoryOptions = inventoryOptions
+      .map((option) => {
+        const quantity = Number(option.quantity)
+        const unit = Number(option.unit)
+        if (isNaN(quantity) || quantity < 0) return null
+        if (isNaN(unit) || unit <= 0) return null
+        return { quantity, unit }
+      })
+      .filter((option): option is { quantity: number; unit: number } => option !== null)
+
+    if (validInventoryOptions.length === 0) {
       toast({
         title: '입력 오류',
-        description: '올바른 재고 수량을 입력해주세요.',
+        description: '최소 하나의 재고 옵션을 입력해주세요.',
         variant: 'destructive',
       })
       return
@@ -168,7 +180,7 @@ export default function NewProductPage() {
         description: formData.description.trim() || undefined,
         categoryId: formData.categoryId.trim(),
         price,
-        stockQuantity,
+        inventoryOptions: validInventoryOptions,
         productStatus: formData.productStatus,
       }
 
@@ -350,21 +362,82 @@ export default function NewProductPage() {
               />
             </div>
 
-            {/* 재고 수량 */}
+            {/* 재고 옵션 */}
             <div className="space-y-2">
-              <Label htmlFor="stockQuantity">
-                재고 수량 <span className="text-destructive">*</span>
+              <Label>
+                재고 옵션 <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="stockQuantity"
-                type="number"
-                placeholder="예: 100"
-                value={formData.stockQuantity}
-                onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                min="0"
-                step="1"
-                required
-              />
+              <div className="space-y-3">
+                {inventoryOptions.map((option, index) => (
+                  <div key={index} className="flex gap-3 items-end">
+                    <div className="flex-1 space-y-2">
+                      <Label
+                        htmlFor={`quantity-${index}`}
+                        className="text-xs text-muted-foreground"
+                      >
+                        수량
+                      </Label>
+                      <Input
+                        id={`quantity-${index}`}
+                        type="number"
+                        placeholder="예: 10"
+                        value={option.quantity}
+                        onChange={(e) => {
+                          const newOptions = [...inventoryOptions]
+                          newOptions[index] = { ...newOptions[index], quantity: e.target.value }
+                          setInventoryOptions(newOptions)
+                        }}
+                        min="0"
+                        step="1"
+                        required
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor={`unit-${index}`} className="text-xs text-muted-foreground">
+                        단위
+                      </Label>
+                      <Input
+                        id={`unit-${index}`}
+                        type="number"
+                        placeholder="예: 1"
+                        value={option.unit}
+                        onChange={(e) => {
+                          const newOptions = [...inventoryOptions]
+                          newOptions[index] = { ...newOptions[index], unit: e.target.value }
+                          setInventoryOptions(newOptions)
+                        }}
+                        min="1"
+                        step="1"
+                        required
+                      />
+                    </div>
+                    {inventoryOptions.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          setInventoryOptions(inventoryOptions.filter((_, i) => i !== index))
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {inventoryOptions.length < 10 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setInventoryOptions([...inventoryOptions, { quantity: '', unit: '1' }])
+                    }}
+                  >
+                    옵션 추가
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* 판매 상태 */}
