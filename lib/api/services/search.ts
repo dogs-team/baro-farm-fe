@@ -22,38 +22,35 @@ export const searchService = {
       status: number
       data: UnifiedSearchResponse
       message: string | null
-    }>('/api/v1/ai-service/search', { params: queryParams })
+    }>('/api/v1/search', { params: queryParams })
     return response.data
   },
 
   // 통합 자동완성
   async getAutocomplete(keyword: string): Promise<UnifiedAutoCompleteResponse> {
-    return searchApi.get<UnifiedAutoCompleteResponse>('/api/v1/ai-service/search/autocomplete', {
+    return searchApi.get<UnifiedAutoCompleteResponse>('/api/v1/search/autocomplete', {
       params: { keyword },
     })
   },
 
   // 상품 자동완성
   async getProductAutocomplete(keyword: string): Promise<ProductAutoItem[]> {
-    return searchApi.get<ProductAutoItem[]>('/api/v1/ai-service/search/product/autocomplete', {
+    return searchApi.get<ProductAutoItem[]>('/api/v1/search/product/autocomplete', {
       params: { keyword },
     })
   },
 
   // 농장 자동완성
   async getFarmAutocomplete(keyword: string): Promise<FarmAutoItem[]> {
-    return searchApi.get<FarmAutoItem[]>('/api/v1/ai-service/search/farm/autocomplete', {
+    return searchApi.get<FarmAutoItem[]>('/api/v1/search/farm/autocomplete', {
       params: { keyword },
     })
   },
 
   // 체험 자동완성
   async getExperienceAutocomplete(keyword: string): Promise<ExperienceAutoItem[]> {
-    return searchApi.get<ExperienceAutoItem[]>(
-      '/api/v1/ai-service/search/experience/autocomplete',
-      {
-        params: { keyword },
-      }
-    )
+    return searchApi.get<ExperienceAutoItem[]>('/api/v1/search/experience/autocomplete', {
+      params: { keyword },
+    })
   },
 }
