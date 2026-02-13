@@ -12,6 +12,7 @@ import { getUserRole } from '@/lib/api/client'
 import { useCartStore } from '@/lib/cart-store'
 import { useLogout } from '@/hooks/useLogout'
 import { SearchBox } from '@/components/search/search-box'
+import { getDevDummyUser } from '@/lib/dev-seller'
 
 interface HeaderProps {
   showCart?: boolean
@@ -34,8 +35,9 @@ export function Header({ showCart = false }: HeaderProps) {
       void (async () => {
         const dummyUser = localStorage.getItem('dummyUser')
         if (dummyUser) {
+          const parsedDummy = getDevDummyUser()
           setIsLoggedIn(true)
-          setUserRole(getUserRole())
+          setUserRole(parsedDummy?.role || getUserRole())
           return
         }
 
@@ -111,6 +113,15 @@ export function Header({ showCart = false }: HeaderProps) {
               className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
             >
               {'\uAD00\uB9AC\uC790'}
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
+            </Link>
+          )}
+          {userRole === 'SELLER' && (
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
+            >
+              상품관리
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
             </Link>
           )}
