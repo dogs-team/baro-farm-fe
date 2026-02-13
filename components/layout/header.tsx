@@ -91,7 +91,7 @@ export function Header({ showCart = false }: HeaderProps) {
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
           </Link>
           <Link
-            href="/experiences"
+            href="/products"
             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
           >
             농장 체험
@@ -99,7 +99,7 @@ export function Header({ showCart = false }: HeaderProps) {
           </Link>
           {/* 농장 찾기 숨김 처리 */}
           {/* <Link
-            href="/farms"
+            href="/products"
             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
           >
             농장 찾기

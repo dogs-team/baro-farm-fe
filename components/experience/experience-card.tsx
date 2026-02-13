@@ -50,7 +50,7 @@ export function ExperienceCard({ experience, className }: ExperienceCardProps) {
         className
       )}
     >
-      <Link href={`/experiences/${id}`} className="block h-full flex flex-col">
+      <Link href={`/products/${id}`} className="block h-full flex flex-col">
         <div className="relative h-64 overflow-hidden bg-muted">
           <Image
             src={displayImage}

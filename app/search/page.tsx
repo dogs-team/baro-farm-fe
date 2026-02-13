@@ -148,7 +148,7 @@ function SearchResults() {
                   </h2>
                   {(results.farms?.totalElements ?? 0) > 3 && (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/farms?search=${query}`}>더보기</Link>
+                      <Link href={`/products?search=${query}`}>더보기</Link>
                     </Button>
                   )}
                 </div>
@@ -179,7 +179,7 @@ function SearchResults() {
                   </h2>
                   {(results.experiences?.totalElements ?? 0) > 3 && (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/experiences?search=${query}`}>더보기</Link>
+                      <Link href={`/products?search=${query}`}>더보기</Link>
                     </Button>
                   )}
                 </div>

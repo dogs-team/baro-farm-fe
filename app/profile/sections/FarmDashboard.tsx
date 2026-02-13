@@ -71,7 +71,7 @@ export function FarmDashboard({ state, actions }: FarmDashboardProps) {
           <p className="text-base font-semibold">농가 운영 현황을 한눈에 보기</p>
         </div>
         <Button asChild>
-          <Link href="/farmer/dashboard">
+          <Link href="/profile">
             <ExternalLink className="h-4 w-4 mr-2" />
             농가 대시보드로 가기
           </Link>
@@ -83,7 +83,7 @@ export function FarmDashboard({ state, actions }: FarmDashboardProps) {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">내 농장</h2>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/farmer/farm">
+            <Link href="/profile">
               <Settings className="h-4 w-4 mr-2" />
               농장 관리
             </Link>
@@ -96,7 +96,7 @@ export function FarmDashboard({ state, actions }: FarmDashboardProps) {
             <Sprout className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground mb-4">등록된 농장이 없습니다.</p>
             <Button asChild>
-              <Link href="/farmer/farm">
+              <Link href="/profile">
                 <Plus className="h-4 w-4 mr-2" />
                 농장 등록하기
               </Link>
@@ -133,7 +133,7 @@ export function FarmDashboard({ state, actions }: FarmDashboardProps) {
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href={`/farms/${farm.id}`}>상세보기</Link>
+                  <Link href={`/products/${farm.id}`}>상세보기</Link>
                 </Button>
               </div>
             ))}
@@ -145,7 +145,7 @@ export function FarmDashboard({ state, actions }: FarmDashboardProps) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card
           className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => router.push('/farmer/products')}
+          onClick={() => router.push('/seller/products')}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -160,7 +160,7 @@ export function FarmDashboard({ state, actions }: FarmDashboardProps) {
 
         <Card
           className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => router.push('/farmer/experiences')}
+          onClick={() => router.push('/profile')}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
@@ -175,7 +175,7 @@ export function FarmDashboard({ state, actions }: FarmDashboardProps) {
 
         <Card
           className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => router.push('/farmer/products/new')}
+          onClick={() => router.push('/seller/products')}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
@@ -190,7 +190,7 @@ export function FarmDashboard({ state, actions }: FarmDashboardProps) {
 
         <Card
           className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => router.push('/farmer/farm')}
+          onClick={() => router.push('/profile')}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">

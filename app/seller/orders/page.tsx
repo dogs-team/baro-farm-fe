@@ -112,7 +112,7 @@ export default function SellerOrdersPage() {
             <h3 className="text-xl font-semibold mb-2">주문 내역이 없습니다</h3>
             <p className="text-muted-foreground mb-6">아직 판매된 주문이 없습니다.</p>
             <Button asChild>
-              <Link href="/farmer/products">상품 관리하기</Link>
+              <Link href="/seller/products">상품 관리하기</Link>
             </Button>
           </Card>
         ) : (

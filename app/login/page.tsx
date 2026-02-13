@@ -235,7 +235,7 @@ export default function LoginPage() {
             </div>
 
             <div className="mt-4 text-center">
-              <Link href="/farmer/login" className="text-sm text-primary hover:underline">
+              <Link href="/login" className="text-sm text-primary hover:underline">
                 농가 회원이신가요?
               </Link>
             </div>

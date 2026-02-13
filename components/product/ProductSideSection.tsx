@@ -31,7 +31,7 @@ export function ProductSideSection({
     <div className="space-y-6">
       <Card className="p-6">
         <h3 className="font-semibold mb-4">판매 농장</h3>
-        <Link href={`/farms/${farmId}`} className="block hover:opacity-80 transition-opacity">
+        <Link href={`/products/${farmId}`} className="block hover:opacity-80 transition-opacity">
           <div className="aspect-video relative rounded-lg overflow-hidden bg-muted mb-3">
             <Image src="/sunny-farm-with-greenhouse.jpg" alt={farm} fill className="object-cover" />
           </div>
@@ -39,7 +39,7 @@ export function ProductSideSection({
           <p className="text-sm text-muted-foreground mb-3">{location}</p>
         </Link>
         <Button variant="outline" className="w-full bg-transparent" asChild>
-          <Link href={`/farms/${farmId}`}>농장 방문하기</Link>
+          <Link href={`/products/${farmId}`}>농장 방문하기</Link>
         </Button>
       </Card>
 

@@ -38,7 +38,7 @@ import type {
   AdminUserType,
   AdminUserState,
   SellerStatus,
-} from '@/lib/api/types'
+} from '@/lib/api/types/admin'
 
 const USER_TYPE_OPTIONS: { value: AdminUserType | 'ALL'; label: string }[] = [
   { value: 'ALL', label: '\uC804\uCCB4' },

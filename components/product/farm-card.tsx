@@ -37,7 +37,7 @@ export function FarmCard({
         className
       )}
     >
-      <Link href={`/farms/${id}`} className="block">
+      <Link href={`/products/${id}`} className="block">
         <div className="relative h-48 overflow-hidden bg-muted">
           <Image
             src={image || '/placeholder.svg'}
@@ -48,7 +48,7 @@ export function FarmCard({
         </div>
       </Link>
       <div className="p-5">
-        <Link href={`/farms/${id}`} className="block mb-4">
+        <Link href={`/products/${id}`} className="block mb-4">
           <div className="flex items-start justify-between mb-2">
             <div>
               <h3 className="text-xl font-bold mb-1 group-hover:text-primary transition-colors duration-200">
@@ -109,7 +109,7 @@ export function FarmCard({
             className="flex-1 border-primary/20 text-foreground hover:bg-primary/5 hover:text-primary hover:border-primary/50 transition-all"
             asChild
           >
-            <Link href={`/farms/${id}`}>상세보기</Link>
+            <Link href={`/products/${id}`}>상세보기</Link>
           </Button>
           <Button
             variant="outline"

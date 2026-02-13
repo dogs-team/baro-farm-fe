@@ -79,7 +79,7 @@ export default function SellerProductsPage() {
             <p className="text-muted-foreground">판매하신 상품을 관리하실 수 있습니다</p>
           </div>
           <Button asChild>
-            <Link href="/farmer/products/new">
+            <Link href="/seller/products">
               <Plus className="h-4 w-4 mr-2" />
               상품 등록
             </Link>
@@ -96,7 +96,7 @@ export default function SellerProductsPage() {
             <h3 className="text-xl font-semibold mb-2">등록된 상품이 없습니다</h3>
             <p className="text-muted-foreground mb-6">새로운 상품을 등록해보세요.</p>
             <Button asChild>
-              <Link href="/farmer/products/new">상품 등록하기</Link>
+              <Link href="/seller/products">상품 등록하기</Link>
             </Button>
           </Card>
         ) : (
@@ -120,7 +120,7 @@ export default function SellerProductsPage() {
                 </div>
                 <div className="flex gap-2 mt-4">
                   <Button variant="outline" size="sm" className="flex-1" asChild>
-                    <Link href={`/farmer/products/${product.id}/edit`}>
+                    <Link href={`/seller/products/${product.id}/edit`}>
                       <Edit className="h-4 w-4 mr-2" />
                       수정
                     </Link>
