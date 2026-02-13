@@ -35,12 +35,12 @@ export function AddressDialog({ open, onOpenChange, address, onSave }: AddressDi
   useEffect(() => {
     if (address) {
       setFormData({
-        name: address.name,
-        phone: address.phone,
-        zipCode: address.zipCode,
-        address: address.address,
-        detailAddress: address.detailAddress,
-        isDefault: address.isDefault,
+        name: address.name || address.receiverName || '',
+        phone: address.phone || address.receiverPhone || '',
+        zipCode: address.zipCode || address.postalCode || '',
+        address: address.address || address.addressLine1 || '',
+        detailAddress: address.detailAddress || address.addressLine2 || '',
+        isDefault: address.isDefault ?? false,
       })
     } else {
       setFormData({
@@ -61,7 +61,19 @@ export function AddressDialog({ open, onOpenChange, address, onSave }: AddressDi
       return
     }
 
-    onSave(formData)
+    onSave({
+      receiverName: formData.name,
+      receiverPhone: formData.phone,
+      postalCode: formData.zipCode,
+      addressLine1: formData.address,
+      addressLine2: formData.detailAddress,
+      name: formData.name,
+      phone: formData.phone,
+      zipCode: formData.zipCode,
+      address: formData.address,
+      detailAddress: formData.detailAddress,
+      isDefault: formData.isDefault,
+    })
     onOpenChange(false)
   }
 

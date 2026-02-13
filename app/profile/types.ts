@@ -30,6 +30,7 @@ export interface ProfileActions {
   setIsSellerDialogOpen: (open: boolean) => void
   setIsAddressDialogOpen: (open: boolean) => void
   setIsDepositChargeDialogOpen: (open: boolean) => void
+  setIsWithdrawDialogOpen: (open: boolean) => void
   setEditingAddressId: (id: number | null) => void
   setChargeAmount: (amount: string) => void
   setSellerApplication: (application: SellerApplyRequestDto) => void

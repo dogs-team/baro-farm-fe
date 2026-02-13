@@ -37,7 +37,7 @@ import type {
   AdminUserSummaryResponse,
   AdminUserType,
   AdminUserState,
-  SellerStatus,
+  AdminSellerStatus,
 } from '@/lib/api/types/admin'
 
 const USER_TYPE_OPTIONS: { value: AdminUserType | 'ALL'; label: string }[] = [
@@ -55,7 +55,7 @@ const USER_STATE_OPTIONS: { value: AdminUserState | 'ALL'; label: string }[] = [
   { value: 'WITHDRAWN', label: '\uD0C8\uD1F4' },
 ]
 
-const SELLER_ACTIONS: { value: SellerStatus; label: string }[] = [
+const SELLER_ACTIONS: { value: AdminSellerStatus; label: string }[] = [
   { value: 'APPROVED', label: '\uC2B9\uC778' },
   { value: 'REJECTED', label: '\uAC70\uC808' },
   { value: 'SUSPENDED', label: '\uC815\uC9C0' },
@@ -95,7 +95,7 @@ export default function AdminUsersPage() {
   const [keyword, setKeyword] = useState('')
   const [actionTarget, setActionTarget] = useState<{
     user: AdminUserSummaryResponse
-    status: SellerStatus
+    status: AdminSellerStatus
   } | null>(null)
   const [reason, setReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)

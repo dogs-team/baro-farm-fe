@@ -157,7 +157,7 @@ export default function ProfileOrdersPage() {
                           {item.productName} x {item.quantity}
                         </span>
                         <span className="font-medium">
-                          {(item.price * item.quantity).toLocaleString()}원
+                          {((item.price ?? item.unitPrice ?? 0) * item.quantity).toLocaleString()}원
                         </span>
                       </div>
                     ))}

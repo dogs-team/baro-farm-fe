@@ -2,7 +2,7 @@ import type { PaginationParams, PaginatedResponse } from './common'
 
 export type AdminUserType = 'SELLER' | 'CUSTOMER' | 'ADMIN'
 export type AdminUserState = 'ACTIVE' | 'SUSPENDED' | 'BLOCKED' | 'WITHDRAWN'
-export type SellerStatus = 'APPROVED' | 'REJECTED' | 'SUSPENDED'
+export type AdminSellerStatus = 'APPROVED' | 'REJECTED' | 'SUSPENDED'
 
 export interface AdminUserSummaryResponse {
   userId: string
@@ -22,7 +22,7 @@ export interface AdminUserListParams extends PaginationParams {
 }
 
 export interface SellerStatusUpdateRequest {
-  sellerStatus: SellerStatus
+  sellerStatus: AdminSellerStatus
   reason?: string
 }
 
