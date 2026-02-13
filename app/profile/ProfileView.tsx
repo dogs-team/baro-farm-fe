@@ -4,7 +4,6 @@ import { Header } from '@/components/layout/header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BuyerDashboard } from './sections/BuyerDashboard'
 import { SellerDashboard } from './sections/SellerDashboard'
-import { FarmDashboard } from './sections/FarmDashboard'
 import type { ProfileState, ProfileActions } from './types'
 
 interface ProfileViewProps {
@@ -41,15 +40,12 @@ export function ProfileView({ state, actions }: ProfileViewProps) {
         </div>
 
         <Tabs value={state.activeTab} onValueChange={actions.setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="buyer" className="cursor-pointer">
               구매자 대시보드
             </TabsTrigger>
             <TabsTrigger value="seller" className="cursor-pointer">
               판매자 대시보드
-            </TabsTrigger>
-            <TabsTrigger value="farm" className="cursor-pointer">
-              농장 대시보드
             </TabsTrigger>
           </TabsList>
 
@@ -61,11 +57,6 @@ export function ProfileView({ state, actions }: ProfileViewProps) {
           {/* Seller Dashboard Tab */}
           <TabsContent value="seller" className="space-y-6">
             <SellerDashboard state={state} actions={actions} />
-          </TabsContent>
-
-          {/* Farm Dashboard Tab */}
-          <TabsContent value="farm" className="space-y-6">
-            <FarmDashboard state={state} actions={actions} />
           </TabsContent>
         </Tabs>
       </div>

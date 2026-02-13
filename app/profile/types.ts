@@ -65,10 +65,6 @@ export interface ProfileState {
   settlementData: MySettlementResponse | null
   settlementMonth: SettlementMonth | null
 
-  // Farm state
-  hasFarm: boolean | null
-  isCheckingFarm: boolean
-
   // UI state
   activeTab: string
   isSellerDialogOpen: boolean
