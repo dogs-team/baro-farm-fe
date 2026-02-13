@@ -44,7 +44,7 @@ const slides: Slide[] = [
     ctaText: '농산물 둘러보기',
     ctaLink: '/products',
     secondaryCtaText: '농장 체험 예약',
-    secondaryCtaLink: '/experiences',
+    secondaryCtaLink: '/products',
   },
   {
     id: 2,
@@ -78,7 +78,7 @@ const slides: Slide[] = [
     subtitle:
       '아이들에게는 자연의 소중함을, 어른들에게는 힐링을.\n다양한 체험 프로그램이 기다리고 있습니다.',
     ctaText: '체험 프로그램 보기',
-    ctaLink: '/experiences',
+    ctaLink: '/products',
   },
 ]
 

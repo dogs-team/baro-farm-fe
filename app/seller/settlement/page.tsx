@@ -89,7 +89,7 @@ export default function SellerSettlementPage() {
             <h3 className="text-xl font-semibold mb-2">정산 내역이 없습니다</h3>
             <p className="text-muted-foreground mb-6">아직 정산 내역이 없습니다.</p>
             <Button asChild>
-              <Link href="/farmer/dashboard">농가 대시보드로</Link>
+              <Link href="/profile">농가 대시보드로</Link>
             </Button>
           </Card>
         ) : (

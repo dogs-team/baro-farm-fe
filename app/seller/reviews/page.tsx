@@ -97,7 +97,7 @@ export default function SellerReviewsPage() {
             <h3 className="text-xl font-semibold mb-2">리뷰가 없습니다</h3>
             <p className="text-muted-foreground mb-6">아직 상품에 대한 리뷰가 없습니다.</p>
             <Button asChild>
-              <Link href="/farmer/products">상품 관리하기</Link>
+              <Link href="/seller/products">상품 관리하기</Link>
             </Button>
           </Card>
         ) : (

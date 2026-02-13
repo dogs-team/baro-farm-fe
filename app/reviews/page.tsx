@@ -12,11 +12,11 @@ import { reviewService } from '@/lib/api/services/review'
 
 interface Review {
   id: string
-  productId: string
-  productName: string
+  productId?: string
+  productName?: string
   rating: number
   content: string
-  createdAt: string
+  createdAt?: string
   images?: string[]
 }
 
@@ -32,7 +32,7 @@ export default function ReviewsPage() {
       setIsLoading(true)
       try {
         const response = await reviewService.getMyReviews({ page, size: 10 })
-        setReviews(response.content || [])
+        setReviews((response.content || []) as Review[])
         setTotalPages(response.totalPages || 0)
       } catch (error) {
         console.error('리뷰 조회 실패:', error)
@@ -103,10 +103,10 @@ export default function ReviewsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <Link
-                        href={`/products/${review.productId}`}
+                        href={review.productId ? `/products/${review.productId}` : '/products'}
                         className="font-semibold text-lg hover:text-primary"
                       >
-                        {review.productName}
+                        {review.productName || '상품'}
                       </Link>
                     </div>
                     <div className="flex items-center gap-2 mb-2">

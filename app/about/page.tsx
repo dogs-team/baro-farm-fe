@@ -218,7 +218,7 @@ export default function AboutPage() {
                 <Link href="/products">농산물 둘러보기</Link>
               </Button>
               <Button size="lg" variant="secondary" asChild>
-                <Link href="/farmer/signup">농가 등록하기</Link>
+                <Link href="/signup">농가 등록하기</Link>
               </Button>
             </div>
           </Card>
@@ -247,12 +247,12 @@ export default function AboutPage() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/experiences" className="hover:text-foreground">
+                  <Link href="/products" className="hover:text-foreground">
                     농장 체험
                   </Link>
                 </li>
                 <li>
-                  <Link href="/farms" className="hover:text-foreground">
+                  <Link href="/products" className="hover:text-foreground">
                     농장 찾기
                   </Link>
                 </li>
@@ -262,12 +262,12 @@ export default function AboutPage() {
               <h4 className="font-semibold mb-4">농가</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <Link href="/farmer/signup" className="hover:text-foreground">
+                  <Link href="/signup" className="hover:text-foreground">
                     농가 등록
                   </Link>
                 </li>
                 <li>
-                  <Link href="/farmer/login" className="hover:text-foreground">
+                  <Link href="/login" className="hover:text-foreground">
                     농가 로그인
                   </Link>
                 </li>

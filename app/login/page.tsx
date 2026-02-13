@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { authService } from '@/lib/api/services/auth'
+import { setUserRole } from '@/lib/api/client'
 import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
 
 export default function LoginPage() {
@@ -76,6 +77,7 @@ export default function LoginPage() {
           createdAt: new Date().toISOString(),
         }
         localStorage.setItem('dummyUser', JSON.stringify(dummyUser))
+        setUserRole('BUYER')
       }
 
       // 로그인 상태 변경 이벤트 발생 (헤더 등에서 상태 업데이트)
@@ -185,6 +187,7 @@ export default function LoginPage() {
                       createdAt: new Date().toISOString(),
                     }
                     localStorage.setItem('dummyUser', JSON.stringify(dummyUser))
+                    setUserRole('BUYER')
                     // 로그인 상태 변경 이벤트 발생 (헤더 등에서 상태 업데이트)
                     window.dispatchEvent(new Event('authStateChanged'))
                   }
@@ -198,6 +201,37 @@ export default function LoginPage() {
                 }}
               >
                 🚀 빠른 로그인 (개발용)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    const dummySeller = {
+                      id: 'seller-dev-001',
+                      email: 'seller@example.com',
+                      name: '개발용 판매자',
+                      phone: '010-0000-0000',
+                      role: 'SELLER' as const,
+                      sellerApproved: true,
+                      sellerId: 'seller-dev-001',
+                      createdAt: new Date().toISOString(),
+                    }
+                    localStorage.setItem('dummyUser', JSON.stringify(dummySeller))
+                    setUserRole('SELLER')
+                    window.dispatchEvent(new Event('authStateChanged'))
+                  }
+
+                  toast({
+                    title: 'SELLER 빠른 로그인 완료',
+                    description: '개발용 승인 판매자 계정으로 진입합니다.',
+                  })
+
+                  router.push('/dashboard')
+                }}
+              >
+                빠른 SELLER 로그인 (개발용)
               </Button>
               <p className="text-xs text-muted-foreground text-center mt-2">
                 개발 환경에서만 표시됩니다
@@ -235,7 +269,7 @@ export default function LoginPage() {
             </div>
 
             <div className="mt-4 text-center">
-              <Link href="/farmer/login" className="text-sm text-primary hover:underline">
+              <Link href="/login" className="text-sm text-primary hover:underline">
                 농가 회원이신가요?
               </Link>
             </div>

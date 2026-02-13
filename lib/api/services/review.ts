@@ -16,7 +16,7 @@ export const reviewService = {
     const response = await reviewApi.get<
       { data: PaginatedResponse<Review> } | PaginatedResponse<Review>
     >(`/api/v1/products/${productId}/reviews`, {
-      params,
+      params: params as Record<string, string | number | boolean | undefined>,
     })
     // API 응답이 { status, data: { content, ... }, message } 형태이므로 data 필드 추출
     return 'data' in response && response.data
@@ -31,7 +31,9 @@ export const reviewService = {
 
   // 내 리뷰 목록 조회
   async getMyReviews(params?: PaginationParams): Promise<PaginatedResponse<Review>> {
-    return reviewApi.get<PaginatedResponse<Review>>('/api/v1/me/reviews', { params })
+    return reviewApi.get<PaginatedResponse<Review>>('/api/v1/me/reviews', {
+      params: params as Record<string, string | number | boolean | undefined>,
+    })
   },
 
   // 리뷰 상세 조회

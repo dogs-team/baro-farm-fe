@@ -107,7 +107,7 @@ export function ProductMainSection({
       <div className="space-y-6">
         <div>
           <Link
-            href={`/farms/${product.sellerId}`}
+            href={`/products/${product.sellerId}`}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-2"
           >
             <MapPin className="h-3 w-3" />

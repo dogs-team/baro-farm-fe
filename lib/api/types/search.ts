@@ -77,8 +77,8 @@ export interface SearchParams {
 // Legacy type for backward compatibility
 export interface SearchResult {
   products: Product[]
-  experiences: Experience[]
-  farms: Farm[]
+  experiences: ExperienceSearchItem[]
+  farms: FarmSearchItem[]
   totalProducts: number
   totalExperiences: number
   totalFarms: number
@@ -86,5 +86,3 @@ export interface SearchResult {
 
 // Import types for legacy compatibility
 import type { Product } from './product'
-import type { Experience } from './experience'
-import type { Farm } from './farm'

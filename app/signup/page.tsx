@@ -338,7 +338,7 @@ export default function SignupPage() {
             </div>
 
             <div className="mt-4 text-center">
-              <Link href="/farmer/signup" className="text-sm text-primary hover:underline">
+              <Link href="/signup" className="text-sm text-primary hover:underline">
                 농가로 등록하시겠어요?
               </Link>
             </div>

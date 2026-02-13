@@ -1,4 +1,4 @@
-import { experienceApi } from '../client'
+import { supportApi } from '../client'
 import { s3UploadService } from './s3-upload'
 import { processImage, isImageFile } from '@/lib/utils/image-processor'
 
@@ -77,7 +77,7 @@ export const uploadService = {
       formData.append('type', type)
     }
 
-    const response = await experienceApi.post<UploadResponse>('/api/v1/files/upload', formData, {
+    const response = await supportApi.post<UploadResponse>('/api/v1/files/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -144,7 +144,7 @@ export const uploadService = {
       formData.append('type', type)
     }
 
-    const response = await experienceApi.post<MultipleUploadResponse>(
+    const response = await supportApi.post<MultipleUploadResponse>(
       '/api/v1/files/upload/multiple',
       formData,
       {
@@ -198,7 +198,7 @@ export const uploadService = {
    * @param fileUrl - 삭제할 파일 URL
    */
   async deleteFile(fileUrl: string): Promise<void> {
-    await experienceApi.delete('/api/v1/files', {
+    await supportApi.delete('/api/v1/files', {
       params: { url: fileUrl },
     })
   },

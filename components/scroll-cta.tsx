@@ -52,7 +52,7 @@ export function ScrollCTA() {
           className="bg-green-600/90 hover:bg-green-700 text-white rounded-lg font-normal px-6 py-2.5 backdrop-blur-sm shadow-lg"
           asChild
         >
-          <Link href="/farmer/signup">농가 등록하기</Link>
+          <Link href="/signup">농가 등록하기</Link>
         </Button>
         <button
           onClick={handleDismiss}
