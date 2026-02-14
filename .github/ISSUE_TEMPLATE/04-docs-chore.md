@@ -2,8 +2,8 @@
 name: '문서/의존성/기타 작업'
 about: '문서 업데이트, 라이브러리 도입, 설정/운영성 개선 등'
 title: '[CHORE] '
-labels: ['documentation', 'frontend', 'chore']
-assignees: []
+labels: 'documentation, frontend, chore'
+assignees: ''
 ---
 
 ## 작업 목적

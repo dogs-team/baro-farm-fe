@@ -2,8 +2,8 @@
 name: '디자인/UI 수정'
 about: '레이아웃, 스타일, 반응형, 접근성 등 UI 개선'
 title: '[DESIGN] '
-labels: ['frontend', 'design', 'ui']
-assignees: []
+labels: 'frontend, design, ui'
+assignees: ''
 ---
 
 ## 배경

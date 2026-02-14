@@ -2,8 +2,8 @@
 name: 'API 연결/데이터 연동'
 about: '프론트-백엔드 API 연동, 상태/에러 처리'
 title: '[API] '
-labels: ['frontend', 'api', 'integration']
-assignees: []
+labels: 'frontend, api, integration'
+assignees: ''
 ---
 
 ## 목적
