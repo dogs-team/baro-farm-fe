@@ -2,8 +2,6 @@
 name: '기능 추가/개선'
 about: '새 기능 개발, 기능 개선, 컴포넌트 분할/리팩토링 작업'
 title: '[FEATURE] '
-labels: 'enhancement, frontend, feature'
-assignees: ''
 ---
 
 ## 배경
