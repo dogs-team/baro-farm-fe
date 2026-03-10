@@ -28,7 +28,16 @@ export const paymentService = {
 export const depositService = {
   // 예치금 계정 생성 (회원가입 시 자동 생성)
   async createDeposit(): Promise<void> {
-    await supportApi.post('/api/v1/deposits/create')
+    try {
+      await supportApi.post('/api/v1/deposits/create')
+    } catch (error: any) {
+      // Backward compatibility: when backend still exposes only internal endpoint.
+      if (error?.status === 404) {
+        await supportApi.post('/internal/deposits/create')
+        return
+      }
+      throw error
+    }
   },
 
   // 예치금 조회
