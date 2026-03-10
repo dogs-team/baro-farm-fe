@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { adminService } from '@/lib/api/services/admin'
-import { authService } from '@/lib/api/services/auth'
+import { userService } from '@/lib/api/services/user'
 import type {
   AdminUserListParams,
   AdminUserSummaryResponse,
@@ -103,7 +103,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     const checkRole = async () => {
       try {
-        const currentUser = await authService.getCurrentUser()
+        const currentUser = await userService.getCurrentUser()
         if (currentUser.role !== 'ADMIN') {
           setIsAuthorized(false)
           router.replace('/')

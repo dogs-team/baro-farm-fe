@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Header } from '@/components/layout/header'
@@ -16,7 +16,7 @@ import {
   type DevSellerProduct,
 } from '@/lib/dev-seller'
 
-export default function ProductManagePage() {
+function ProductManageContent() {
   const searchParams = useSearchParams()
   const [ready, setReady] = useState(false)
   const [allowed, setAllowed] = useState(false)
@@ -56,62 +56,80 @@ export default function ProductManagePage() {
   }
 
   return (
+    <main className="container mx-auto max-w-5xl px-4 py-10">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">상품 관리</h1>
+          <p className="text-muted-foreground">개발용 판매자 상품 CRUD 화면</p>
+        </div>
+        <Button asChild>
+          <Link href={createHref}>+ 상품 등록</Link>
+        </Button>
+      </div>
+
+      {!ready ? (
+        <Card className="p-6">로딩 중...</Card>
+      ) : !allowed ? (
+        <Card className="p-6 space-y-3">
+          <p className="font-semibold">접근 권한이 없습니다.</p>
+          <p className="text-sm text-muted-foreground">
+            승인된 SELLER 계정으로 로그인해 주세요.
+          </p>
+          <Button asChild>
+            <Link href="/login">로그인으로 이동</Link>
+          </Button>
+        </Card>
+      ) : products.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="font-semibold mb-2">등록된 상품이 없습니다.</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            + 버튼으로 상품을 등록해 보세요.
+          </p>
+          <Button asChild>
+            <Link href={createHref}>상품 등록</Link>
+          </Button>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {products.map((product) => (
+            <Card key={product.id} className="p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h2 className="font-semibold text-lg">{product.name}</h2>
+                    <Badge variant="outline">{product.status}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
+                  <p className="text-sm">
+                    가격 <b>{product.price.toLocaleString()}원</b> / 재고 <b>{product.stock}</b> /
+                    카테고리 <b>{product.category}</b>
+                  </p>
+                </div>
+                <Button variant="destructive" size="sm" onClick={() => handleDelete(product.id)}>
+                  삭제
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </main>
+  )
+}
+
+export default function ProductManagePage() {
+  return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto max-w-5xl px-4 py-10">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">상품 관리</h1>
-            <p className="text-muted-foreground">개발용 더미 상품 CRUD 화면</p>
-          </div>
-          <Button asChild>
-            <Link href={createHref}>+ 상품 등록</Link>
-          </Button>
-        </div>
-
-        {!ready ? (
-          <Card className="p-6">로딩 중...</Card>
-        ) : !allowed ? (
-          <Card className="p-6 space-y-3">
-            <p className="font-semibold">접근 권한이 없습니다.</p>
-            <p className="text-sm text-muted-foreground">승인된 SELLER 계정으로 로그인해주세요.</p>
-            <Button asChild>
-              <Link href="/login">로그인으로 이동</Link>
-            </Button>
-          </Card>
-        ) : products.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="font-semibold mb-2">등록된 상품이 없습니다.</p>
-            <p className="text-sm text-muted-foreground mb-4">+ 버튼으로 상품을 등록해보세요.</p>
-            <Button asChild>
-              <Link href={createHref}>상품 등록</Link>
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {products.map((product) => (
-              <Card key={product.id} className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <h2 className="font-semibold text-lg">{product.name}</h2>
-                      <Badge variant="outline">{product.status}</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
-                    <p className="text-sm">
-                      가격: <b>{product.price.toLocaleString()}원</b> / 재고: <b>{product.stock}</b>{' '}
-                      / 카테고리: <b>{product.category}</b>
-                    </p>
-                  </div>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(product.id)}>
-                    삭제
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </main>
+      <Suspense
+        fallback={
+          <main className="container mx-auto max-w-5xl px-4 py-10">
+            <Card className="p-6">로딩 중...</Card>
+          </main>
+        }
+      >
+        <ProductManageContent />
+      </Suspense>
     </div>
   )
 }

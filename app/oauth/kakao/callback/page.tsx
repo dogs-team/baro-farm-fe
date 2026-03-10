@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { authService } from '@/lib/api/services/auth'
+import { userService } from '@/lib/api/services/user'
 import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
 
 function KakaoCallbackPageContent() {
@@ -29,13 +29,8 @@ function KakaoCallbackPageContent() {
 
     const run = async () => {
       try {
-        // [1] 백엔드 콜백 호출 -> HttpOnly cookie 발급
-        await authService.oauthCallback({ provider: 'kakao', code, state })
-
-        // [2] 로그인 상태 갱신 이벤트
+        await userService.oauthCallback({ provider: 'kakao', code, state })
         window.dispatchEvent(new Event('authStateChanged'))
-
-        // [3] 완료 후 홈으로 이동
         router.replace('/')
       } catch (error: unknown) {
         console.error('OAuth callback error:', error)
@@ -49,16 +44,16 @@ function KakaoCallbackPageContent() {
     }
 
     void run()
-  }, [router, searchParams, toast])
+  }, [code, router, state, toast])
 
   if (!code || !state) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="p-6 w-full max-w-md space-y-4">
-          <h1 className="text-xl font-semibold">OAuth ?戨嫷 ?る</h1>
-          <p className="text-sm text-muted-foreground">code/state臧€ ?勲澖?橃棃?惦媹??</p>
+          <h1 className="text-xl font-semibold">OAuth 응답 오류</h1>
+          <p className="text-sm text-muted-foreground">code/state가 누락되었습니다.</p>
           <Button asChild className="w-full">
-            <Link href="/login">搿滉犯?胳溂搿??措彊</Link>
+            <Link href="/login">로그인으로 이동</Link>
           </Button>
         </Card>
       </div>

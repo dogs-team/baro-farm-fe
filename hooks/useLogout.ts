@@ -1,5 +1,5 @@
 import { useRouter } from 'next/navigation'
-import { authService } from '@/lib/api/services/auth'
+import { userService } from '@/lib/api/services/user'
 import { useCartStore } from '@/lib/cart-store'
 import { useToast } from '@/hooks/use-toast'
 
@@ -14,7 +14,7 @@ export function useLogout() {
     try {
       // API 로그아웃 시도 (실패해도 계속 진행)
       try {
-        await authService.logout()
+        await userService.logout()
       } catch (error) {
         console.warn('로그아웃 API 호출 실패 (로컬 로그아웃 진행):', error)
       }

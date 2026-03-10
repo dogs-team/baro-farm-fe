@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { authService } from '@/lib/api/services/auth'
+import { userService } from '@/lib/api/services/user'
 import {
   Dialog,
   DialogContent,
@@ -60,7 +60,7 @@ export function PasswordChangeDialog({ trigger }: PasswordChangeDialogProps) {
 
     setIsChanging(true)
     try {
-      await authService.changePassword({
+      await userService.changePassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
       })

@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 // TODO: 알림 기능 추가 예정
 // import { NotificationIcon } from '@/components/notification'
-import { authService } from '@/lib/api/services/auth'
+import { userService } from '@/lib/api/services/user'
 import { getUserRole } from '@/lib/api/client'
 import { useCartStore } from '@/lib/cart-store'
 import { useLogout } from '@/hooks/useLogout'
@@ -43,7 +43,7 @@ export function Header({ showCart = false }: HeaderProps) {
 
         try {
           // [1] cookie 기반 인증 확인 (auth/me)
-          const currentUser = await authService.getCurrentUser()
+          const currentUser = await userService.getCurrentUser()
           setIsLoggedIn(true)
           setUserRole(currentUser.role || getUserRole())
         } catch {

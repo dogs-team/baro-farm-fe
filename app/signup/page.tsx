@@ -11,7 +11,7 @@ import { Sprout, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
-import { authService } from '@/lib/api/services/auth'
+import { userService } from '@/lib/api/services/user'
 import { depositService } from '@/lib/api/services/payment'
 import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
 
@@ -64,7 +64,7 @@ export default function SignupPage() {
 
     setIsLoading(true)
     try {
-      await authService.requestEmailVerification(formData.email)
+      await userService.requestEmailVerification(formData.email)
       setIsVerificationSent(true)
       toast({
         title: '인증 코드 발송',
@@ -95,7 +95,7 @@ export default function SignupPage() {
 
     setIsVerifying(true)
     try {
-      const result = await authService.verifyEmailCode(formData.email, verificationCode)
+      const result = await userService.verifyEmailCode(formData.email, verificationCode)
       if (result.verified) {
         setIsEmailVerified(true)
         toast({
@@ -146,7 +146,7 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      await authService.signup({
+      await userService.signup({
         email: formData.email,
         password: formData.password,
         name: formData.name,
@@ -163,10 +163,13 @@ export default function SignupPage() {
 
       toast({
         title: '회원가입 완료',
-        description: '회원가입이 완료되었습니다. 로그인해주세요.',
+        description: '회원가입이 완료되었습니다.',
       })
 
-      router.push('/login')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('authStateChanged'))
+      }
+      router.push('/')
     } catch (error: any) {
       console.error('Signup error:', error)
 

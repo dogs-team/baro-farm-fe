@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
-import { authService } from '@/lib/api/services/auth'
+import { userService } from '@/lib/api/services/user'
 import type { ProfileUser } from '../types'
 
 export function useProfileUser() {
@@ -27,7 +27,7 @@ export function useProfileUser() {
 
       setIsLoadingUser(true)
       try {
-        const currentUser = await authService.getCurrentUser()
+        const currentUser = await userService.getCurrentUser()
         console.log('현재 사용자 정보:', currentUser)
         setUser({
           ...currentUser,

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useLogout } from '@/hooks/useLogout'
-import { authService } from '@/lib/api/services/auth'
+import { userService } from '@/lib/api/services/user'
 import { sellerService } from '@/lib/api/services/seller'
 import { useProfileUser } from './hooks/useProfileUser'
 import { useProfileOrders } from './hooks/useProfileOrders'
@@ -128,7 +128,7 @@ export function ProfileContainer() {
 
     try {
       // TODO: 실제 판매자 신청 API 호출 (현재는 grantSellerRole로 임시 처리)
-      await authService.grantSellerRole(user.userId)
+      await userService.grantSellerRole(user.userId)
 
       toast({
         title: '판매자 전환 완료',
@@ -145,7 +145,7 @@ export function ProfileContainer() {
       })
 
       // 사용자 정보 다시 조회하여 역할 업데이트
-      const updatedUser = await authService.getCurrentUser()
+      const updatedUser = await userService.getCurrentUser()
       setUser({
         ...updatedUser,
         name: updatedUser.email?.split('@')[0] || '사용자',
@@ -173,7 +173,7 @@ export function ProfileContainer() {
 
     try {
       // [1] account withdraw request (cookie-based)
-      await authService.withdraw({ reason: 'USER_WITHDRAW' })
+      await userService.withdraw({ reason: 'USER_WITHDRAW' })
 
       toast({
         title: '회원 탈퇴 완료',

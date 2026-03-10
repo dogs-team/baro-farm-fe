@@ -11,7 +11,7 @@ import { Sprout } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
-import { authService } from '@/lib/api/services/auth'
+import { userService } from '@/lib/api/services/user'
 import { setUserRole } from '@/lib/api/client'
 import { getErrorMessage, getErrorTitle } from '@/lib/utils/error-handler'
 
@@ -33,7 +33,7 @@ export default function LoginPage() {
       }
 
       // [1] state 발급 -> 카카오 authorize로 리다이렉트
-      const { state } = await authService.requestOauthState()
+      const { state } = await userService.requestOauthState()
       const redirectUri = `${window.location.origin}/oauth/kakao/callback`
       const authorizeUrl = new URL('https://kauth.kakao.com/oauth/authorize')
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
 
     try {
       // 실제 API 호출
-      await authService.login({
+      await userService.login({
         email,
         password,
       })
