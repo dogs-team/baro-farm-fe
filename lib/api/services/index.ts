@@ -1,4 +1,4 @@
-export { authService } from './auth'
+export { userService } from './user'
 export { productService } from './product'
 export { cartService } from './cart'
 export { orderService } from './order'

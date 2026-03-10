@@ -4,11 +4,10 @@ export type { ServiceName } from './config'
 
 // API Client
 export {
-  authApi,
+  userApi,
   buyerApi,
   cartApi,
   productApi,
-  sellerApi,
   orderApi,
   paymentApi,
   settlementApi,
@@ -23,7 +22,7 @@ export * from './types'
 
 // Services
 export {
-  authService,
+  userService,
   productService,
   cartService,
   orderService,

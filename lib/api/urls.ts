@@ -6,31 +6,28 @@ const GATEWAY_URL = (
 ).replace(/\/$/, '')
 
 export const SERVICE_PREFIX = {
-  AUTH: '/auth-service',
+  USER: '/user-service',
   BUYER: '/buyer-service',
-  SELLER: '/seller-service',
   ORDER: '/order-service',
   PAYMENT: '/payment-service',
   AI: '/ai-service',
   SUPPORT: '/support-service',
 } as const
 
+// [1] user-service는 인증과 판매자 관련 API를 함께 제공하므로 단일 base URL만 유지합니다.
+const USER_SERVICE_URL =
+  process.env.NEXT_PUBLIC_USER_SERVICE_URL &&
+  process.env.NEXT_PUBLIC_USER_SERVICE_URL.trim().length > 0
+    ? process.env.NEXT_PUBLIC_USER_SERVICE_URL.replace(/\/$/, '')
+    : `${GATEWAY_URL}${SERVICE_PREFIX.USER}`
+
 export const API_URLS = {
-  AUTH:
-    process.env.NEXT_PUBLIC_AUTH_SERVICE_URL &&
-    process.env.NEXT_PUBLIC_AUTH_SERVICE_URL.trim().length > 0
-      ? process.env.NEXT_PUBLIC_AUTH_SERVICE_URL.replace(/\/$/, '')
-      : `${GATEWAY_URL}${SERVICE_PREFIX.AUTH}`,
+  USER: USER_SERVICE_URL,
   BUYER:
     process.env.NEXT_PUBLIC_BUYER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_BUYER_SERVICE_URL.trim().length > 0
       ? process.env.NEXT_PUBLIC_BUYER_SERVICE_URL.replace(/\/$/, '')
       : `${GATEWAY_URL}${SERVICE_PREFIX.BUYER}`,
-  SELLER:
-    process.env.NEXT_PUBLIC_SELLER_SERVICE_URL &&
-    process.env.NEXT_PUBLIC_SELLER_SERVICE_URL.trim().length > 0
-      ? process.env.NEXT_PUBLIC_SELLER_SERVICE_URL.replace(/\/$/, '')
-      : `${GATEWAY_URL}${SERVICE_PREFIX.SELLER}`,
   ORDER:
     process.env.NEXT_PUBLIC_ORDER_SERVICE_URL &&
     process.env.NEXT_PUBLIC_ORDER_SERVICE_URL.trim().length > 0

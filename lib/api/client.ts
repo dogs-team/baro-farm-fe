@@ -20,10 +20,9 @@ export type { StoredTokens } from './session'
 export type { ApiError, RequestOptions, ApiResponse } from './http-client'
 
 export {
-  authApi,
+  userApi,
   buyerApi,
   cartApi,
-  sellerApi,
   orderApi,
   paymentApi,
   aiApi,

@@ -21,7 +21,8 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
   }
 
   try {
-    const response = await fetch(`${API_URLS.AUTH}/api/v1/auth/refresh`, {
+    // [1] 401 재시도는 항상 user-service의 refresh 엔드포인트만 사용합니다.
+    const response = await fetch(`${API_URLS.USER}/api/v1/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
     })
@@ -112,7 +113,7 @@ export class ApiClient {
       try {
         console.error('  Details:', JSON.stringify(details, null, 2))
       } catch {
-        console.error('  Details: [직렬화 불가능한 객체]')
+        console.error('  Details: [unserializable object]')
       }
     }
 
@@ -176,11 +177,11 @@ export class ApiClient {
 
       if (networkError.message) {
         if (networkError.message.includes('Failed to fetch')) {
-          errorMessage = '서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.'
+          errorMessage = '서버에 연결할 수 없습니다. 네트워크 연결을 확인해 주세요.'
         } else if (networkError.message.includes('NetworkError')) {
-          errorMessage = '네트워크 연결이 끊어졌습니다.'
+          errorMessage = '네트워크 연결이 불안정합니다.'
         } else if (networkError.message.includes('timeout')) {
-          errorMessage = '요청 시간이 초과되었습니다. 다시 시도해주세요.'
+          errorMessage = '요청 시간이 초과되었습니다. 다시 시도해 주세요.'
         } else {
           errorMessage = `연결 오류: ${networkError.message}`
         }

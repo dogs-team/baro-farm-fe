@@ -1,9 +1,10 @@
-import { authApi } from '../client'
+import { userApi } from '../client'
 import type { AdminUserListParams, AdminUserPage, SellerStatusUpdateRequest } from '../types'
 
 export const adminService = {
+  // [1] 관리자 사용자 조회도 user-service 내부의 인증/권한 API를 사용합니다.
   async getUsers(params: AdminUserListParams): Promise<AdminUserPage> {
-    const response = await authApi.get<{ data: AdminUserPage } | AdminUserPage>(
+    const response = await userApi.get<{ data: AdminUserPage } | AdminUserPage>(
       '/api/v1/auth/admin/users',
       {
         params: {
@@ -23,6 +24,6 @@ export const adminService = {
   },
 
   async updateSellerStatus(userId: string, data: SellerStatusUpdateRequest): Promise<void> {
-    await authApi.post(`/api/v1/auth/sellers/${userId}/status`, data)
+    await userApi.post(`/api/v1/auth/sellers/${userId}/status`, data)
   },
 }
