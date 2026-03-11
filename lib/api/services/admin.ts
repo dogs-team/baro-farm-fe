@@ -1,29 +1,25 @@
 import { userApi } from '../client'
-import type { AdminUserListParams, AdminUserPage, SellerStatusUpdateRequest } from '../types'
+import type {
+  AdminSellerApplicationListParams,
+  AdminSellerApplicationPage,
+  SellerStatusUpdateRequest,
+} from '../types'
 
 export const adminService = {
-  // [1] 관리자 사용자 조회도 user-service 내부의 인증/권한 API를 사용합니다.
-  async getUsers(params: AdminUserListParams): Promise<AdminUserPage> {
-    const response = await userApi.get<{ data: AdminUserPage } | AdminUserPage>(
-      '/api/v1/auth/admin/users',
-      {
-        params: {
-          type: params.type,
-          state: params.state,
-          keyword: params.keyword,
-          page: params.page,
-          size: params.size,
-          sort: params.sort,
-        },
-      }
-    )
-
-    return response && typeof response === 'object' && 'data' in response
-      ? response.data
-      : (response as AdminUserPage)
+  async getSellerApplications(
+    params: AdminSellerApplicationListParams
+  ): Promise<AdminSellerApplicationPage> {
+    return userApi.get<AdminSellerApplicationPage>('/api/v1/admin/sellers/applications', {
+      params: {
+        sellerStatus: params.sellerStatus,
+        page: params.page,
+        size: params.size,
+        sort: params.sort,
+      },
+    })
   },
 
   async updateSellerStatus(userId: string, data: SellerStatusUpdateRequest): Promise<void> {
-    await userApi.post(`/api/v1/auth/sellers/${userId}/status`, data)
+    await userApi.post(`/api/v1/admin/sellers/${userId}/status`, data)
   },
 }

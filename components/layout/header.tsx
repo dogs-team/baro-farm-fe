@@ -33,20 +33,19 @@ export function Header({ showCart = false }: HeaderProps) {
     // 로그인 상태 확인
     const checkAuth = () => {
       void (async () => {
-        const dummyUser = localStorage.getItem('dummyUser')
-        if (dummyUser) {
-          const parsedDummy = getDevDummyUser()
-          setIsLoggedIn(true)
-          setUserRole(parsedDummy?.role || getUserRole())
-          return
-        }
-
         try {
           // [1] cookie 기반 인증 확인 (auth/me)
           const currentUser = await userService.getCurrentUser()
           setIsLoggedIn(true)
           setUserRole(currentUser.role || getUserRole())
         } catch {
+          const parsedDummy = getDevDummyUser()
+          if (parsedDummy) {
+            setIsLoggedIn(true)
+            setUserRole(parsedDummy.role || getUserRole())
+            return
+          }
+
           setIsLoggedIn(false)
           setUserRole(null)
         }
@@ -87,14 +86,14 @@ export function Header({ showCart = false }: HeaderProps) {
         <nav className="hidden lg:flex items-center gap-10">
           <Link
             href="/products"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
+            className="relative flex h-6 items-center text-sm font-medium leading-none text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors group"
           >
             농산물 장터
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
           </Link>
           <Link
             href="/products"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
+            className="relative flex h-6 items-center text-sm font-medium leading-none text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors group"
           >
             농장 체험
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
@@ -110,16 +109,16 @@ export function Header({ showCart = false }: HeaderProps) {
           {userRole === 'ADMIN' && (
             <Link
               href="/admin/users"
-              className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
+              className="relative flex h-6 items-center text-sm font-medium leading-none text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors group"
             >
-              {'\uAD00\uB9AC\uC790'}
+              관리자
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>
             </Link>
           )}
           {userRole === 'SELLER' && (
             <Link
               href="/dashboard"
-              className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors relative group"
+              className="relative flex h-6 items-center text-sm font-medium leading-none text-gray-700 dark:text-gray-300 hover:text-[#22C55E] dark:hover:text-[#4ADE80] transition-colors group"
             >
               상품관리
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#22C55E] dark:bg-[#4ADE80] group-hover:w-full transition-all duration-300"></span>

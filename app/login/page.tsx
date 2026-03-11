@@ -66,18 +66,8 @@ export default function LoginPage() {
         password,
       })
 
-      // 더미 사용자 정보를 localStorage에 저장 (농가 등록 페이지에서 사용)
       if (typeof window !== 'undefined') {
-        const dummyUser = {
-          id: 1,
-          email: email || 'user@example.com',
-          name: '홍길동',
-          phone: '010-1234-5678',
-          role: 'BUYER' as const,
-          createdAt: new Date().toISOString(),
-        }
-        localStorage.setItem('dummyUser', JSON.stringify(dummyUser))
-        setUserRole('BUYER')
+        localStorage.removeItem('dummyUser')
       }
 
       // 로그인 상태 변경 이벤트 발생 (헤더 등에서 상태 업데이트)

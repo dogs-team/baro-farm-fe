@@ -70,5 +70,9 @@ export interface SellerInfoData {
   status: SellerStatus // 판매자 상태
 }
 
+export interface SellerInfoBulkItem extends SellerInfoData {
+  userId?: string
+}
+
 // 판매자 상태
 export type SellerStatus = 'APPROVED' | 'PENDING' | 'REJECTED' | 'SUSPENDED'
