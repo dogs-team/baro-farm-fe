@@ -35,7 +35,7 @@
 
 | 기술           | 버전   | 설명                          |
 | -------------- | ------ | ----------------------------- |
-| **Next.js**    | 16.0.3 | React 프레임워크 (App Router) |
+| **Next.js**    | 16.1.6 | React 프레임워크 (App Router) |
 | **React**      | 19.2.0 | UI 라이브러리                 |
 | **TypeScript** | ^5.x   | 정적 타입 언어                |
 
@@ -64,6 +64,7 @@
 | **Prettier**    | ^3.7.3  | 코드 포맷팅      |
 | **Husky**       | ^9.1.7  | Git Hooks        |
 | **lint-staged** | ^16.2.7 | Staged 파일 린팅 |
+| **pnpm**        | 10.32.1 | 패키지 매니저    |
 
 ### 기타
 
@@ -126,7 +127,7 @@ beadv2_2_dogs_FE/
 ### 필수 조건
 
 - **Node.js** >= 20.x
-- **pnpm** >= 9.x (권장) 또는 npm/yarn
+- **pnpm** >= 10.x
 
 ### 설치
 
@@ -146,6 +147,20 @@ pnpm dev
 ```
 
 개발 서버가 http://localhost:3000 에서 실행됩니다.
+
+### 보안 점검
+
+이 프로젝트는 `pnpm`을 기준으로 의존성을 관리합니다. 취약점 점검은 아래 명령으로 수행합니다.
+
+```bash
+# 의존성 취약점 점검
+pnpm audit
+
+# 타입 검사
+pnpm typecheck
+```
+
+현재 문서 기준 잠금 파일 상태에서는 `pnpm audit` 결과 취약점 `0건`입니다.
 
 ---
 
@@ -215,6 +230,9 @@ pnpm start
 # ESLint 검사
 pnpm lint
 
+# 타입 검사
+pnpm typecheck
+
 # ESLint 자동 수정
 pnpm lint:fix
 
@@ -245,25 +263,25 @@ pnpm format:check
 ### API 사용 예시
 
 ```typescript
-import { authService, productService, cartService } from '@/lib/api'
+import { userService } from '@/lib/api/services/user'
+import { sellerService } from '@/lib/api/services/seller'
 
 // 로그인
-const { accessToken, user } = await authService.login({
+const loginResult = await userService.login({
   email: 'user@example.com',
   password: 'password123',
 })
 
-// 상품 목록 조회
-const products = await productService.getProducts({
-  page: 0,
-  size: 20,
-  category: '채소',
-})
+// OAuth state 발급
+const { state } = await userService.requestOauthState()
 
-// 장바구니에 추가
-await cartService.addToCart({
-  productId: 1,
-  quantity: 2,
+// 판매자 신청
+await sellerService.applyForSeller({
+  storeName: '바로농장',
+  businessRegNo: '123-45-67890',
+  businessOwnerName: '홍길동',
+  settlementBank: '국민은행',
+  settlementAccount: '12345678901234',
 })
 ```
 
@@ -271,10 +289,17 @@ await cartService.addToCart({
 
 ```env
 # .env.local
-NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:8081
-NEXT_PUBLIC_PRODUCT_SERVICE_URL=http://localhost:8084
-NEXT_PUBLIC_CART_SERVICE_URL=http://localhost:8083
-# ... 기타 서비스 URL
+NEXT_PUBLIC_API_GATEWAY_URL=http://localhost:8080
+
+# 선택: 개별 서비스 URL 직접 지정
+NEXT_PUBLIC_USER_SERVICE_URL=http://localhost:8080/user-service
+NEXT_PUBLIC_BUYER_SERVICE_URL=http://localhost:8080/buyer-service
+NEXT_PUBLIC_ORDER_SERVICE_URL=http://localhost:8080/order-service
+NEXT_PUBLIC_PAYMENT_SERVICE_URL=http://localhost:8080/payment-service
+NEXT_PUBLIC_AI_SERVICE_URL=http://localhost:8080/ai-service
+
+# OAuth
+NEXT_PUBLIC_KAKAO_CLIENT_ID=your_kakao_client_id
 ```
 
 ---
