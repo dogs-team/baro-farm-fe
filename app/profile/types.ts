@@ -76,5 +76,6 @@ export interface ProfileState {
   chargeAmount: string
   isCharging: boolean
   isWithdrawing: boolean
+  isSubmittingSellerApplication: boolean
   sellerApplication: SellerApplyRequestDto
 }

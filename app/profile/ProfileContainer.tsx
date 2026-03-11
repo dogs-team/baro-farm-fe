@@ -19,7 +19,7 @@ import type {
 export function ProfileContainer() {
   const { toast } = useToast()
   const { logout } = useLogout()
-  const { user, isLoadingUser, mounted, setUser } = useProfileUser()
+  const { user, isLoadingUser, mounted } = useProfileUser()
   const { orders, isLoadingOrders, orderCount, buyerCount, reviewCount, isLoadingReviews } =
     useProfileOrders(user.userId, mounted)
   const { depositBalance, isLoadingDeposit, fetchDepositBalance } = useProfileDeposit(mounted)
@@ -32,14 +32,15 @@ export function ProfileContainer() {
   const [isDepositChargeDialogOpen, setIsDepositChargeDialogOpen] = useState(false)
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [isSubmittingSellerApplication, setIsSubmittingSellerApplication] = useState(false)
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null)
   const [chargeAmount, setChargeAmount] = useState<string>('')
   const [sellerApplication, setSellerApplication] = useState<SellerApplyRequestDto>({
     storeName: '',
-    business_reg_no: '',
-    business_owner_name: '',
-    settlement_bank: '',
-    settlement_account: '',
+    businessRegNo: '',
+    businessOwnerName: '',
+    settlementBank: '',
+    settlementAccount: '',
   })
 
   // 판매자 정산금액 상태
@@ -117,7 +118,11 @@ export function ProfileContainer() {
   }, [mounted, user.role])
 
   const handleSellerApplication = async () => {
-    if (!sellerApplication.storeName || !sellerApplication.business_reg_no) {
+    if (isSubmittingSellerApplication) {
+      return
+    }
+
+    if (!sellerApplication.storeName || !sellerApplication.businessRegNo) {
       toast({
         title: '필수 항목 입력',
         description: '상점 이름과 사업자 등록 번호를 입력해주세요.',
@@ -127,44 +132,32 @@ export function ProfileContainer() {
     }
 
     try {
-      // TODO: 실제 판매자 신청 API 호출 (현재는 grantSellerRole로 임시 처리)
-      await userService.grantSellerRole(user.userId)
+      setIsSubmittingSellerApplication(true)
+      await sellerService.applyForSeller(sellerApplication)
 
       toast({
-        title: '판매자 전환 완료',
-        description: '판매자 권한이 부여되었습니다. 페이지를 새로고침합니다.',
+        title: '판매자 신청 완료',
+        description: '판매자 신청이 접수되었습니다. 승인 후 판매자 기능을 사용할 수 있습니다.',
       })
 
       setIsSellerDialogOpen(false)
       setSellerApplication({
         storeName: '',
-        business_reg_no: '',
-        business_owner_name: '',
-        settlement_bank: '',
-        settlement_account: '',
+        businessRegNo: '',
+        businessOwnerName: '',
+        settlementBank: '',
+        settlementAccount: '',
       })
-
-      // 사용자 정보 다시 조회하여 역할 업데이트
-      const updatedUser = await userService.getCurrentUser()
-      setUser({
-        ...updatedUser,
-        name: updatedUser.email?.split('@')[0] || '사용자',
-        phone: '',
-        avatar: '/placeholder.svg',
-      })
-
-      // 페이지 새로고침
-      setTimeout(() => {
-        window.location.reload()
-      }, 1500)
     } catch (error: unknown) {
-      console.error('판매자 전환 실패:', error)
+      console.error('판매자 신청 실패:', error)
       toast({
         title: '신청 실패',
         description:
-          (error as { message?: string })?.message || '판매자 전환 신청 중 오류가 발생했습니다.',
+          (error as { message?: string })?.message || '판매자 신청 중 오류가 발생했습니다.',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmittingSellerApplication(false)
     }
   }
 
@@ -255,6 +248,7 @@ export function ProfileContainer() {
     chargeAmount,
     isCharging,
     isWithdrawing,
+    isSubmittingSellerApplication,
     sellerApplication,
   }
 

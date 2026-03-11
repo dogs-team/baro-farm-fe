@@ -40,6 +40,10 @@ const refreshAccessTokenWithRefreshToken = async (): Promise<boolean> => {
   }
 }
 
+const isAuthRetryExcluded = (url: string): boolean => {
+  return /\/api\/v1\/auth\/(login|logout|refresh|oauth\/callback|oauth\/state)(\/|$)/.test(url)
+}
+
 export class ApiClient {
   private baseUrl: string
 
@@ -160,7 +164,7 @@ export class ApiClient {
       return await doFetch()
     } catch (error: any) {
       const apiError = error as ApiError
-      if (apiError.status === 401) {
+      if (apiError.status === 401 && !isAuthRetryExcluded(url)) {
         const refreshed = await refreshAccessTokenWithRefreshToken()
         if (refreshed) {
           return await doFetch()

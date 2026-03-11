@@ -27,12 +27,22 @@ function KakaoCallbackPageContent() {
       return
     }
 
+    const storageKey = `oauth:kakao:${state}:${code}`
+    const existingStatus = sessionStorage.getItem(storageKey)
+    if (existingStatus === 'processing' || existingStatus === 'completed') {
+      return
+    }
+
+    sessionStorage.setItem(storageKey, 'processing')
+
     const run = async () => {
       try {
         await userService.oauthCallback({ provider: 'kakao', code, state })
+        sessionStorage.setItem(storageKey, 'completed')
         window.dispatchEvent(new Event('authStateChanged'))
         router.replace('/')
       } catch (error: unknown) {
+        sessionStorage.removeItem(storageKey)
         console.error('OAuth callback error:', error)
         setStatus('error')
         toast({

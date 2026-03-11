@@ -77,67 +77,76 @@ export function SellerDashboard({ state, actions }: SellerDashboardProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="business_reg_no">사업자 등록 번호</Label>
+                  <Label htmlFor="businessRegNo">사업자 등록 번호</Label>
                   <Input
-                    id="business_reg_no"
+                    id="businessRegNo"
                     placeholder="예: 123-45-67890"
-                    value={state.sellerApplication.business_reg_no}
+                    value={state.sellerApplication.businessRegNo}
                     onChange={(e) =>
                       actions.setSellerApplication({
                         ...state.sellerApplication,
-                        business_reg_no: e.target.value,
+                        businessRegNo: e.target.value,
                       })
                     }
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="business_owner_name">사업자 대표자명</Label>
+                  <Label htmlFor="businessOwnerName">사업자 대표자명</Label>
                   <Input
-                    id="business_owner_name"
+                    id="businessOwnerName"
                     placeholder="사업자 대표자명"
-                    value={state.sellerApplication.business_owner_name}
+                    value={state.sellerApplication.businessOwnerName}
                     onChange={(e) =>
                       actions.setSellerApplication({
                         ...state.sellerApplication,
-                        business_owner_name: e.target.value,
+                        businessOwnerName: e.target.value,
                       })
                     }
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="settlement_bank">정산 은행</Label>
+                  <Label htmlFor="settlementBank">정산 은행</Label>
                   <Input
-                    id="settlement_bank"
+                    id="settlementBank"
                     placeholder="예: 국민은행"
-                    value={state.sellerApplication.settlement_bank}
+                    value={state.sellerApplication.settlementBank}
                     onChange={(e) =>
                       actions.setSellerApplication({
                         ...state.sellerApplication,
-                        settlement_bank: e.target.value,
+                        settlementBank: e.target.value,
                       })
                     }
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="settlement_account">정산 계좌번호</Label>
+                  <Label htmlFor="settlementAccount">정산 계좌번호</Label>
                   <Input
-                    id="settlement_account"
+                    id="settlementAccount"
                     placeholder="정산 계좌번호"
-                    value={state.sellerApplication.settlement_account}
+                    value={state.sellerApplication.settlementAccount}
                     onChange={(e) =>
                       actions.setSellerApplication({
                         ...state.sellerApplication,
-                        settlement_account: e.target.value,
+                        settlementAccount: e.target.value,
                       })
                     }
                   />
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => actions.setIsSellerDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => actions.setIsSellerDialogOpen(false)}
+                  disabled={state.isSubmittingSellerApplication}
+                >
                   취소
                 </Button>
-                <Button onClick={actions.handleSellerApplication}>신청하기</Button>
+                <Button
+                  onClick={actions.handleSellerApplication}
+                  disabled={state.isSubmittingSellerApplication}
+                >
+                  {state.isSubmittingSellerApplication ? '신청 중...' : '신청하기'}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>

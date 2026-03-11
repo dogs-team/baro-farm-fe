@@ -1,10 +1,10 @@
 // 판매자 전환 시 요청 (사업자 정보)
 export interface SellerApplyRequestDto {
   storeName: string // 상점 이름
-  business_reg_no: string // 사업자 등록 번호
-  business_owner_name: string // 사업자 대표자명
-  settlement_bank: string // 정산 은행
-  settlement_account: string // 정산 계좌번호
+  businessRegNo: string // 사업자 등록 번호
+  businessOwnerName: string // 사업자 대표자명
+  settlementBank: string // 정산 은행
+  settlementAccount: string // 정산 계좌번호
 }
 
 // 정산 항목 (SETTLEMENT_ITEM 기반 - 주문 상품 단위 정산)
