@@ -38,6 +38,19 @@ export const sellerService = {
     return userApi.post('/api/v1/sellers/apply', data)
   },
 
+  async hasSellerAccess(userId: string, role?: string | null): Promise<boolean> {
+    if (role === 'SELLER') {
+      return true
+    }
+
+    try {
+      const info = await sellerService.getSellerInfo(userId)
+      return info.status === 'APPROVED'
+    } catch {
+      return false
+    }
+  },
+
   async getMySettlements(): Promise<MySettlementResponse> {
     const response = await userApi.get<{ data: MySettlementResponse }>('/api/v1/settlements/me')
     return response.data

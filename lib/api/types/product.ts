@@ -4,21 +4,32 @@
 export type ProductCategory = 'FRUIT' | 'VEGETABLE' | 'GRAIN' | 'NUT' | 'ROOT' | 'MUSHROOM' | 'ETC'
 export type ProductStatus = 'ON_SALE' | 'DISCOUNTED' | 'SOLD_OUT' | 'HIDDEN' | 'DELETED'
 
-// 백엔드에서 그대로 반환하는 Product DB
+export interface ProductInventoryOption {
+  inventoryId: string
+  quantity: number
+  unit: number
+}
+
 export interface Product {
-  farmName: string
   id: string // UUID
   sellerId: string // UUID
   productName: string
   description: string
-  productCategory: ProductCategory
+  categoryId: string
+  categoryCode?: string
+  categoryName?: string
   price: number
-  stockQuantity: number
   productStatus: ProductStatus
   imageUrls: string[]
+  inventoryOptions?: ProductInventoryOption[]
+  stockQuantity?: number
+  productCategory?: ProductCategory
+  farmName?: string
   createdAt: string
   updatedAt: string
   reviewCount?: number // 리뷰 개수 (옵셔널)
+  positiveReviewSummary?: string[]
+  negativeReviewSummary?: string[]
 }
 
 export interface ProductCreateRequest {
@@ -26,9 +37,13 @@ export interface ProductCreateRequest {
   description?: string
   categoryId: string
   price: number
-  stockQuantity: number
+  inventoryOptions: ProductInventoryOptionRequest[]
   productStatus?: ProductStatus
-  imageUrls?: string[]
+}
+
+export interface ProductInventoryOptionRequest {
+  quantity: number
+  unit: number
 }
 
 export interface ProductUpdateRequest {
@@ -47,4 +62,7 @@ export interface ProductListParams {
   maxPrice?: number
   farmId?: number
   keyword?: string
+  page?: number
+  size?: number
+  sort?: string
 }

@@ -20,13 +20,15 @@ export const productService = {
     return response.data
   },
 
-  // 상품 생성 (JSON 방식)
-  async createProduct(data: ProductCreateRequest): Promise<Product> {
-    return productApi.post<Product>('/api/v1/products', data)
-  },
+  // 상품 생성은 multipart/form-data만 허용합니다.
+  async createProduct(data: ProductCreateRequest, images: File[] = []): Promise<Product> {
+    const formData = new FormData()
+    formData.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }))
 
-  // 상품 생성 (FormData 방식 - data 필드에 JSON, images 필드에 파일)
-  async createProductWithFormData(formData: FormData): Promise<Product> {
+    images.forEach((image) => {
+      formData.append('images', image)
+    })
+
     return productApi.post<Product>('/api/v1/products', formData)
   },
 

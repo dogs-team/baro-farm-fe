@@ -7,7 +7,7 @@ const GATEWAY_URL = (
 
 export const SERVICE_PREFIX = {
   USER: '/user-service',
-  BUYER: '/buyer-service',
+  BUYER: '/shopping-service',
   ORDER: '/order-service',
   PAYMENT: '/payment-service',
   AI: '/ai-service',

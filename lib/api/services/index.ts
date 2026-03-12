@@ -1,5 +1,6 @@
 export { userService } from './user'
 export { productService } from './product'
+export { categoryService } from './category'
 export { cartService } from './cart'
 export { orderService } from './order'
 export { paymentService, depositService } from './payment'
